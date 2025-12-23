@@ -171,6 +171,24 @@ body {
     font-size: 1rem;
 }
 
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.user-profile i {
+    font-size: 1.5rem;
+    color: var(--primary);
+}
+
+.btn-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.813rem;
+}
+
 .theme-toggle {
     background: var(--bg-tertiary);
     border: none;

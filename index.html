@@ -49,6 +49,13 @@
                     <span>Events</span>
                 </button>
             </div>
+            <div class="user-profile" id="userProfile" style="display: none;">
+                <i class="fa-solid fa-user-circle"></i>
+                <span id="userEmail"></span>
+                <button class="btn btn-secondary btn-sm" id="logoutBtn">
+                    <i class="fa-solid fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
             <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
                 <i class="fa-solid fa-moon"></i>
             </button>
@@ -420,6 +427,53 @@
         </div>
     </div>
 
+    <!-- Login Modal -->
+    <div class="modal" id="loginModal">
+        <div class="modal-content">
+            <h2>Login to Habit Tracker</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" required placeholder="your@email.com">
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" required placeholder="Enter your password">
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">Login</button>
+                </div>
+            </form>
+            <p style="text-align: center; margin-top: 1rem; color: var(--text-secondary);">
+                Don't have an account? <a href="#" id="showSignupBtn" style="color: var(--primary);">Sign up</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- Signup Modal -->
+    <div class="modal" id="signupModal">
+        <div class="modal-content">
+            <h2>Create Account</h2>
+            <form id="signupForm">
+                <div class="form-group">
+                    <label for="signupEmail">Email</label>
+                    <input type="email" id="signupEmail" required placeholder="your@email.com">
+                </div>
+                <div class="form-group">
+                    <label for="signupPassword">Password</label>
+                    <input type="password" id="signupPassword" required minlength="6"
+                        placeholder="At least 6 characters">
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">Sign Up</button>
+                </div>
+            </form>
+            <p style="text-align: center; margin-top: 1rem; color: var(--text-secondary);">
+                Already have an account? <a href="#" id="showLoginBtn" style="color: var(--primary);">Login</a>
+            </p>
+        </div>
+    </div>
+
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
@@ -434,6 +488,18 @@
     <script src="js/goals.js"></script>
     <script src="js/quotes.js"></script>
     <script src="js/analytics.js"></script>
+
+    <!-- Supabase Integration -->
+    <script type="module" src="js/supabase.js"></script>
+    <script type="module" src="js/auth.js"></script>
+    <script type="module">
+        import Auth from './js/auth.js';
+        // Initialize auth when DOM is loaded
+        window.addEventListener('DOMContentLoaded', () => {
+            Auth.init();
+        });
+    </script>
+
     <script src="js/app.js"></script>
 
     <!-- Service Worker Registration -->
