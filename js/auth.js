@@ -104,7 +104,13 @@ const Auth = {
 
             if (error) throw error;
 
+            this.currentUser = data.user;
             document.getElementById('loginModal').classList.remove('active');
+            this.showAuthenticatedUI();
+
+            // Load user data and refresh views
+            await this.loadUserData();
+
             this.showMessage('Login successful!', 'success');
         } catch (error) {
             this.showMessage(error.message, 'error');
