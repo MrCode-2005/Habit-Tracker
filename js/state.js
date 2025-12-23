@@ -6,6 +6,7 @@ const State = {
     tasks: [],
     habits: [],
     events: [],
+    goals: [],
     currentFilter: 'all',
 
     init() {
@@ -13,6 +14,7 @@ const State = {
         this.tasks = Storage.get('tasks') || [];
         this.habits = Storage.get('habits') || [];
         this.events = Storage.get('events') || [];
+        this.goals = Storage.get('goals') || [];
 
         // Clean up old data (tasks older than 7 days)
         this.cleanupOldTasks();
@@ -163,6 +165,67 @@ const State = {
 
     saveEvents() {
         Storage.set('events', this.events);
+    },
+
+    // Goals
+    getGoals() {
+        return this.goals;
+    },
+
+    getActiveGoals() {
+        const now = new Date();
+        return this.goals.filter(goal => new Date(goal.endDate) > now || !goal.completed);
+    },
+
+    addGoal(goal) {
+        goal.id = Date.now().toString();
+        goal.createdAt = new Date().toISOString();
+        this.goals.push(goal);
+        this.saveGoals();
+        return goal;
+    },
+
+    updateGoal(goalId, updates) {
+        goalId = String(goalId);
+        const index = this.goals.findIndex(g => String(g.id) === goalId);
+        if (index !== -1) {
+            this.goals[index] = { ...this.goals[index], ...updates };
+            this.saveGoals();
+            return this.goals[index];
+        }
+        return null;
+    },
+
+    deleteGoal(goalId) {
+        goalId = String(goalId);
+        this.goals = this.goals.filter(g => String(g.id) !== goalId);
+        this.saveGoals();
+    },
+
+    toggleGoalComplete(goalId) {
+        goalId = String(goalId);
+        const goal = this.goals.find(g => String(g.id) === goalId);
+        if (goal) {
+            goal.completed = !goal.completed;
+            goal.completedAt = goal.completed ? new Date().toISOString() : null;
+            this.saveGoals();
+            return goal;
+        }
+        return null;
+    },
+
+    cleanupExpiredGoals() {
+        const now = new Date();
+        // Remove goals that are both completed and expired
+        this.goals = this.goals.filter(goal => {
+            const endDate = new Date(goal.endDate);
+            return !(goal.completed && endDate < now);
+        });
+        this.saveGoals();
+    },
+
+    saveGoals() {
+        Storage.set('goals', this.goals);
     },
 
     // Helpers

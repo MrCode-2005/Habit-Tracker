@@ -13,12 +13,15 @@ document.addEventListener('DOMContentLoaded', () => {
     Tasks.init();
     Habits.init();
     Events.init();
+    Goals.init();
+    Quotes.init();
     Analytics.init();
 
     // Expose modules globally for onclick handlers
     window.Tasks = Tasks;
     window.Habits = Habits;
     window.Events = Events;
+    window.Goals = Goals;
     window.Timer = Timer;
     window.Analytics = Analytics;
 

@@ -81,11 +81,21 @@ const Tasks = {
         subtasksList.appendChild(entry);
     },
 
+    calculateTotalTime(subtasks) {
+        if (!subtasks || subtasks.length === 0) return { hours: 0, minutes: 0 };
+
+        const totalMinutes = subtasks.reduce((sum, subtask) => sum + subtask.duration, 0);
+        return {
+            hours: Math.floor(totalMinutes / 60),
+            minutes: totalMinutes % 60
+        };
+    },
+
     saveTask() {
         const title = document.getElementById('taskTitle').value;
         const block = document.getElementById('taskBlock').value;
-        const hours = parseInt(document.getElementById('taskHours').value);
-        const minutes = parseInt(document.getElementById('taskMinutes').value);
+        let hours = parseInt(document.getElementById('taskHours').value) || 0;
+        let minutes = parseInt(document.getElementById('taskMinutes').value) || 0;
         const priority = document.getElementById('taskPriority').value;
         const notes = document.getElementById('taskNotes').value;
 
@@ -96,6 +106,13 @@ const Tasks = {
             duration: parseInt(entry.querySelector('input[type="number"]').value),
             completed: false
         }));
+
+        // Auto-calculate total time from subtasks if subtasks exist
+        if (subtasks.length > 0) {
+            const calculated = this.calculateTotalTime(subtasks);
+            hours = calculated.hours;
+            minutes = calculated.minutes;
+        }
 
         const taskData = {
             title,
@@ -172,6 +189,8 @@ const Tasks = {
             `;
         }
 
+        const totalTimeLabel = task.subtasks && task.subtasks.length > 0 ? '(Total from subtasks)' : '';
+
         div.innerHTML = `
             <div class="task-header">
                 <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''} 
@@ -183,7 +202,7 @@ const Tasks = {
                 <span>${priorityLabels[task.priority]}</span>
                 <span class="task-time">
                     <i class="fa-solid fa-clock"></i>
-                    ${task.hours}h ${task.minutes}m
+                    ${task.hours}h ${task.minutes}m ${totalTimeLabel}
                 </span>
             </div>
             ${task.notes ? `<div class="task-notes">${task.notes}</div>` : ''}

@@ -7,6 +7,8 @@ const Timer = {
     remainingSeconds: 0,
     isRunning: false,
     currentTask: null,
+    currentSubtask: null,
+    currentSubtaskIndex: null,
     isBreak: false,
 
     init() {
@@ -30,9 +32,11 @@ const Timer = {
         });
     },
 
-    openPanel(task, subtask = null) {
+    openPanel(task, subtask = null, subtaskIndex = null) {
         this.stop();
         this.currentTask = task;
+        this.currentSubtask = subtask;
+        this.currentSubtaskIndex = subtaskIndex;
         this.isBreak = false;
 
         // Set timer duration
@@ -102,6 +106,15 @@ const Timer = {
         document.getElementById('startTimerBtn').style.display = 'flex';
         document.getElementById('pauseTimerBtn').style.display = 'none';
 
+        // Auto-complete subtask if this was a subtask timer
+        if (this.currentSubtask && this.currentSubtaskIndex !== null && this.currentTask) {
+            State.toggleSubtaskComplete(this.currentTask.id, this.currentSubtaskIndex);
+            // Refresh the task display
+            if (typeof Tasks !== 'undefined') {
+                Tasks.render();
+            }
+        }
+
         // Play notification sound (optional)
         this.playNotificationSound();
 
@@ -109,7 +122,11 @@ const Timer = {
         if (this.isBreak) {
             alert('Break time is over! Time to get back to work.');
         } else {
-            alert('Task completed! Great job!');
+            if (this.currentSubtask) {
+                alert(`Subtask "${this.currentSubtask.title}" completed! Great job!`);
+            } else {
+                alert('Task completed! Great job!');
+            }
         }
     },
 
