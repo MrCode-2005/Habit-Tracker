@@ -1,208 +1,213 @@
 // Supabase Client Configuration
-// This file initializes the Supabase client for database operations
+// Uses CDN import for browser compatibility
 
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-
-// Supabase credentials
 const SUPABASE_URL = 'https://plgwxcegcnowqxoggujk.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_TlSPeqIQP7ilpp3mLbmE7A_Qw7A0BDt';
 
-// Create Supabase client
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true
-    }
-});
+// Supabase client will be initialized when loaded
+let supabaseClient = null;
 
-// Check if user is authenticated
-export async function isAuthenticated() {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session !== null;
+// Initialize Supabase
+async function initSupabase() {
+    // Wait for Supabase library to load
+    if (typeof window.supabase !== 'undefined') {
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: {
+                autoRefreshToken: true,
+                persistSession: true,
+                detectSessionInUrl: true
+            }
+        });
+        return supabaseClient;
+    }
+    return null;
 }
 
-// Get current user
-export async function getCurrentUser() {
-    const { data: { user } } = await supabase.auth.getUser();
-    return user;
+// Get Supabase client
+function getSupabase() {
+    return supabaseClient;
 }
 
 // Database helper functions
-export const db = {
+const SupabaseDB = {
+    // Get current user
+    async getCurrentUser() {
+        const client = getSupabase();
+        if (!client) return null;
+        const { data: { user } } = await client.auth.getUser();
+        return user;
+    },
+
     // Tasks
     async getTasks(userId) {
-        const { data, error } = await supabase
+        const client = getSupabase();
+        if (!client) return [];
+        const { data, error } = await client
             .from('tasks')
             .select('*')
             .eq('user_id', userId)
             .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) { console.error('Error fetching tasks:', error); return []; }
         return data || [];
     },
 
-    async addTask(userId, task) {
-        const { data, error } = await supabase
+    async upsertTask(userId, task) {
+        const client = getSupabase();
+        if (!client) return null;
+        const { data, error } = await client
             .from('tasks')
-            .insert([{ ...task, user_id: userId }])
+            .upsert([{ ...task, user_id: userId }])
             .select()
             .single();
 
-        if (error) throw error;
-        return data;
-    },
-
-    async updateTask(taskId, updates) {
-        const { data, error } = await supabase
-            .from('tasks')
-            .update(updates)
-            .eq('id', taskId)
-            .select()
-            .single();
-
-        if (error) throw error;
+        if (error) console.error('Error upserting task:', error);
         return data;
     },
 
     async deleteTask(taskId) {
-        const { error } = await supabase
+        const client = getSupabase();
+        if (!client) return;
+        const { error } = await client
             .from('tasks')
             .delete()
             .eq('id', taskId);
 
-        if (error) throw error;
+        if (error) console.error('Error deleting task:', error);
     },
 
     // Habits
     async getHabits(userId) {
-        const { data, error } = await supabase
+        const client = getSupabase();
+        if (!client) return [];
+        const { data, error } = await client
             .from('habits')
             .select('*')
             .eq('user_id', userId)
             .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) { console.error('Error fetching habits:', error); return []; }
         return data || [];
     },
 
-    async addHabit(userId, habit) {
-        const { data, error } = await supabase
+    async upsertHabit(userId, habit) {
+        const client = getSupabase();
+        if (!client) return null;
+        const { data, error } = await client
             .from('habits')
-            .insert([{ ...habit, user_id: userId }])
+            .upsert([{ ...habit, user_id: userId }])
             .select()
             .single();
 
-        if (error) throw error;
-        return data;
-    },
-
-    async updateHabit(habitId, updates) {
-        const { data, error } = await supabase
-            .from('habits')
-            .update(updates)
-            .eq('id', habitId)
-            .select()
-            .single();
-
-        if (error) throw error;
+        if (error) console.error('Error upserting habit:', error);
         return data;
     },
 
     async deleteHabit(habitId) {
-        const { error } = await supabase
+        const client = getSupabase();
+        if (!client) return;
+        const { error } = await client
             .from('habits')
             .delete()
             .eq('id', habitId);
 
-        if (error) throw error;
+        if (error) console.error('Error deleting habit:', error);
     },
 
     // Goals
     async getGoals(userId) {
-        const { data, error } = await supabase
+        const client = getSupabase();
+        if (!client) return [];
+        const { data, error } = await client
             .from('goals')
             .select('*')
             .eq('user_id', userId)
             .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) { console.error('Error fetching goals:', error); return []; }
         return data || [];
     },
 
-    async addGoal(userId, goal) {
-        const { data, error } = await supabase
+    async upsertGoal(userId, goal) {
+        const client = getSupabase();
+        if (!client) return null;
+
+        // Convert camelCase to snake_case for database
+        const dbGoal = {
+            id: goal.id,
+            user_id: userId,
+            title: goal.title,
+            type: goal.type,
+            duration: goal.duration,
+            start_date: goal.startDate,
+            end_date: goal.endDate,
+            completed: goal.completed
+        };
+
+        const { data, error } = await client
             .from('goals')
-            .insert([{ ...goal, user_id: userId }])
+            .upsert([dbGoal])
             .select()
             .single();
 
-        if (error) throw error;
-        return data;
-    },
-
-    async updateGoal(goalId, updates) {
-        const { data, error } = await supabase
-            .from('goals')
-            .update(updates)
-            .eq('id', goalId)
-            .select()
-            .single();
-
-        if (error) throw error;
+        if (error) console.error('Error upserting goal:', error);
         return data;
     },
 
     async deleteGoal(goalId) {
-        const { error } = await supabase
+        const client = getSupabase();
+        if (!client) return;
+        const { error } = await client
             .from('goals')
             .delete()
             .eq('id', goalId);
 
-        if (error) throw error;
+        if (error) console.error('Error deleting goal:', error);
     },
 
     // Events
     async getEvents(userId) {
-        const { data, error } = await supabase
+        const client = getSupabase();
+        if (!client) return [];
+        const { data, error } = await client
             .from('events')
             .select('*')
             .eq('user_id', userId)
             .order('date_time', { ascending: true });
 
-        if (error) throw error;
+        if (error) { console.error('Error fetching events:', error); return []; }
         return data || [];
     },
 
-    async addEvent(userId, event) {
-        const { data, error } = await supabase
+    async upsertEvent(userId, event) {
+        const client = getSupabase();
+        if (!client) return null;
+
+        const dbEvent = {
+            id: event.id,
+            user_id: userId,
+            name: event.name,
+            date_time: event.dateTime
+        };
+
+        const { data, error } = await client
             .from('events')
-            .insert([{ ...event, user_id: userId }])
+            .upsert([dbEvent])
             .select()
             .single();
 
-        if (error) throw error;
-        return data;
-    },
-
-    async updateEvent(eventId, updates) {
-        const { data, error } = await supabase
-            .from('events')
-            .update(updates)
-            .eq('id', eventId)
-            .select()
-            .single();
-
-        if (error) throw error;
+        if (error) console.error('Error upserting event:', error);
         return data;
     },
 
     async deleteEvent(eventId) {
-        const { error } = await supabase
+        const client = getSupabase();
+        if (!client) return;
+        const { error } = await client
             .from('events')
             .delete()
             .eq('id', eventId);
 
-        if (error) throw error;
+        if (error) console.error('Error deleting event:', error);
     }
 };

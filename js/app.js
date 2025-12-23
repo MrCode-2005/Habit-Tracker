@@ -3,7 +3,7 @@
 // ===================================
 
 // Initialize all modules when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     // Initialize core modules
     State.init();
     Theme.init();
@@ -16,6 +16,11 @@ document.addEventListener('DOMContentLoaded', () => {
     Goals.init();
     Quotes.init();
     Analytics.init();
+
+    // Initialize Supabase Auth (must be after other modules)
+    if (typeof Auth !== 'undefined') {
+        await Auth.init();
+    }
 
     // Expose modules globally for onclick handlers
     window.Tasks = Tasks;
