@@ -310,6 +310,7 @@ const Analytics = {
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
+                aspectRatio: 2,
                 plugins: {
                     legend: {
                         display: true,
@@ -333,7 +334,7 @@ const Analytics = {
                         }
                     }
                 },
-                cutout: '60%'
+                cutout: '65%'
             },
             plugins: [{
                 id: 'centerText',
