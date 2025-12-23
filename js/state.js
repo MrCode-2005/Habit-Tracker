@@ -157,6 +157,17 @@ const State = {
         return event;
     },
 
+    updateEvent(eventId, updates) {
+        eventId = String(eventId); // Ensure string comparison
+        const index = this.events.findIndex(e => String(e.id) === eventId);
+        if (index !== -1) {
+            this.events[index] = { ...this.events[index], ...updates };
+            this.saveEvents();
+            return this.events[index];
+        }
+        return null;
+    },
+
     deleteEvent(eventId) {
         eventId = String(eventId); // Ensure string comparison
         this.events = this.events.filter(e => String(e.id) !== eventId);

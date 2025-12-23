@@ -967,6 +967,17 @@ body {
     margin-top: var(--spacing-xs);
 }
 
+.event-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: center;
+    margin-left: var(--spacing-lg);
+}
+
+.event-actions .btn {
+    padding: var(--spacing-sm) var(--spacing-md);
+}
+
 /* ===================================
    Responsive Design
    =================================== */

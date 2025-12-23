@@ -3,6 +3,7 @@
 // ===================================
 
 const Events = {
+    currentEditId: null,
     updateInterval: null,
 
     init() {
@@ -26,8 +27,32 @@ const Events = {
         }, 1000);
     },
 
-    showEventModal() {
-        document.getElementById('eventForm').reset();
+    showEventModal(eventId = null) {
+        this.currentEditId = eventId;
+        const modal = document.getElementById('eventModal');
+        const form = document.getElementById('eventForm');
+
+        if (eventId) {
+            // Edit mode
+            const event = State.events.find(e => e.id === eventId);
+            if (event) {
+                document.getElementById('eventName').value = event.name;
+
+                // Convert ISO string to datetime-local format
+                const eventDate = new Date(event.dateTime);
+                const year = eventDate.getFullYear();
+                const month = String(eventDate.getMonth() + 1).padStart(2, '0');
+                const day = String(eventDate.getDate()).padStart(2, '0');
+                const hours = String(eventDate.getHours()).padStart(2, '0');
+                const minutes = String(eventDate.getMinutes()).padStart(2, '0');
+                const dateTimeValue = `${year}-${month}-${day}T${hours}:${minutes}`;
+
+                document.getElementById('eventDateTime').value = dateTimeValue;
+            }
+        } else {
+            // Add mode
+            form.reset();
+        }
 
         // Set minimum datetime to now
         const now = new Date();
@@ -39,14 +64,19 @@ const Events = {
         const minDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
 
         document.getElementById('eventDateTime').setAttribute('min', minDateTime);
-        document.getElementById('eventModal').classList.add('active');
+        modal.classList.add('active');
     },
 
     saveEvent() {
         const name = document.getElementById('eventName').value;
         const dateTime = document.getElementById('eventDateTime').value;
 
-        State.addEvent({ name, dateTime });
+        if (this.currentEditId) {
+            State.updateEvent(this.currentEditId, { name, dateTime });
+        } else {
+            State.addEvent({ name, dateTime });
+        }
+
         document.getElementById('eventModal').classList.remove('active');
         this.render();
     },
@@ -92,9 +122,14 @@ const Events = {
                 <div class="countdown-display" data-event-id="${event.id}">Calculating...</div>
                 <div class="countdown-label">Time Remaining</div>
             </div>
-            <button class="btn btn-danger" onclick="Events.deleteEvent('${event.id}')" style="margin-left: 1rem;">
-                <i class="fa-solid fa-trash"></i>
-            </button>
+            <div class="event-actions">
+                <button class="btn btn-secondary" onclick="Events.showEventModal('${event.id}')" style="margin-right: 0.5rem;">
+                    <i class="fa-solid fa-edit"></i>
+                </button>
+                <button class="btn btn-danger" onclick="Events.deleteEvent('${event.id}')">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </div>
         `;
 
         // Calculate initial countdown
