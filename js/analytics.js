@@ -1,6 +1,7 @@
 const Analytics = {
     weeklyChart: null,
     monthlyChart: null,
+    goalsChart: null,
     habitCharts: [], // Store all habit chart instances
 
     init() {
@@ -10,6 +11,7 @@ const Analytics = {
     renderCharts() {
         this.renderWeeklyChart();
         this.renderMonthlyChart();
+        this.renderGoalsChart();
         this.renderHabitCharts();
     },
 
@@ -240,6 +242,129 @@ const Analytics = {
                     }
                 }
             }
+        });
+    },
+
+    getGoalsData() {
+        const goals = State.getGoals();
+        const now = new Date();
+
+        let completed = 0;
+        let failed = 0;
+        let active = 0;
+
+        goals.forEach(goal => {
+            const endDate = new Date(goal.endDate);
+
+            if (goal.completed) {
+                completed++;
+            } else if (endDate < now) {
+                failed++;
+            } else {
+                active++;
+            }
+        });
+
+        const total = goals.length;
+        const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+        return {
+            labels: ['Completed', 'Failed', 'Active'],
+            data: [completed, failed, active],
+            total,
+            completionRate
+        };
+    },
+
+    renderGoalsChart() {
+        const ctx = document.getElementById('goalsChart');
+        if (!ctx) return;
+
+        const { labels, data, total, completionRate } = this.getGoalsData();
+        const theme = Theme.getCurrentTheme();
+        const isDark = theme === 'dark';
+
+        if (this.goalsChart) {
+            this.goalsChart.destroy();
+        }
+
+        this.goalsChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: [
+                        'rgba(16, 185, 129, 0.8)',  // Completed - green
+                        'rgba(239, 68, 68, 0.8)',    // Failed - red
+                        'rgba(245, 158, 11, 0.8)'    // Active - orange
+                    ],
+                    borderColor: [
+                        'rgba(16, 185, 129, 1)',
+                        'rgba(239, 68, 68, 1)',
+                        'rgba(245, 158, 11, 1)'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'bottom',
+                        labels: {
+                            color: isDark ? '#cbd5e1' : '#495057',
+                            padding: 15,
+                            font: {
+                                size: 12
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                                return `${label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                },
+                cutout: '60%'
+            },
+            plugins: [{
+                id: 'centerText',
+                beforeDraw: function (chart) {
+                    const width = chart.width;
+                    const height = chart.height;
+                    const ctx = chart.ctx;
+                    ctx.restore();
+
+                    const fontSize = (height / 114).toFixed(2);
+                    ctx.font = `bold ${fontSize}em sans-serif`;
+                    ctx.textBaseline = 'middle';
+                    ctx.fillStyle = isDark ? '#cbd5e1' : '#495057';
+
+                    const text = `${completionRate}%`;
+                    const textX = Math.round((width - ctx.measureText(text).width) / 2);
+                    const textY = height / 2;
+
+                    ctx.fillText(text, textX, textY);
+
+                    // Add label
+                    ctx.font = `${fontSize / 2}em sans-serif`;
+                    ctx.fillStyle = isDark ? '#94a3b8' : '#6c757d';
+                    const labelText = 'Success Rate';
+                    const labelX = Math.round((width - ctx.measureText(labelText).width) / 2);
+                    const labelY = textY + (height / 10);
+                    ctx.fillText(labelText, labelX, labelY);
+
+                    ctx.save();
+                }
+            }]
         });
     },
 
