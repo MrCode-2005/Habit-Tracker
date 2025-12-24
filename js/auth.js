@@ -11,6 +11,7 @@ const Auth = {
         if (!client) {
             console.log('Supabase not available, using local storage only');
             this.showMainApp();
+            this.isInitialized = true;
             return;
         }
 
@@ -22,24 +23,30 @@ const Auth = {
                 if (session) {
                     this.currentUser = session.user;
                     this.showAuthenticatedUI();
-                    await this.loadUserData();
+                    // Load data in background, don't block
+                    this.loadUserData().catch(err => console.error('Error loading user data:', err));
                 }
             } else if (event === 'SIGNED_OUT') {
                 this.currentUser = null;
                 this.showLoginUI();
             }
-            // Note: INITIAL_SESSION is handled below via getSession()
         });
 
-        // Explicitly check for existing session (more reliable than INITIAL_SESSION event)
+        // Explicitly check for existing session with timeout
         try {
-            const { data: { session }, error } = await client.auth.getSession();
+            const sessionPromise = client.auth.getSession();
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Session check timed out')), 5000)
+            );
+
+            const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]);
             console.log('getSession result:', session?.user?.email, error);
 
             if (session) {
                 this.currentUser = session.user;
                 this.showAuthenticatedUI();
-                await this.loadUserData();
+                // Load data in background, don't block UI
+                this.loadUserData().catch(err => console.error('Error loading user data:', err));
             } else {
                 this.showLoginUI();
             }

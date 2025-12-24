@@ -4,7 +4,7 @@
 
 // Initialize all modules when DOM is ready
 document.addEventListener('DOMContentLoaded', async () => {
-    // Initialize core modules
+    // Initialize core modules first
     State.init();
     Theme.init();
     Timer.init();
@@ -17,11 +17,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     Quotes.init();
     Analytics.init();
 
-    // Initialize Supabase Auth (must be after other modules)
-    if (typeof Auth !== 'undefined') {
-        await Auth.init();
-    }
-
     // Expose modules globally for onclick handlers
     window.Tasks = Tasks;
     window.Habits = Habits;
@@ -30,13 +25,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.Timer = Timer;
     window.Analytics = Analytics;
 
-    // Setup navigation
+    // Setup navigation and modals FIRST (before Auth which may be slow)
     setupNavigation();
-
-    // Setup modal close handlers
     setupModals();
 
-    console.log('Habit & Task Tracker initialized successfully!');
+    console.log('Habit & Task Tracker UI initialized!');
+
+    // Initialize Supabase Auth AFTER UI is ready (non-blocking for UI)
+    if (typeof Auth !== 'undefined') {
+        try {
+            await Auth.init();
+            console.log('Auth initialized successfully!');
+        } catch (error) {
+            console.error('Auth initialization failed:', error);
+            // App still works with localStorage even if Auth fails
+        }
+    }
+
+    console.log('Habit & Task Tracker fully initialized!');
 });
 
 // Navigation between views
