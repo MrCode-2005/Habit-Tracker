@@ -1,5 +1,5 @@
 // Service Worker for Habit Tracker PWA
-const CACHE_NAME = 'habit-tracker-v1';
+const CACHE_NAME = 'habit-tracker-v2';
 const OFFLINE_URL = '/offline.html';
 
 // Assets to cache on install
@@ -19,6 +19,8 @@ const PRECACHE_ASSETS = [
     '/js/goals.js',
     '/js/quotes.js',
     '/js/analytics.js',
+    '/js/supabase.js',
+    '/js/auth.js',
     '/manifest.json',
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
     'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'
@@ -56,7 +58,13 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - serve from cache, fallback to network
 self.addEventListener('fetch', (event) => {
-    // Skip cross-origin requests
+    // IMPORTANT: Never cache Supabase API calls - they must always go to network
+    if (event.request.url.includes('supabase.co')) {
+        event.respondWith(fetch(event.request));
+        return;
+    }
+
+    // Skip other cross-origin requests (except CDNs we want to cache)
     if (!event.request.url.startsWith(self.location.origin) &&
         !event.request.url.includes('cdnjs.cloudflare.com') &&
         !event.request.url.includes('cdn.jsdelivr.net')) {

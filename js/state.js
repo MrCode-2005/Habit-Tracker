@@ -159,8 +159,16 @@ const State = {
 
     // Sync a single habit to Supabase
     async syncHabitToSupabase(habit) {
+        console.log('syncHabitToSupabase called:', habit?.name);
+        console.log('Auth available:', typeof Auth !== 'undefined');
+        console.log('Auth.isAuthenticated():', typeof Auth !== 'undefined' ? Auth.isAuthenticated() : 'N/A');
+        console.log('User ID:', typeof Auth !== 'undefined' ? Auth.getUserId() : 'N/A');
+
         if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
+            console.log('Calling SupabaseDB.upsertHabit...');
             await SupabaseDB.upsertHabit(Auth.getUserId(), habit);
+        } else {
+            console.warn('Skipping Supabase sync - user not authenticated');
         }
     },
 
