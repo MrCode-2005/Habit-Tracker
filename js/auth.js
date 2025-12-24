@@ -14,25 +14,39 @@ const Auth = {
             return;
         }
 
-        // Listen for auth changes FIRST - this will catch INITIAL_SESSION on refresh
+        // Listen for auth changes
         client.auth.onAuthStateChange(async (event, session) => {
             console.log('Auth state change:', event, session?.user?.email);
 
-            if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
                 if (session) {
                     this.currentUser = session.user;
                     this.showAuthenticatedUI();
                     await this.loadUserData();
-                } else {
-                    // No session on initial load
-                    this.currentUser = null;
-                    this.showLoginUI();
                 }
             } else if (event === 'SIGNED_OUT') {
                 this.currentUser = null;
                 this.showLoginUI();
             }
+            // Note: INITIAL_SESSION is handled below via getSession()
         });
+
+        // Explicitly check for existing session (more reliable than INITIAL_SESSION event)
+        try {
+            const { data: { session }, error } = await client.auth.getSession();
+            console.log('getSession result:', session?.user?.email, error);
+
+            if (session) {
+                this.currentUser = session.user;
+                this.showAuthenticatedUI();
+                await this.loadUserData();
+            } else {
+                this.showLoginUI();
+            }
+        } catch (error) {
+            console.error('Error getting session:', error);
+            this.showLoginUI();
+        }
 
         // Setup auth modal handlers
         this.setupAuthModals();
