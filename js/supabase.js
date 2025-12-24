@@ -61,9 +61,23 @@ const SupabaseDB = {
 
         console.log('Upserting task to Supabase:', { userId, taskId: task.id, title: task.title });
 
+        // Convert camelCase to snake_case for database
+        const dbTask = {
+            id: task.id,
+            user_id: userId,
+            title: task.title,
+            block: task.block,
+            hours: task.hours || 0,
+            minutes: task.minutes || 0,
+            priority: task.priority,
+            notes: task.notes || '',
+            subtasks: task.subtasks || [],
+            completed: task.completed || false
+        };
+
         const { data, error } = await client
             .from('tasks')
-            .upsert([{ ...task, user_id: userId }])
+            .upsert([dbTask])
             .select()
             .single();
 
@@ -109,9 +123,19 @@ const SupabaseDB = {
 
         console.log('Upserting habit to Supabase:', { userId, habitId: habit.id, name: habit.name });
 
+        // Convert camelCase to snake_case for database
+        const dbHabit = {
+            id: habit.id,
+            user_id: userId,
+            name: habit.name,
+            completions: habit.completions || {},
+            current_streak: habit.currentStreak || 0,
+            best_streak: habit.bestStreak || 0
+        };
+
         const { data, error } = await client
             .from('habits')
-            .upsert([{ ...habit, user_id: userId }])
+            .upsert([dbHabit])
             .select()
             .single();
 
