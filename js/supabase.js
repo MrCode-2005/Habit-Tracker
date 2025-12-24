@@ -54,14 +54,24 @@ const SupabaseDB = {
 
     async upsertTask(userId, task) {
         const client = getSupabase();
-        if (!client) return null;
+        if (!client) {
+            console.error('Supabase client not available for task upsert');
+            return null;
+        }
+
+        console.log('Upserting task to Supabase:', { userId, taskId: task.id, title: task.title });
+
         const { data, error } = await client
             .from('tasks')
             .upsert([{ ...task, user_id: userId }])
             .select()
             .single();
 
-        if (error) console.error('Error upserting task:', error);
+        if (error) {
+            console.error('Error upserting task:', error);
+        } else {
+            console.log('Task upserted successfully:', data);
+        }
         return data;
     },
 
@@ -92,14 +102,24 @@ const SupabaseDB = {
 
     async upsertHabit(userId, habit) {
         const client = getSupabase();
-        if (!client) return null;
+        if (!client) {
+            console.error('Supabase client not available for habit upsert');
+            return null;
+        }
+
+        console.log('Upserting habit to Supabase:', { userId, habitId: habit.id, name: habit.name });
+
         const { data, error } = await client
             .from('habits')
             .upsert([{ ...habit, user_id: userId }])
             .select()
             .single();
 
-        if (error) console.error('Error upserting habit:', error);
+        if (error) {
+            console.error('Error upserting habit:', error);
+        } else {
+            console.log('Habit upserted successfully:', data);
+        }
         return data;
     },
 

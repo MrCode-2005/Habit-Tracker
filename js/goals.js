@@ -73,7 +73,7 @@ const Goals = {
         modal.classList.add('active');
     },
 
-    saveGoal() {
+    async saveGoal() {
         const title = document.getElementById('goalTitle').value.trim();
         const type = document.getElementById('goalType').value;
         const customDays = parseInt(document.getElementById('goalCustomDays').value) || 7;
@@ -97,17 +97,23 @@ const Goals = {
         const goalData = {
             title,
             type,
-            customDays: type === 'custom' ? customDays : null,
+            duration: type === 'weekly' ? 7 : type === 'monthly' ? 30 : customDays,
             startDate: startDate.toISOString(),
             endDate: endDate.toISOString(),
             completed: false,
             completedAt: null
         };
 
+        let goal;
         if (this.currentEditId) {
-            State.updateGoal(this.currentEditId, goalData);
+            goal = State.updateGoal(this.currentEditId, goalData);
         } else {
-            State.addGoal(goalData);
+            goal = State.addGoal(goalData);
+        }
+
+        // Sync to Supabase
+        if (goal) {
+            await State.syncGoalToSupabase(goal);
         }
 
         document.getElementById('goalModal').classList.remove('active');
@@ -254,16 +260,20 @@ const Goals = {
         this.countdownIntervals[goalId] = setInterval(updateCountdown, 1000);
     },
 
-    toggleComplete(goalId) {
+    async toggleComplete(goalId) {
         const goal = State.toggleGoalComplete(goalId);
         if (goal) {
+            // Sync to Supabase
+            await State.syncGoalToSupabase(goal);
             this.render();
         }
     },
 
-    deleteGoal(goalId) {
+    async deleteGoal(goalId) {
         if (confirm('Are you sure you want to delete this goal?')) {
             State.deleteGoal(goalId);
+            // Delete from Supabase
+            await State.deleteGoalFromSupabase(goalId);
             this.render();
         }
     },

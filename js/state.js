@@ -82,6 +82,20 @@ const State = {
         Storage.set('tasks', this.tasks);
     },
 
+    // Sync a single task to Supabase
+    async syncTaskToSupabase(task) {
+        if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
+            await SupabaseDB.upsertTask(Auth.getUserId(), task);
+        }
+    },
+
+    // Delete task from Supabase
+    async deleteTaskFromSupabase(taskId) {
+        if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
+            await SupabaseDB.deleteTask(taskId);
+        }
+    },
+
     cleanupOldTasks() {
         const weekAgo = new Date();
         weekAgo.setDate(weekAgo.getDate() - 7);
@@ -143,6 +157,20 @@ const State = {
         Storage.set('habits', this.habits);
     },
 
+    // Sync a single habit to Supabase
+    async syncHabitToSupabase(habit) {
+        if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
+            await SupabaseDB.upsertHabit(Auth.getUserId(), habit);
+        }
+    },
+
+    // Delete habit from Supabase
+    async deleteHabitFromSupabase(habitId) {
+        if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
+            await SupabaseDB.deleteHabit(habitId);
+        }
+    },
+
     // Events
     getEvents() {
         return this.events.sort((a, b) => {
@@ -176,6 +204,20 @@ const State = {
 
     saveEvents() {
         Storage.set('events', this.events);
+    },
+
+    // Sync a single event to Supabase
+    async syncEventToSupabase(event) {
+        if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
+            await SupabaseDB.upsertEvent(Auth.getUserId(), event);
+        }
+    },
+
+    // Delete event from Supabase
+    async deleteEventFromSupabase(eventId) {
+        if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
+            await SupabaseDB.deleteEvent(eventId);
+        }
     },
 
     // Goals
@@ -237,6 +279,20 @@ const State = {
 
     saveGoals() {
         Storage.set('goals', this.goals);
+    },
+
+    // Sync a single goal to Supabase
+    async syncGoalToSupabase(goal) {
+        if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
+            await SupabaseDB.upsertGoal(Auth.getUserId(), goal);
+        }
+    },
+
+    // Delete goal from Supabase
+    async deleteGoalFromSupabase(goalId) {
+        if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
+            await SupabaseDB.deleteGoal(goalId);
+        }
     },
 
     // Helpers

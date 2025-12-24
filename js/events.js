@@ -67,14 +67,20 @@ const Events = {
         modal.classList.add('active');
     },
 
-    saveEvent() {
+    async saveEvent() {
         const name = document.getElementById('eventName').value;
         const dateTime = document.getElementById('eventDateTime').value;
 
+        let event;
         if (this.currentEditId) {
-            State.updateEvent(this.currentEditId, { name, dateTime });
+            event = State.updateEvent(this.currentEditId, { name, dateTime });
         } else {
-            State.addEvent({ name, dateTime });
+            event = State.addEvent({ name, dateTime });
+        }
+
+        // Sync to Supabase
+        if (event) {
+            await State.syncEventToSupabase(event);
         }
 
         document.getElementById('eventModal').classList.remove('active');
@@ -171,9 +177,11 @@ const Events = {
         display.textContent = `${days}d ${hours}h ${minutes}m ${seconds}s`;
     },
 
-    deleteEvent(eventId) {
+    async deleteEvent(eventId) {
         if (confirm('Are you sure you want to delete this event?')) {
             State.deleteEvent(eventId);
+            // Delete from Supabase
+            await State.deleteEventFromSupabase(eventId);
             this.render();
         }
     }

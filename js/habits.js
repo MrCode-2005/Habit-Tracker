@@ -37,13 +37,19 @@ const Habits = {
         modal.classList.add('active');
     },
 
-    saveHabit() {
+    async saveHabit() {
         const name = document.getElementById('habitName').value;
 
+        let habit;
         if (this.currentEditId) {
-            State.updateHabit(this.currentEditId, { name });
+            habit = State.updateHabit(this.currentEditId, { name });
         } else {
-            State.addHabit({ name });
+            habit = State.addHabit({ name });
+        }
+
+        // Sync to Supabase
+        if (habit) {
+            await State.syncHabitToSupabase(habit);
         }
 
         document.getElementById('habitModal').classList.remove('active');
@@ -104,14 +110,20 @@ const Habits = {
         return div;
     },
 
-    toggleToday(habitId) {
-        State.toggleHabitToday(habitId);
+    async toggleToday(habitId) {
+        const habit = State.toggleHabitToday(habitId);
+        // Sync to Supabase
+        if (habit) {
+            await State.syncHabitToSupabase(habit);
+        }
         this.render();
     },
 
-    deleteHabit(habitId) {
+    async deleteHabit(habitId) {
         if (confirm('Are you sure you want to delete this habit?')) {
             State.deleteHabit(habitId);
+            // Delete from Supabase
+            await State.deleteHabitFromSupabase(habitId);
             this.render();
         }
     }

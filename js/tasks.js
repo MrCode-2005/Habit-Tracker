@@ -91,7 +91,7 @@ const Tasks = {
         };
     },
 
-    saveTask() {
+    async saveTask() {
         const title = document.getElementById('taskTitle').value;
         const block = document.getElementById('taskBlock').value;
         let hours = parseInt(document.getElementById('taskHours').value) || 0;
@@ -124,10 +124,16 @@ const Tasks = {
             subtasks
         };
 
+        let task;
         if (this.currentEditId) {
-            State.updateTask(this.currentEditId, taskData);
+            task = State.updateTask(this.currentEditId, taskData);
         } else {
-            State.addTask(taskData);
+            task = State.addTask(taskData);
+        }
+
+        // Sync to Supabase
+        if (task) {
+            await State.syncTaskToSupabase(task);
         }
 
         document.getElementById('taskModal').classList.remove('active');
@@ -223,19 +229,29 @@ const Tasks = {
         return div;
     },
 
-    toggleComplete(taskId) {
-        State.toggleTaskComplete(taskId);
+    async toggleComplete(taskId) {
+        const task = State.toggleTaskComplete(taskId);
+        // Sync to Supabase
+        if (task) {
+            await State.syncTaskToSupabase(task);
+        }
         this.render();
     },
 
-    toggleSubtask(taskId, subtaskIndex) {
-        State.toggleSubtaskComplete(taskId, subtaskIndex);
+    async toggleSubtask(taskId, subtaskIndex) {
+        const task = State.toggleSubtaskComplete(taskId, subtaskIndex);
+        // Sync to Supabase
+        if (task) {
+            await State.syncTaskToSupabase(task);
+        }
         this.render();
     },
 
-    deleteTask(taskId) {
+    async deleteTask(taskId) {
         if (confirm('Are you sure you want to delete this task?')) {
             State.deleteTask(taskId);
+            // Delete from Supabase
+            await State.deleteTaskFromSupabase(taskId);
             this.render();
         }
     }

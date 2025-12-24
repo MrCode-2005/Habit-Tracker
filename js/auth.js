@@ -14,23 +14,20 @@ const Auth = {
             return;
         }
 
-        // Check for existing session
-        const { data: { session } } = await client.auth.getSession();
+        // Listen for auth changes FIRST - this will catch INITIAL_SESSION on refresh
+        client.auth.onAuthStateChange(async (event, session) => {
+            console.log('Auth state change:', event, session?.user?.email);
 
-        if (session) {
-            this.currentUser = session.user;
-            this.showAuthenticatedUI();
-            await this.loadUserData();
-        } else {
-            this.showLoginUI();
-        }
-
-        // Listen for auth changes
-        client.auth.onAuthStateChange((event, session) => {
-            if (event === 'SIGNED_IN' && session) {
-                this.currentUser = session.user;
-                this.showAuthenticatedUI();
-                this.loadUserData();
+            if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                if (session) {
+                    this.currentUser = session.user;
+                    this.showAuthenticatedUI();
+                    await this.loadUserData();
+                } else {
+                    // No session on initial load
+                    this.currentUser = null;
+                    this.showLoginUI();
+                }
             } else if (event === 'SIGNED_OUT') {
                 this.currentUser = null;
                 this.showLoginUI();
@@ -148,8 +145,16 @@ const Auth = {
             const { error } = await client.auth.signOut();
             if (error) throw error;
 
-            // Clear local data
+            // Clear local data and localStorage to prevent data leakage
             this.currentUser = null;
+            this.clearLocalData();
+
+            // Re-render views to show cleared state
+            if (typeof Tasks !== 'undefined') Tasks.render();
+            if (typeof Habits !== 'undefined') Habits.render();
+            if (typeof Goals !== 'undefined') Goals.render();
+            if (typeof Events !== 'undefined') Events.render();
+
             this.showMessage('Logged out successfully', 'success');
         } catch (error) {
             this.showMessage(error.message, 'error');
@@ -194,48 +199,44 @@ const Auth = {
         if (!this.currentUser) return;
 
         try {
+            // IMPORTANT: Clear old user data before loading new user's data
+            // This prevents data leakage between different user accounts
+            this.clearLocalData();
+
             // Sync data from Supabase to local state
             const userId = this.currentUser.id;
 
             // Load tasks
             const tasks = await SupabaseDB.getTasks(userId);
-            if (tasks.length > 0) {
-                State.tasks = tasks;
-                State.saveTasks();
-            }
+            State.tasks = tasks || [];
+            State.saveTasks();
 
             // Load habits
             const habits = await SupabaseDB.getHabits(userId);
-            if (habits.length > 0) {
-                State.habits = habits;
-                State.saveHabits();
-            }
+            State.habits = habits || [];
+            State.saveHabits();
 
             // Load goals (convert snake_case to camelCase)
             const goals = await SupabaseDB.getGoals(userId);
-            if (goals.length > 0) {
-                State.goals = goals.map(g => ({
-                    id: g.id,
-                    title: g.title,
-                    type: g.type,
-                    duration: g.duration,
-                    startDate: g.start_date,
-                    endDate: g.end_date,
-                    completed: g.completed
-                }));
-                State.saveGoals();
-            }
+            State.goals = (goals || []).map(g => ({
+                id: g.id,
+                title: g.title,
+                type: g.type,
+                duration: g.duration,
+                startDate: g.start_date,
+                endDate: g.end_date,
+                completed: g.completed
+            }));
+            State.saveGoals();
 
             // Load events (convert snake_case to camelCase)
             const events = await SupabaseDB.getEvents(userId);
-            if (events.length > 0) {
-                State.events = events.map(e => ({
-                    id: e.id,
-                    name: e.name,
-                    dateTime: e.date_time
-                }));
-                State.saveEvents();
-            }
+            State.events = (events || []).map(e => ({
+                id: e.id,
+                name: e.name,
+                dateTime: e.date_time
+            }));
+            State.saveEvents();
 
             // Re-render all views
             if (typeof Tasks !== 'undefined') Tasks.render();
@@ -244,10 +245,22 @@ const Auth = {
             if (typeof Events !== 'undefined') Events.render();
             if (typeof Analytics !== 'undefined') Analytics.refresh();
 
-            console.log('Data synced from Supabase');
+            console.log('Data synced from Supabase for user:', userId);
         } catch (error) {
             console.error('Error loading user data:', error);
         }
+    },
+
+    // Clear all local data - used when switching users or logging out
+    clearLocalData() {
+        State.tasks = [];
+        State.habits = [];
+        State.events = [];
+        State.goals = [];
+        Storage.remove('tasks');
+        Storage.remove('habits');
+        Storage.remove('events');
+        Storage.remove('goals');
     },
 
     showMessage(message, type = 'info') {
