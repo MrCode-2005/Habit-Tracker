@@ -105,6 +105,47 @@ const Auth = {
                 document.getElementById('loginModal').classList.add('active');
             });
         }
+
+        // Google Sign-In buttons
+        const googleLoginBtn = document.getElementById('googleLoginBtn');
+        if (googleLoginBtn) {
+            googleLoginBtn.addEventListener('click', async () => {
+                await this.signInWithGoogle();
+            });
+        }
+
+        const googleSignupBtn = document.getElementById('googleSignupBtn');
+        if (googleSignupBtn) {
+            googleSignupBtn.addEventListener('click', async () => {
+                await this.signInWithGoogle();
+            });
+        }
+    },
+
+    async signInWithGoogle() {
+        const client = getSupabase();
+        if (!client) {
+            alert('Authentication service unavailable');
+            return;
+        }
+
+        try {
+            const { data, error } = await client.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: window.location.origin
+                }
+            });
+
+            if (error) {
+                console.error('Google sign-in error:', error);
+                alert('Google sign-in failed: ' + error.message);
+            }
+            // User will be redirected to Google, then back to the app
+        } catch (error) {
+            console.error('Google sign-in error:', error);
+            alert('An error occurred during Google sign-in');
+        }
     },
 
     async login() {
