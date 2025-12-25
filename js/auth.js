@@ -310,6 +310,40 @@ const Auth = {
             if (typeof Events !== 'undefined') Events.render();
             if (typeof Analytics !== 'undefined') Analytics.refresh();
 
+            // Sync playlists - push local to cloud, then load cloud
+            if (typeof FocusMode !== 'undefined') {
+                // First, push any existing local playlists to cloud
+                const localPlaylists = localStorage.getItem('focusPlaylists');
+                if (localPlaylists) {
+                    const playlists = JSON.parse(localPlaylists);
+                    for (const [playlistId, playlist] of Object.entries(playlists)) {
+                        await SupabaseDB.upsertPlaylist(userId, {
+                            id: playlistId,
+                            name: playlist.name,
+                            url: playlist.url || '',
+                            tracks: playlist.tracks || []
+                        });
+                    }
+                }
+
+                // Push local video playlists to cloud
+                const localVideoPlaylists = localStorage.getItem('focusVideoPlaylists');
+                if (localVideoPlaylists) {
+                    const videoPlaylists = JSON.parse(localVideoPlaylists);
+                    for (const [playlistId, playlist] of Object.entries(videoPlaylists)) {
+                        await SupabaseDB.upsertVideoPlaylist(userId, {
+                            id: playlistId,
+                            name: playlist.name,
+                            videos: playlist.videos || []
+                        });
+                    }
+                }
+
+                // Now reload playlists (will merge cloud with local)
+                FocusMode.loadPlaylists();
+                FocusMode.loadVideoPlaylists();
+            }
+
             console.log('Data synced from Supabase for user:', userId);
         } catch (error) {
             console.error('Error loading user data:', error);
