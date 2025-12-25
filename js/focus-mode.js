@@ -176,6 +176,55 @@ const FocusMode = {
             }
         });
 
+        // Playback Speed Control
+        document.getElementById('focusSpeedSlider')?.addEventListener('input', (e) => {
+            const speed = e.target.value / 100;
+            this.setPlaybackSpeed(speed);
+            document.getElementById('speedValue').textContent = speed.toFixed(1) + 'x';
+        });
+
+        // Video Background - YouTube URL
+        document.getElementById('setVideoBgBtn')?.addEventListener('click', () => {
+            const url = document.getElementById('videoBgUrl')?.value;
+            if (url) this.setVideoBackground(url);
+        });
+
+        // Video Background - File Upload
+        document.getElementById('videoBgUpload')?.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) this.uploadVideoBackground(file);
+        });
+
+        // Clear Video Background
+        document.getElementById('clearVideoBgBtn')?.addEventListener('click', () => {
+            this.clearVideoBackground();
+        });
+
+        // Interval Alert Toggle
+        document.getElementById('enableIntervalAlert')?.addEventListener('change', (e) => {
+            const settings = document.getElementById('intervalSettings');
+            if (settings) {
+                settings.classList.toggle('active', e.target.checked);
+            }
+            if (e.target.checked) {
+                this.startIntervalAlerts();
+            } else {
+                this.stopIntervalAlerts();
+            }
+        });
+
+        // Interval Minutes Change
+        document.getElementById('intervalMinutes')?.addEventListener('change', (e) => {
+            if (document.getElementById('enableIntervalAlert')?.checked) {
+                this.startIntervalAlerts();
+            }
+        });
+
+        // Test Alert Button
+        document.getElementById('testAlertBtn')?.addEventListener('click', () => {
+            this.playAlertSound();
+        });
+
         // Close panels when clicking outside
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.focus-settings-panel') &&
@@ -2277,6 +2326,209 @@ const FocusMode = {
             console.log('Focus mode restored after refresh');
         } catch (e) {
             console.log('Error restoring focus state:', e);
+        }
+    },
+
+    // ==============================
+    // Playback Speed Methods
+    // ==============================
+
+    setPlaybackSpeed(speed) {
+        this.playbackSpeed = speed;
+        if (this.currentAudio) {
+            this.currentAudio.playbackRate = speed;
+        }
+        // For YouTube, playback rate is limited
+        if (this.youtubePlayer && this.youtubePlayer.setPlaybackRate) {
+            this.youtubePlayer.setPlaybackRate(speed);
+        }
+    },
+
+    // ==============================
+    // Video Background Methods
+    // ==============================
+
+    setVideoBackground(url) {
+        const videoId = this.getYouTubeVideoId(url);
+        if (!videoId) {
+            alert('Please enter a valid YouTube URL');
+            return;
+        }
+
+        // Stop canvas animation
+        this.stopAnimation();
+
+        // Hide canvas, show iframe
+        const canvas = document.getElementById('focusAnimationCanvas');
+        if (canvas) canvas.style.display = 'none';
+
+        // Create YouTube iframe for video background
+        const container = document.getElementById('youtubeContainer');
+        if (container) {
+            container.innerHTML = `
+                <iframe 
+                    id="videoBgIframe"
+                    width="100%" 
+                    height="100%" 
+                    src="https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&modestbranding=1&playsinline=1"
+                    frameborder="0"
+                    allow="autoplay; encrypted-media"
+                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none;"
+                ></iframe>
+            `;
+            container.style.display = 'block';
+            container.style.position = 'absolute';
+            container.style.top = '0';
+            container.style.left = '0';
+            container.style.width = '100%';
+            container.style.height = '100%';
+            container.style.zIndex = '0';
+            container.style.pointerEvents = 'none';
+        }
+
+        this.videoBgActive = true;
+    },
+
+    uploadVideoBackground(file) {
+        if (!file.type.startsWith('video/')) {
+            alert('Please upload a video file');
+            return;
+        }
+
+        const videoPlayer = document.getElementById('videoBgPlayer');
+        const canvas = document.getElementById('focusAnimationCanvas');
+
+        if (videoPlayer) {
+            const url = URL.createObjectURL(file);
+            videoPlayer.src = url;
+            videoPlayer.classList.add('active');
+            videoPlayer.play();
+
+            if (canvas) canvas.style.display = 'none';
+            this.stopAnimation();
+            this.videoBgActive = true;
+        }
+    },
+
+    clearVideoBackground() {
+        const videoPlayer = document.getElementById('videoBgPlayer');
+        const canvas = document.getElementById('focusAnimationCanvas');
+        const container = document.getElementById('youtubeContainer');
+
+        if (videoPlayer) {
+            videoPlayer.src = '';
+            videoPlayer.classList.remove('active');
+        }
+
+        if (container) {
+            container.innerHTML = '';
+            container.style.display = 'none';
+        }
+
+        if (canvas) {
+            canvas.style.display = 'block';
+        }
+
+        this.videoBgActive = false;
+        this.startAnimation();
+
+        document.getElementById('videoBgUrl').value = '';
+    },
+
+    // ==============================
+    // Interval Alert Methods
+    // ==============================
+
+    startIntervalAlerts() {
+        this.stopIntervalAlerts();
+
+        const minutes = parseInt(document.getElementById('intervalMinutes')?.value) || 15;
+        const intervalMs = minutes * 60 * 1000;
+
+        this.intervalAlertTimer = setInterval(() => {
+            if (!this.isPaused && this.isActive) {
+                this.playAlertSound();
+            }
+        }, intervalMs);
+    },
+
+    stopIntervalAlerts() {
+        if (this.intervalAlertTimer) {
+            clearInterval(this.intervalAlertTimer);
+            this.intervalAlertTimer = null;
+        }
+    },
+
+    playAlertSound() {
+        const soundType = document.getElementById('alertSoundSelect')?.value || 'chime';
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.value = 0.3;
+        gainNode.connect(audioCtx.destination);
+
+        if (soundType === 'chime') {
+            // Chime - ascending notes
+            [523, 659, 784].forEach((freq, i) => {
+                const osc = audioCtx.createOscillator();
+                osc.frequency.value = freq;
+                osc.type = 'sine';
+                const env = audioCtx.createGain();
+                env.gain.setValueAtTime(0.3, audioCtx.currentTime + i * 0.15);
+                env.gain.exponentialDecayTo && env.gain.exponentialDecayTo(0.001, 0.5);
+                osc.connect(env);
+                env.connect(gainNode);
+                osc.start(audioCtx.currentTime + i * 0.15);
+                osc.stop(audioCtx.currentTime + i * 0.15 + 0.5);
+            });
+        } else if (soundType === 'bell') {
+            // Bell - single rich tone
+            const osc = audioCtx.createOscillator();
+            osc.frequency.value = 880;
+            osc.type = 'sine';
+            osc.connect(gainNode);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.8);
+        } else if (soundType === 'gong') {
+            // Gong - low rumble
+            const osc = audioCtx.createOscillator();
+            osc.frequency.value = 100;
+            osc.type = 'triangle';
+            osc.connect(gainNode);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 1.5);
+        } else if (soundType === 'water') {
+            // Water drop - descending blip
+            const osc = audioCtx.createOscillator();
+            osc.frequency.setValueAtTime(1000, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.2);
+            osc.type = 'sine';
+            osc.connect(gainNode);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.3);
+        } else if (soundType === 'bird') {
+            // Bird chirp - quick ascending notes
+            [1500, 2000, 1800].forEach((freq, i) => {
+                const osc = audioCtx.createOscillator();
+                osc.frequency.value = freq;
+                osc.type = 'sine';
+                osc.connect(gainNode);
+                osc.start(audioCtx.currentTime + i * 0.08);
+                osc.stop(audioCtx.currentTime + i * 0.08 + 0.1);
+            });
+        } else if (soundType === 'bowl') {
+            // Singing bowl - sustained harmonic
+            [256, 512, 768].forEach((freq) => {
+                const osc = audioCtx.createOscillator();
+                osc.frequency.value = freq;
+                osc.type = 'sine';
+                const env = audioCtx.createGain();
+                env.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                osc.connect(env);
+                env.connect(gainNode);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 2);
+            });
         }
     }
 };

@@ -433,6 +433,7 @@
         <!-- Animated Background -->
         <div class="focus-background">
             <canvas id="focusAnimationCanvas"></canvas>
+            <video id="videoBgPlayer" class="video-bg-player" muted loop playsinline></video>
         </div>
 
         <!-- Hidden YouTube Player -->
@@ -530,6 +531,56 @@
             <div class="volume-control">
                 <label><i class="fas fa-volume-down"></i> Volume</label>
                 <input type="range" class="volume-slider" id="focusVolumeSlider" min="0" max="100" value="50">
+            </div>
+            <div class="speed-control">
+                <label><i class="fas fa-tachometer-alt"></i> Speed: <span id="speedValue">1.0x</span></label>
+                <input type="range" class="speed-slider" id="focusSpeedSlider" min="25" max="200" value="100">
+            </div>
+
+            <!-- Video Background Section -->
+            <div class="video-bg-section">
+                <label class="section-label"><i class="fas fa-film"></i> Video Background</label>
+                <div class="video-input-row">
+                    <input type="text" id="videoBgUrl" placeholder="YouTube URL..." class="video-url-input">
+                    <button id="setVideoBgBtn" class="video-set-btn"><i class="fas fa-check"></i></button>
+                </div>
+                <div class="video-upload-row">
+                    <label for="videoBgUpload" class="video-upload-btn">
+                        <i class="fas fa-upload"></i> Upload Video
+                    </label>
+                    <input type="file" id="videoBgUpload" accept="video/*" hidden>
+                    <button id="clearVideoBgBtn" class="video-clear-btn"><i class="fas fa-times"></i> Clear</button>
+                </div>
+            </div>
+
+            <!-- Interval Alert Section -->
+            <div class="interval-alert-section">
+                <label class="section-label"><i class="fas fa-bell"></i> Interval Alerts</label>
+                <div class="interval-enable-row">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="enableIntervalAlert">
+                        <span>Enable reminder alerts</span>
+                    </label>
+                </div>
+                <div class="interval-settings" id="intervalSettings">
+                    <div class="interval-time-row">
+                        <label>Alert every:</label>
+                        <input type="number" id="intervalMinutes" min="1" max="60" value="15" class="interval-input">
+                        <span>minutes</span>
+                    </div>
+                    <div class="alert-sound-row">
+                        <label>Alert sound:</label>
+                        <select id="alertSoundSelect" class="alert-sound-select">
+                            <option value="chime">🔔 Chime</option>
+                            <option value="bell">🛎️ Bell</option>
+                            <option value="gong">🎵 Gong</option>
+                            <option value="water">💧 Water Drop</option>
+                            <option value="bird">🐦 Bird Chirp</option>
+                            <option value="bowl">🥣 Singing Bowl</option>
+                        </select>
+                    </div>
+                    <button id="testAlertBtn" class="test-alert-btn"><i class="fas fa-play"></i> Test Sound</button>
+                </div>
             </div>
         </div>
 
