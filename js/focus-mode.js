@@ -986,31 +986,74 @@ const FocusMode = {
         });
 
         if (statusEl) {
-            statusEl.textContent = '▶ Playing from YouTube...';
+            statusEl.textContent = '▶ Loading YouTube...';
             statusEl.className = 'youtube-status playing';
         }
 
-        // Create YouTube embed iframe
+        // Create YouTube player using IFrame API
         const container = document.getElementById('youtubeContainer');
         if (container) {
-            // Use embed with autoplay and loop
-            container.innerHTML = `
-                <iframe 
-                    id="youtubePlayer"
-                    width="1" 
-                    height="1" 
-                    src="https://www.youtube.com/embed/${videoId}?autoplay=1&loop=1&playlist=${videoId}&controls=0"
-                    frameborder="0" 
-                    allow="autoplay; encrypted-media"
-                    allowfullscreen>
-                </iframe>
-            `;
+            // Create player element
+            container.innerHTML = '<div id="youtubePlayer"></div>';
+
+            // Load YouTube IFrame API if not already loaded
+            if (!window.YT) {
+                const tag = document.createElement('script');
+                tag.src = 'https://www.youtube.com/iframe_api';
+                document.head.appendChild(tag);
+
+                // Wait for API to load
+                window.onYouTubeIframeAPIReady = () => {
+                    this.createYouTubePlayer(videoId);
+                };
+            } else {
+                this.createYouTubePlayer(videoId);
+            }
+
             this.youtubeActive = true;
             this.currentSound = 'youtube';
         }
     },
 
+    createYouTubePlayer(videoId) {
+        const statusEl = document.getElementById('youtubeStatus');
+
+        this.youtubePlayer = new YT.Player('youtubePlayer', {
+            height: '1',
+            width: '1',
+            videoId: videoId,
+            playerVars: {
+                'autoplay': 1,
+                'loop': 1,
+                'playlist': videoId,
+                'controls': 0
+            },
+            events: {
+                'onReady': (event) => {
+                    event.target.setVolume(this.volume * 100);
+                    event.target.playVideo();
+                    if (statusEl) {
+                        statusEl.textContent = '▶ Playing from YouTube';
+                        statusEl.className = 'youtube-status playing';
+                    }
+                },
+                'onError': (event) => {
+                    if (statusEl) {
+                        statusEl.textContent = 'Error: Video unavailable';
+                        statusEl.className = 'youtube-status error';
+                    }
+                }
+            }
+        });
+    },
+
     stopYouTube() {
+        // Destroy YouTube player if exists
+        if (this.youtubePlayer && this.youtubePlayer.destroy) {
+            this.youtubePlayer.destroy();
+            this.youtubePlayer = null;
+        }
+
         const container = document.getElementById('youtubeContainer');
         if (container) {
             container.innerHTML = '';
@@ -1057,6 +1100,10 @@ const FocusMode = {
         }
         if (this.currentAudio) {
             this.currentAudio.volume = value;
+        }
+        // Control YouTube player volume
+        if (this.youtubePlayer && this.youtubePlayer.setVolume) {
+            this.youtubePlayer.setVolume(value * 100);
         }
     },
 
