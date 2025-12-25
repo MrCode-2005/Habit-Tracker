@@ -117,6 +117,9 @@ const FocusMode = {
             if (toggleBtn) toggleBtn.classList.remove('active');
         });
 
+        // Make toggle button draggable
+        this.initDraggableButton();
+
         // Animation options
         document.querySelectorAll('.animation-option').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -2639,6 +2642,92 @@ const FocusMode = {
             this.saveVideoPlaylists();
             this.renderVideoPlaylistTracks();
         }
+    },
+
+    // ==============================
+    // Draggable Toggle Button
+    // ==============================
+
+    initDraggableButton() {
+        const btn = document.getElementById('toggleAudioPanelBtn');
+        if (!btn) return;
+
+        let isDragging = false;
+        let startX, startY, initialX, initialY;
+        let hasMoved = false;
+
+        // Restore saved position
+        const savedPos = localStorage.getItem('audioPanelBtnPos');
+        if (savedPos) {
+            try {
+                const pos = JSON.parse(savedPos);
+                btn.style.top = pos.top + 'px';
+                btn.style.right = 'auto';
+                btn.style.left = pos.left + 'px';
+            } catch (e) { }
+        }
+
+        const onStart = (e) => {
+            isDragging = true;
+            hasMoved = false;
+            const touch = e.touches ? e.touches[0] : e;
+            startX = touch.clientX;
+            startY = touch.clientY;
+            const rect = btn.getBoundingClientRect();
+            initialX = rect.left;
+            initialY = rect.top;
+            btn.style.cursor = 'grabbing';
+            e.preventDefault();
+        };
+
+        const onMove = (e) => {
+            if (!isDragging) return;
+            const touch = e.touches ? e.touches[0] : e;
+            const dx = touch.clientX - startX;
+            const dy = touch.clientY - startY;
+
+            if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+                hasMoved = true;
+            }
+
+            let newX = initialX + dx;
+            let newY = initialY + dy;
+
+            // Keep within bounds
+            newX = Math.max(0, Math.min(window.innerWidth - 60, newX));
+            newY = Math.max(0, Math.min(window.innerHeight - 60, newY));
+
+            btn.style.right = 'auto';
+            btn.style.left = newX + 'px';
+            btn.style.top = newY + 'px';
+        };
+
+        const onEnd = () => {
+            if (isDragging) {
+                isDragging = false;
+                btn.style.cursor = 'grab';
+
+                // Save position
+                const rect = btn.getBoundingClientRect();
+                localStorage.setItem('audioPanelBtnPos', JSON.stringify({
+                    left: rect.left,
+                    top: rect.top
+                }));
+            }
+        };
+
+        // Mouse events
+        btn.addEventListener('mousedown', onStart);
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onEnd);
+
+        // Touch events
+        btn.addEventListener('touchstart', onStart, { passive: false });
+        document.addEventListener('touchmove', onMove, { passive: false });
+        document.addEventListener('touchend', onEnd);
+
+        // Style
+        btn.style.cursor = 'grab';
     },
 
     // ==============================
