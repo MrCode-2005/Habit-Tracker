@@ -205,7 +205,10 @@ const Auth = {
 
         try {
             const { error } = await client.auth.signOut();
-            if (error) throw error;
+            // Ignore "Auth session missing" error - user is already logged out
+            if (error && !error.message.includes('session missing')) {
+                throw error;
+            }
 
             // Clear local data and localStorage to prevent data leakage
             this.currentUser = null;
