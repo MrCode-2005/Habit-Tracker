@@ -204,6 +204,54 @@
                     <canvas id="habitMonthlyChart"></canvas>
                 </div>
             </div>
+
+            <!-- Productivity Insights -->
+            <h2 style="margin: 2.5rem 0 1rem 0; font-size: 1.25rem; color: var(--text-primary);">Productivity Insights
+            </h2>
+
+            <!-- Stats Cards -->
+            <div class="productivity-stats" id="productivityStats">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fa-solid fa-clock"></i></div>
+                    <div class="stat-content">
+                        <span class="stat-label">Most Productive Time</span>
+                        <span class="stat-value" id="mostProductiveTime">-</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fa-solid fa-calendar-day"></i></div>
+                    <div class="stat-content">
+                        <span class="stat-label">Most Productive Day</span>
+                        <span class="stat-value" id="mostProductiveDay">-</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fa-solid fa-calendar-week"></i></div>
+                    <div class="stat-content">
+                        <span class="stat-label">Best Week</span>
+                        <span class="stat-value" id="mostProductiveWeek">-</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fa-solid fa-fire"></i></div>
+                    <div class="stat-content">
+                        <span class="stat-label">Total Completed</span>
+                        <span class="stat-value" id="totalCompleted">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Time Slot and Block Charts -->
+            <div class="analytics-container">
+                <div class="chart-card">
+                    <h3>Completion by Time of Day</h3>
+                    <canvas id="timeSlotChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3>Completion by Task Block</h3>
+                    <canvas id="blockChart"></canvas>
+                </div>
+            </div>
         </section>
 
         <!-- Events View (Original - Scheduled Events with Countdown) -->

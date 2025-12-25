@@ -4,6 +4,8 @@ const Analytics = {
     goalsChart: null,
     habitWeeklyChart: null,
     habitMonthlyChart: null,
+    timeSlotChart: null,
+    blockChart: null,
     habitCharts: [], // Store all habit chart instances
     initialized: false,
 
@@ -21,7 +23,9 @@ const Analytics = {
         this.renderGoalsChart();
         this.renderHabitWeeklyChart();
         this.renderHabitMonthlyChart();
-        // Note: renderHabitCharts removed - using aggregate charts only
+        this.renderProductivityStats();
+        this.renderTimeSlotChart();
+        this.renderBlockChart();
     },
 
     getWeeklyData() {
@@ -757,6 +761,226 @@ const Analytics = {
                 }
             });
             this.habitCharts.push(monthlyChart);
+        });
+    },
+
+    // ===================================
+    // Productivity Insights
+    // ===================================
+
+    getTimeSlotData() {
+        const slots = {
+            'Morning': { count: 0, hours: [6, 7, 8, 9, 10, 11] },
+            'Afternoon': { count: 0, hours: [12, 13, 14, 15, 16, 17] },
+            'Evening': { count: 0, hours: [18, 19, 20, 21] },
+            'Night': { count: 0, hours: [22, 23, 0, 1, 2, 3, 4, 5] }
+        };
+
+        State.tasks.filter(t => t.completed && t.completedAt).forEach(task => {
+            try {
+                const hour = new Date(task.completedAt).getHours();
+                for (const [slot, data] of Object.entries(slots)) {
+                    if (data.hours.includes(hour)) {
+                        data.count++;
+                        break;
+                    }
+                }
+            } catch (e) { }
+        });
+
+        // Also count tasks by their block if no completedAt
+        State.tasks.filter(t => t.completed && !t.completedAt && t.block).forEach(task => {
+            if (task.block === 'morning') slots['Morning'].count++;
+            else if (task.block === 'afternoon') slots['Afternoon'].count++;
+            else if (task.block === 'evening') slots['Evening'].count++;
+        });
+
+        return {
+            labels: Object.keys(slots),
+            data: Object.values(slots).map(s => s.count)
+        };
+    },
+
+    getBlockData() {
+        const blocks = { 'Morning': 0, 'Afternoon': 0, 'Evening': 0, 'Unscheduled': 0 };
+
+        State.tasks.filter(t => t.completed).forEach(task => {
+            if (task.block === 'morning') blocks['Morning']++;
+            else if (task.block === 'afternoon') blocks['Afternoon']++;
+            else if (task.block === 'evening') blocks['Evening']++;
+            else blocks['Unscheduled']++;
+        });
+
+        return {
+            labels: Object.keys(blocks),
+            data: Object.values(blocks)
+        };
+    },
+
+    getMostProductiveDay() {
+        const dayCounts = [0, 0, 0, 0, 0, 0, 0]; // Sun-Sat
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+        State.tasks.filter(t => t.completed).forEach(task => {
+            const dateStr = task.completedAt || task.createdAt;
+            if (dateStr) {
+                try {
+                    const day = new Date(dateStr).getDay();
+                    dayCounts[day]++;
+                } catch (e) { }
+            }
+        });
+
+        const maxCount = Math.max(...dayCounts);
+        if (maxCount === 0) return '-';
+        return dayNames[dayCounts.indexOf(maxCount)];
+    },
+
+    getMostProductiveWeek() {
+        const weekCounts = [0, 0, 0, 0];
+
+        State.tasks.filter(t => t.completed).forEach(task => {
+            const dateStr = task.completedAt || task.createdAt;
+            if (dateStr) {
+                try {
+                    const taskDate = new Date(dateStr);
+                    const now = new Date();
+                    const diffDays = Math.floor((now - taskDate) / (1000 * 60 * 60 * 24));
+                    const weekIndex = Math.min(3, Math.floor(diffDays / 7));
+                    weekCounts[3 - weekIndex]++;
+                } catch (e) { }
+            }
+        });
+
+        const maxCount = Math.max(...weekCounts);
+        if (maxCount === 0) return '-';
+        return `Week ${weekCounts.indexOf(maxCount) + 1}`;
+    },
+
+    renderProductivityStats() {
+        const timeSlotData = this.getTimeSlotData();
+        const mostProductiveSlot = timeSlotData.labels[timeSlotData.data.indexOf(Math.max(...timeSlotData.data))];
+        const completedCount = State.tasks.filter(t => t.completed).length;
+
+        const timeEl = document.getElementById('mostProductiveTime');
+        const dayEl = document.getElementById('mostProductiveDay');
+        const weekEl = document.getElementById('mostProductiveWeek');
+        const totalEl = document.getElementById('totalCompleted');
+
+        if (timeEl) timeEl.textContent = Math.max(...timeSlotData.data) > 0 ? mostProductiveSlot : '-';
+        if (dayEl) dayEl.textContent = this.getMostProductiveDay();
+        if (weekEl) weekEl.textContent = this.getMostProductiveWeek();
+        if (totalEl) totalEl.textContent = completedCount;
+    },
+
+    renderTimeSlotChart() {
+        const ctx = document.getElementById('timeSlotChart');
+        if (!ctx) return;
+
+        const { labels, data } = this.getTimeSlotData();
+        const theme = Theme.getCurrentTheme();
+        const isDark = theme === 'dark';
+
+        if (this.timeSlotChart) {
+            this.timeSlotChart.destroy();
+        }
+
+        this.timeSlotChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: [
+                        'rgba(251, 191, 36, 0.8)',  // Morning - Yellow
+                        'rgba(249, 115, 22, 0.8)', // Afternoon - Orange
+                        'rgba(139, 92, 246, 0.8)', // Evening - Purple
+                        'rgba(59, 130, 246, 0.8)'  // Night - Blue
+                    ],
+                    borderColor: isDark ? '#1e293b' : '#ffffff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: isDark ? '#cbd5e1' : '#495057',
+                            padding: 15
+                        }
+                    }
+                }
+            }
+        });
+    },
+
+    renderBlockChart() {
+        const ctx = document.getElementById('blockChart');
+        if (!ctx) return;
+
+        const { labels, data } = this.getBlockData();
+        const theme = Theme.getCurrentTheme();
+        const isDark = theme === 'dark';
+
+        if (this.blockChart) {
+            this.blockChart.destroy();
+        }
+
+        this.blockChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Tasks Completed',
+                    data: data,
+                    backgroundColor: [
+                        'rgba(251, 191, 36, 0.7)',  // Morning
+                        'rgba(249, 115, 22, 0.7)', // Afternoon
+                        'rgba(139, 92, 246, 0.7)', // Evening
+                        'rgba(107, 114, 128, 0.7)' // Unscheduled
+                    ],
+                    borderColor: [
+                        'rgba(251, 191, 36, 1)',
+                        'rgba(249, 115, 22, 1)',
+                        'rgba(139, 92, 246, 1)',
+                        'rgba(107, 114, 128, 1)'
+                    ],
+                    borderWidth: 2,
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: isDark ? '#cbd5e1' : '#495057',
+                            stepSize: 1
+                        },
+                        grid: {
+                            color: isDark ? '#334155' : '#dee2e6'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: isDark ? '#cbd5e1' : '#495057'
+                        },
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
         });
     },
 
