@@ -2,6 +2,8 @@ const Analytics = {
     weeklyChart: null,
     monthlyChart: null,
     goalsChart: null,
+    habitWeeklyChart: null,
+    habitMonthlyChart: null,
     habitCharts: [], // Store all habit chart instances
     initialized: false,
 
@@ -17,6 +19,8 @@ const Analytics = {
         this.renderWeeklyChart();
         this.renderMonthlyChart();
         this.renderGoalsChart();
+        this.renderHabitWeeklyChart();
+        this.renderHabitMonthlyChart();
         this.renderHabitCharts();
     },
 
@@ -383,6 +387,197 @@ const Analytics = {
                     ctx.save();
                 }
             }]
+        });
+    },
+
+    // Get aggregate weekly habit completion rate
+    getAggregateHabitWeeklyData() {
+        const habits = State.getHabits();
+        const days = [];
+        const completionRates = [];
+
+        for (let i = 6; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            const dateKey = date.toISOString().split('T')[0];
+
+            days.push(date.toLocaleDateString('en-US', { weekday: 'short' }));
+
+            if (habits.length === 0) {
+                completionRates.push(0);
+            } else {
+                let completed = 0;
+                habits.forEach(habit => {
+                    if (this.isHabitCompletedOnDate(habit, dateKey)) {
+                        completed++;
+                    }
+                });
+                completionRates.push(Math.round((completed / habits.length) * 100));
+            }
+        }
+
+        return { days, completionRates };
+    },
+
+    // Get aggregate monthly habit completion rate
+    getAggregateHabitMonthlyData() {
+        const habits = State.getHabits();
+        const weeks = [];
+        const completionRates = [];
+
+        for (let i = 3; i >= 0; i--) {
+            const endDate = new Date();
+            endDate.setDate(endDate.getDate() - (i * 7));
+            const startDate = new Date(endDate);
+            startDate.setDate(startDate.getDate() - 6);
+
+            weeks.push(`Week ${4 - i}`);
+
+            if (habits.length === 0) {
+                completionRates.push(0);
+            } else {
+                let totalCompletions = 0;
+                let totalPossible = 0;
+
+                for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                    const dateKey = d.toISOString().split('T')[0];
+                    habits.forEach(habit => {
+                        totalPossible++;
+                        if (this.isHabitCompletedOnDate(habit, dateKey)) {
+                            totalCompletions++;
+                        }
+                    });
+                }
+
+                completionRates.push(totalPossible > 0 ? Math.round((totalCompletions / totalPossible) * 100) : 0);
+            }
+        }
+
+        return { weeks, completionRates };
+    },
+
+    renderHabitWeeklyChart() {
+        const ctx = document.getElementById('habitWeeklyChart');
+        if (!ctx) return;
+
+        const { days, completionRates } = this.getAggregateHabitWeeklyData();
+        const theme = Theme.getCurrentTheme();
+        const isDark = theme === 'dark';
+
+        if (this.habitWeeklyChart) {
+            this.habitWeeklyChart.destroy();
+        }
+
+        this.habitWeeklyChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: days,
+                datasets: [{
+                    label: 'Habit Completion (%)',
+                    data: completionRates,
+                    backgroundColor: isDark ? 'rgba(16, 185, 129, 0.6)' : 'rgba(16, 185, 129, 0.8)',
+                    borderColor: 'rgba(16, 185, 129, 1)',
+                    borderWidth: 2,
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            color: isDark ? '#cbd5e1' : '#495057',
+                            callback: function (value) {
+                                return value + '%';
+                            }
+                        },
+                        grid: {
+                            color: isDark ? '#334155' : '#dee2e6'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: isDark ? '#cbd5e1' : '#495057'
+                        },
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    },
+
+    renderHabitMonthlyChart() {
+        const ctx = document.getElementById('habitMonthlyChart');
+        if (!ctx) return;
+
+        const { weeks, completionRates } = this.getAggregateHabitMonthlyData();
+        const theme = Theme.getCurrentTheme();
+        const isDark = theme === 'dark';
+
+        if (this.habitMonthlyChart) {
+            this.habitMonthlyChart.destroy();
+        }
+
+        this.habitMonthlyChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: weeks,
+                datasets: [{
+                    label: 'Habit Completion (%)',
+                    data: completionRates,
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    borderColor: 'rgba(245, 158, 11, 1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 6,
+                    pointBackgroundColor: 'rgba(245, 158, 11, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            color: isDark ? '#cbd5e1' : '#495057',
+                            callback: function (value) {
+                                return value + '%';
+                            }
+                        },
+                        grid: {
+                            color: isDark ? '#334155' : '#dee2e6'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: isDark ? '#cbd5e1' : '#495057'
+                        },
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
         });
     },
 
