@@ -77,6 +77,18 @@ const Analytics = {
         return { weeks, completionRates };
     },
 
+    // Check if a habit was completed on a given date
+    isHabitCompletedOnDate(habit, dateKey) {
+        // Support both completions object and completedDays array
+        if (habit.completions && habit.completions[dateKey]) {
+            return true;
+        }
+        if (habit.completedDays && Array.isArray(habit.completedDays)) {
+            return habit.completedDays.includes(dateKey);
+        }
+        return false;
+    },
+
     // Get weekly completion data for a specific habit
     getHabitWeeklyData(habit) {
         const days = [];
@@ -88,7 +100,7 @@ const Analytics = {
             const dateKey = date.toISOString().split('T')[0];
 
             days.push(date.toLocaleDateString('en-US', { weekday: 'short' }));
-            completions.push(habit.completions[dateKey] ? 1 : 0);
+            completions.push(this.isHabitCompletedOnDate(habit, dateKey) ? 1 : 0);
         }
 
         return { days, completions };
@@ -114,7 +126,7 @@ const Analytics = {
             for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
                 const dateKey = d.toISOString().split('T')[0];
                 totalDays++;
-                if (habit.completions[dateKey]) {
+                if (this.isHabitCompletedOnDate(habit, dateKey)) {
                     completed++;
                 }
             }
@@ -399,8 +411,9 @@ const Analytics = {
             // Create habit card
             const habitCard = document.createElement('div');
             habitCard.className = 'habit-analytics-card';
+            const habitName = habit.name || habit.title || 'Unnamed Habit';
             habitCard.innerHTML = `
-                <h3>${habit.name}</h3>
+                <h3>${habitName}</h3>
                 <div class="habit-charts-grid">
                     <div class="chart-card">
                         <h4>Last 7 Days</h4>
