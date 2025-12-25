@@ -770,9 +770,8 @@ const Analytics = {
 
     getTimeSlotData() {
         const slots = {
-            'Morning': { count: 0, hours: [6, 7, 8, 9, 10, 11] },
-            'Afternoon': { count: 0, hours: [12, 13, 14, 15, 16, 17] },
-            'Evening': { count: 0, hours: [18, 19, 20, 21] },
+            'Morning': { count: 0, hours: [6, 7, 8, 9, 10, 11, 12, 13] },
+            'Evening': { count: 0, hours: [14, 15, 16, 17, 18, 19, 20, 21] },
             'Night': { count: 0, hours: [22, 23, 0, 1, 2, 3, 4, 5] }
         };
 
@@ -791,8 +790,8 @@ const Analytics = {
         // Also count tasks by their block if no completedAt
         State.tasks.filter(t => t.completed && !t.completedAt && t.block).forEach(task => {
             if (task.block === 'morning') slots['Morning'].count++;
-            else if (task.block === 'afternoon') slots['Afternoon'].count++;
             else if (task.block === 'evening') slots['Evening'].count++;
+            else if (task.block === 'night') slots['Night'].count++;
         });
 
         return {
@@ -802,13 +801,12 @@ const Analytics = {
     },
 
     getBlockData() {
-        const blocks = { 'Morning': 0, 'Afternoon': 0, 'Evening': 0, 'Unscheduled': 0 };
+        const blocks = { 'Morning': 0, 'Evening': 0, 'Night': 0 };
 
         State.tasks.filter(t => t.completed).forEach(task => {
             if (task.block === 'morning') blocks['Morning']++;
-            else if (task.block === 'afternoon') blocks['Afternoon']++;
             else if (task.block === 'evening') blocks['Evening']++;
-            else blocks['Unscheduled']++;
+            else if (task.block === 'night') blocks['Night']++;
         });
 
         return {
@@ -941,7 +939,6 @@ const Analytics = {
                     data: data,
                     backgroundColor: [
                         'rgba(251, 191, 36, 0.8)',  // Morning - Yellow
-                        'rgba(249, 115, 22, 0.8)', // Afternoon - Orange
                         'rgba(139, 92, 246, 0.8)', // Evening - Purple
                         'rgba(59, 130, 246, 0.8)'  // Night - Blue
                     ],
@@ -986,15 +983,13 @@ const Analytics = {
                     data: data,
                     backgroundColor: [
                         'rgba(251, 191, 36, 0.7)',  // Morning
-                        'rgba(249, 115, 22, 0.7)', // Afternoon
                         'rgba(139, 92, 246, 0.7)', // Evening
-                        'rgba(107, 114, 128, 0.7)' // Unscheduled
+                        'rgba(59, 130, 246, 0.7)'  // Night
                     ],
                     borderColor: [
                         'rgba(251, 191, 36, 1)',
-                        'rgba(249, 115, 22, 1)',
                         'rgba(139, 92, 246, 1)',
-                        'rgba(107, 114, 128, 1)'
+                        'rgba(59, 130, 246, 1)'
                     ],
                     borderWidth: 2,
                     borderRadius: 8
