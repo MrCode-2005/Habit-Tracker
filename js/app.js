@@ -50,6 +50,25 @@ function setupNavigation() {
     const navButtons = document.querySelectorAll('.nav-btn');
     const views = document.querySelectorAll('.view');
 
+    // Restore last viewed section
+    const savedView = localStorage.getItem('currentView');
+    if (savedView) {
+        // Find the button for this view
+        const savedBtn = document.querySelector(`.nav-btn[data-view="${savedView}"]`);
+        if (savedBtn) {
+            navButtons.forEach(b => b.classList.remove('active'));
+            savedBtn.classList.add('active');
+            views.forEach(view => view.classList.remove('active'));
+            const viewEl = document.getElementById(savedView);
+            if (viewEl) viewEl.classList.add('active');
+
+            // Refresh analytics if that was the saved view
+            if (savedView === 'analytics') {
+                setTimeout(() => Analytics.refresh(), 100);
+            }
+        }
+    }
+
     navButtons.forEach(btn => {
         btn.addEventListener('click', () => {
             // Update active button
@@ -62,6 +81,9 @@ function setupNavigation() {
                 view.classList.remove('active');
             });
             document.getElementById(viewId).classList.add('active');
+
+            // Save current view to localStorage
+            localStorage.setItem('currentView', viewId);
 
             // Refresh analytics charts when switching to analytics view
             if (viewId === 'analytics') {

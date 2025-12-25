@@ -789,12 +789,32 @@ const FocusMode = {
             btn.classList.toggle('active', btn.dataset.animation === animation);
         });
 
-        // Clear video background when switching to animation
-        this.clearVideoBackground();
+        // Clear video background elements directly (don't call clearVideoBackground to avoid double startAnimation)
+        const videoPlayer = document.getElementById('videoBgPlayer');
+        const youtubeVideoBg = document.getElementById('youtubeVideoBg');
+        const canvas = document.getElementById('focusAnimationCanvas');
 
-        // Restart animation
+        if (videoPlayer) {
+            videoPlayer.pause();
+            videoPlayer.src = '';
+            videoPlayer.classList.remove('active');
+        }
+        if (youtubeVideoBg) {
+            youtubeVideoBg.innerHTML = '';
+            youtubeVideoBg.classList.remove('active');
+        }
+        if (canvas) {
+            canvas.style.display = 'block';
+        }
+
+        this.videoBgActive = false;
+
+        // Restart animation (single call)
         this.stopAnimation();
         this.startAnimation();
+
+        // Save animation state
+        this.saveAnimationState();
     },
 
     startAnimation() {
@@ -2901,9 +2921,26 @@ const FocusMode = {
             totalSeconds: this.totalSeconds,
             remainingSeconds: this.remainingSeconds,
             isBreakMode: this.isBreakMode,
-            breakDuration: this.breakDuration
+            breakDuration: this.breakDuration,
+            // Animation and video state
+            currentAnimation: this.currentAnimation,
+            videoBgActive: this.videoBgActive,
+            currentVideoBgUrl: this.currentVideoBgUrl || '',
+            // Audio state
+            currentPlaylist: this.currentPlaylist,
+            currentTrackIndex: this.currentTrackIndex,
+            volume: this.volume
         };
         sessionStorage.setItem('focusModeState', JSON.stringify(state));
+    },
+
+    saveAnimationState() {
+        // Save animation state separately to localStorage for persistence across sessions
+        localStorage.setItem('focusAnimationState', JSON.stringify({
+            currentAnimation: this.currentAnimation,
+            videoBgActive: this.videoBgActive,
+            currentVideoBgUrl: this.currentVideoBgUrl || ''
+        }));
     },
 
     clearState() {
@@ -2926,6 +2963,18 @@ const FocusMode = {
             this.isBreakMode = state.isBreakMode;
             this.breakDuration = state.breakDuration;
 
+            // Restore animation/video state
+            if (state.currentAnimation) {
+                this.currentAnimation = state.currentAnimation;
+            }
+            if (state.volume !== undefined) {
+                this.volume = state.volume;
+            }
+            if (state.currentPlaylist) {
+                this.currentPlaylist = state.currentPlaylist;
+                this.currentTrackIndex = state.currentTrackIndex || 0;
+            }
+
             // Update UI
             this.updateTaskInfo();
             this.updateTimerDisplay();
@@ -2943,8 +2992,27 @@ const FocusMode = {
                 document.querySelector('.break-duration-selector')?.classList.add('active');
             }
 
-            // Start animation and quote
-            this.startAnimation();
+            // Restore video background or start animation
+            if (state.videoBgActive && state.currentVideoBgUrl) {
+                this.setVideoBackground(state.currentVideoBgUrl);
+            } else {
+                // Update animation option buttons
+                document.querySelectorAll('.animation-option').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.animation === this.currentAnimation);
+                });
+                this.startAnimation();
+            }
+
+            // Restore audio if there was a playlist
+            if (state.currentPlaylist && this.playlists[state.currentPlaylist]) {
+                const selectEl = document.getElementById('playlistSelect');
+                const selectMini = document.getElementById('playlistSelectMini');
+                if (selectEl) selectEl.value = state.currentPlaylist;
+                if (selectMini) selectMini.value = state.currentPlaylist;
+                this.renderPlaylistTracks(state.currentPlaylist);
+                this.renderPlaylistTracksMini();
+            }
+
             this.showRandomQuote();
             this.startQuoteRotation();
 
@@ -3044,6 +3112,9 @@ const FocusMode = {
             return;
         }
 
+        // Save URL for persistence
+        this.currentVideoBgUrl = url;
+
         // Stop canvas animation
         this.stopAnimation();
 
@@ -3067,6 +3138,10 @@ const FocusMode = {
         }
 
         this.videoBgActive = true;
+
+        // Save state for persistence
+        this.saveAnimationState();
+        this.saveState();
     },
 
     uploadVideoBackground(file) {
