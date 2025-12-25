@@ -27,6 +27,7 @@ const Analytics = {
     getWeeklyData() {
         const days = [];
         const completionRates = [];
+        const totalTasks = State.tasks.length;
 
         for (let i = 6; i >= 0; i--) {
             const date = new Date();
@@ -35,41 +36,26 @@ const Analytics = {
 
             days.push(date.toLocaleDateString('en-US', { weekday: 'short' }));
 
-            // Count tasks completed on this day
-            const tasksCompletedOnDay = State.tasks.filter(task => {
+            // Count tasks that were completed by this date
+            const tasksCompletedByDate = State.tasks.filter(task => {
                 if (!task.completed) return false;
-
-                // Use completedAt if available, otherwise use createdAt
                 const completionDate = task.completedAt || task.createdAt;
-                if (!completionDate) return false;
+                if (!completionDate) return task.completed; // Count if marked complete without date
 
                 try {
                     const taskDate = new Date(completionDate);
-                    if (isNaN(taskDate.getTime())) return false;
-                    return taskDate.toISOString().split('T')[0] === dateKey;
+                    if (isNaN(taskDate.getTime())) return task.completed;
+                    return taskDate.toISOString().split('T')[0] <= dateKey;
                 } catch (e) {
-                    return false;
+                    return task.completed;
                 }
-            });
+            }).length;
 
-            // Calculate completion rate: completed tasks / total tasks for that day
-            const tasksCreatedOnDay = State.tasks.filter(task => {
-                if (!task.createdAt) return false;
-                try {
-                    const taskDate = new Date(task.createdAt);
-                    if (isNaN(taskDate.getTime())) return false;
-                    return taskDate.toISOString().split('T')[0] === dateKey;
-                } catch (e) {
-                    return false;
-                }
-            });
-
-            if (tasksCreatedOnDay.length === 0) {
-                // No tasks created on this day, show completion count instead
-                completionRates.push(tasksCompletedOnDay.length > 0 ? Math.min(100, tasksCompletedOnDay.length * 25) : 0);
+            // Show completion rate as percentage of total tasks
+            if (totalTasks === 0) {
+                completionRates.push(0);
             } else {
-                const completed = tasksCreatedOnDay.filter(t => t.completed).length;
-                completionRates.push(Math.round((completed / tasksCreatedOnDay.length) * 100));
+                completionRates.push(Math.round((tasksCompletedByDate / totalTasks) * 100));
             }
         }
 
