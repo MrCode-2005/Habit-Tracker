@@ -348,6 +348,24 @@ const Auth = {
                 FocusMode.loadVideoPlaylists();
             }
 
+            // Sync calendar events - push local to cloud, then reload
+            if (typeof Calendar !== 'undefined') {
+                const localCalendarEvents = localStorage.getItem('calendarEvents');
+                if (localCalendarEvents) {
+                    const events = JSON.parse(localCalendarEvents);
+                    for (const [date, dateEvents] of Object.entries(events)) {
+                        for (const event of dateEvents) {
+                            await SupabaseDB.upsertCalendarEvent(userId, date, event);
+                        }
+                    }
+                }
+
+                // Reload calendar events from cloud
+                Calendar.loadEvents();
+                Calendar.render();
+                Calendar.renderUpcomingEvents();
+            }
+
             console.log('Data synced from Supabase for user:', userId);
         } catch (error) {
             console.error('Error loading user data:', error);

@@ -219,6 +219,44 @@ CREATE INDEX IF NOT EXISTS playlists_user_id_idx ON playlists(user_id);
 CREATE INDEX IF NOT EXISTS video_playlists_user_id_idx ON video_playlists(user_id);
 
 -- =============================================
+-- CALENDAR EVENTS TABLE (Rich Calendar Entries)
+-- =============================================
+CREATE TABLE IF NOT EXISTS calendar_events (
+    id TEXT PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    event_date TEXT NOT NULL,
+    name TEXT NOT NULL,
+    time TEXT,
+    link TEXT,
+    comments TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable RLS
+ALTER TABLE calendar_events ENABLE ROW LEVEL SECURITY;
+
+-- Policies for calendar_events
+CREATE POLICY "Users can view own calendar_events"
+    ON calendar_events FOR SELECT
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own calendar_events"
+    ON calendar_events FOR INSERT
+    WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own calendar_events"
+    ON calendar_events FOR UPDATE
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own calendar_events"
+    ON calendar_events FOR DELETE
+    USING (auth.uid() = user_id);
+
+CREATE INDEX IF NOT EXISTS calendar_events_user_id_idx ON calendar_events(user_id);
+CREATE INDEX IF NOT EXISTS calendar_events_date_idx ON calendar_events(event_date);
+
+-- =============================================
 -- FUNCTIONS FOR AUTO-UPDATING updated_at
 -- =============================================
 CREATE OR REPLACE FUNCTION update_updated_at_column()

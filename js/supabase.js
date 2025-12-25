@@ -347,5 +347,69 @@ const SupabaseDB = {
             .eq('id', playlistId);
 
         if (error) console.error('Error deleting video playlist:', error);
+    },
+
+    // Calendar Events
+    async getCalendarEvents(userId) {
+        const client = getSupabase();
+        if (!client) return {};
+        const { data, error } = await client
+            .from('calendar_events')
+            .select('*')
+            .eq('user_id', userId)
+            .order('event_date', { ascending: true });
+
+        if (error) { console.error('Error fetching calendar events:', error); return {}; }
+
+        // Convert array to date-keyed object format
+        const events = {};
+        (data || []).forEach(e => {
+            if (!events[e.event_date]) {
+                events[e.event_date] = [];
+            }
+            events[e.event_date].push({
+                id: e.id,
+                name: e.name,
+                time: e.time,
+                link: e.link,
+                comments: e.comments
+            });
+        });
+        return events;
+    },
+
+    async upsertCalendarEvent(userId, date, event) {
+        const client = getSupabase();
+        if (!client) return null;
+
+        const dbEvent = {
+            id: event.id,
+            user_id: userId,
+            event_date: date,
+            name: event.name,
+            time: event.time || null,
+            link: event.link || null,
+            comments: event.comments || null
+        };
+
+        const { data, error } = await client
+            .from('calendar_events')
+            .upsert([dbEvent])
+            .select()
+            .single();
+
+        if (error) console.error('Error upserting calendar event:', error);
+        return data;
+    },
+
+    async deleteCalendarEvent(eventId) {
+        const client = getSupabase();
+        if (!client) return;
+        const { error } = await client
+            .from('calendar_events')
+            .delete()
+            .eq('id', eventId);
+
+        if (error) console.error('Error deleting calendar event:', error);
     }
 };

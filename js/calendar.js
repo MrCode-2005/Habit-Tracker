@@ -36,13 +36,44 @@ const Calendar = {
         });
     },
 
-    loadEvents() {
+    async loadEvents() {
+        // Load from localStorage first
         const stored = localStorage.getItem('calendarEvents');
         this.events = stored ? JSON.parse(stored) : {};
+
+        // If user is logged in, also fetch from Supabase and merge
+        if (typeof SupabaseDB !== 'undefined' && typeof Auth !== 'undefined' && Auth.currentUser) {
+            try {
+                const cloudEvents = await SupabaseDB.getCalendarEvents(Auth.currentUser.id);
+                if (cloudEvents && Object.keys(cloudEvents).length > 0) {
+                    // Merge cloud events with local (cloud takes precedence)
+                    for (const [date, events] of Object.entries(cloudEvents)) {
+                        this.events[date] = events;
+                    }
+                    localStorage.setItem('calendarEvents', JSON.stringify(this.events));
+                }
+            } catch (e) {
+                console.log('Error loading calendar events from cloud:', e);
+            }
+        }
     },
 
-    saveEvents() {
+    async saveEvents() {
+        // Save to localStorage
         localStorage.setItem('calendarEvents', JSON.stringify(this.events));
+
+        // If user is logged in, sync all events to Supabase
+        if (typeof SupabaseDB !== 'undefined' && typeof Auth !== 'undefined' && Auth.currentUser) {
+            try {
+                for (const [date, events] of Object.entries(this.events)) {
+                    for (const event of events) {
+                        await SupabaseDB.upsertCalendarEvent(Auth.currentUser.id, date, event);
+                    }
+                }
+            } catch (e) {
+                console.log('Error saving calendar events to cloud:', e);
+            }
+        }
     },
 
     render() {
@@ -230,15 +261,20 @@ const Calendar = {
         this.selectedEventId = null;
     },
 
-    deleteEvent() {
+    async deleteEvent() {
         if (this.selectedEventId && this.selectedEventDate) {
             const events = this.events[this.selectedEventDate];
             if (events) {
+                // Delete from cloud first
+                if (typeof SupabaseDB !== 'undefined' && typeof Auth !== 'undefined' && Auth.currentUser) {
+                    await SupabaseDB.deleteCalendarEvent(this.selectedEventId);
+                }
+
                 this.events[this.selectedEventDate] = events.filter(e => e.id !== this.selectedEventId);
                 if (this.events[this.selectedEventDate].length === 0) {
                     delete this.events[this.selectedEventDate];
                 }
-                this.saveEvents();
+                localStorage.setItem('calendarEvents', JSON.stringify(this.events));
                 this.closeDetails();
                 this.render();
                 this.renderUpcomingEvents();
