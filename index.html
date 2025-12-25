@@ -543,6 +543,16 @@
                     <input type="range" class="audio-progress" id="audioProgress" min="0" max="100" value="0">
                     <span class="audio-time" id="audioDuration">0:00</span>
                 </div>
+                <!-- Main playback controls -->
+                <div class="audio-main-controls">
+                    <button class="control-btn" id="audioPrevTrack" title="Previous Track"><i
+                            class="fas fa-step-backward"></i></button>
+                    <button class="control-btn play-pause-btn" id="audioPlayPause" title="Pause"><i
+                            class="fas fa-pause"></i></button>
+                    <button class="control-btn" id="audioNextTrack" title="Next Track"><i
+                            class="fas fa-step-forward"></i></button>
+                </div>
+                <!-- Skip controls -->
                 <div class="audio-skip-controls">
                     <button class="skip-btn" id="skipBack10" title="Back 10s"><i class="fas fa-backward"></i>
                         10</button>
@@ -552,9 +562,6 @@
                     <button class="skip-btn" id="skipForward10" title="Forward 10s">10 <i
                             class="fas fa-forward"></i></button>
                 </div>
-                <button class="skip-next-btn" id="skipNextTrack">
-                    <i class="fas fa-step-forward"></i> Skip to Next Track
-                </button>
             </div>
 
             <!-- Video Background Section -->
@@ -570,6 +577,36 @@
                     </label>
                     <input type="file" id="videoBgUpload" accept="video/*" hidden>
                     <button id="clearVideoBgBtn" class="video-clear-btn"><i class="fas fa-times"></i> Clear</button>
+                </div>
+
+                <!-- Video Playlist -->
+                <div class="video-playlist-section">
+                    <div class="playlist-header">
+                        <label><i class="fas fa-list-ul"></i> Video Playlists</label>
+                        <button id="newVideoPlaylistBtn" class="playlist-new-btn" title="New Playlist"><i
+                                class="fas fa-folder-plus"></i></button>
+                    </div>
+                    <div class="playlist-name-row">
+                        <select id="videoPlaylistSelect" class="playlist-select">
+                            <option value="">-- Select Playlist --</option>
+                        </select>
+                        <button id="editVideoPlaylistNameBtn" class="edit-name-btn" title="Rename"><i
+                                class="fas fa-edit"></i></button>
+                    </div>
+                    <div class="video-playlist-input">
+                        <input type="text" id="videoPlaylistUrl" placeholder="Add YouTube URL..."
+                            class="video-url-input">
+                        <button id="addVideoToPlaylistBtn" class="video-set-btn"><i class="fas fa-plus"></i></button>
+                    </div>
+                    <div class="video-playlist-tracks" id="videoPlaylistTracks">
+                        <!-- Video tracks will be populated here -->
+                    </div>
+                    <div class="playlist-controls">
+                        <button id="playVideoPlaylistBtn" class="playlist-play-btn"><i class="fas fa-play"></i> Play
+                            All</button>
+                        <button id="shuffleVideoPlaylistBtn" class="playlist-shuffle-btn"><i
+                                class="fas fa-random"></i></button>
+                    </div>
                 </div>
             </div>
 

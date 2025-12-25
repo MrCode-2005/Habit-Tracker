@@ -187,8 +187,16 @@ const FocusMode = {
             this.seekAudio(e.target.value);
         });
 
-        // Skip to Next Track
-        document.getElementById('skipNextTrack')?.addEventListener('click', () => {
+        // Main audio controls - Previous, Play/Pause, Next
+        document.getElementById('audioPrevTrack')?.addEventListener('click', () => {
+            this.playPreviousTrack();
+        });
+
+        document.getElementById('audioPlayPause')?.addEventListener('click', () => {
+            this.toggleAudioPause();
+        });
+
+        document.getElementById('audioNextTrack')?.addEventListener('click', () => {
             this.playNextTrack();
         });
 
@@ -403,9 +411,27 @@ const FocusMode = {
             this.toggleBreakMode();
             this.showNotification('Break complete! Ready to focus?');
         } else {
-            // Focus complete
-            this.showNotification('Great job! Session complete! 🎉');
-            // Optionally mark task as complete
+            // Focus complete - auto-complete subtask/task
+            if (this.currentTask && this.currentSubtask) {
+                // Find the subtask index in the task
+                const subtaskIndex = this.currentTask.subtasks?.findIndex(
+                    s => s.title === this.currentSubtask.title
+                );
+
+                if (subtaskIndex !== -1 && subtaskIndex !== undefined) {
+                    // Mark subtask as completed
+                    Tasks.toggleSubtask(this.currentTask.id, subtaskIndex);
+                    this.showNotification('Subtask completed! Great work! 🎉');
+                } else {
+                    this.showNotification('Session complete! 🎉');
+                }
+            } else if (this.currentTask) {
+                // Mark main task as completed
+                Tasks.toggleComplete(this.currentTask.id);
+                this.showNotification('Task completed! Great job! 🎉');
+            } else {
+                this.showNotification('Great job! Session complete! 🎉');
+            }
         }
     },
 
@@ -2272,6 +2298,52 @@ const FocusMode = {
         const btn = document.getElementById('shufflePlaylistBtn');
         if (btn) {
             btn.classList.toggle('active', this.isShuffleMode);
+        }
+    },
+
+    playPreviousTrack() {
+        if (!this.currentPlaylist || !this.playlists[this.currentPlaylist]) return;
+
+        const tracks = this.playlists[this.currentPlaylist].tracks;
+        if (tracks.length === 0) return;
+
+        if (this.isShuffleMode) {
+            this.currentTrackIndex = Math.floor(Math.random() * tracks.length);
+        } else {
+            this.currentTrackIndex = (this.currentTrackIndex - 1 + tracks.length) % tracks.length;
+        }
+
+        this.playTrack(this.currentTrackIndex);
+    },
+
+    toggleAudioPause() {
+        const playPauseBtn = document.getElementById('audioPlayPause');
+
+        // Toggle YouTube player
+        if (this.youtubePlayer) {
+            const state = this.youtubePlayer.getPlayerState ? this.youtubePlayer.getPlayerState() : -1;
+            if (state === 1) { // Playing
+                this.youtubePlayer.pauseVideo();
+                this.audioPaused = true;
+                if (playPauseBtn) playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+            } else {
+                this.youtubePlayer.playVideo();
+                this.audioPaused = false;
+                if (playPauseBtn) playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+            }
+        }
+
+        // Toggle native audio
+        if (this.currentAudio) {
+            if (this.currentAudio.paused) {
+                this.currentAudio.play();
+                this.audioPaused = false;
+                if (playPauseBtn) playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+            } else {
+                this.currentAudio.pause();
+                this.audioPaused = true;
+                if (playPauseBtn) playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+            }
         }
     },
 

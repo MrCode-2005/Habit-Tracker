@@ -839,6 +839,47 @@
     cursor: pointer;
 }
 
+/* Main playback controls - Prev, Play/Pause, Next */
+.audio-main-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0.75rem 0;
+}
+
+.audio-main-controls .control-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.audio-main-controls .control-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
+.audio-main-controls .play-pause-btn {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    font-size: 1rem;
+}
+
+.audio-main-controls .play-pause-btn:hover {
+    transform: scale(1.15);
+    box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4);
+}
+
 .audio-skip-controls {
     display: flex;
     gap: 0.5rem;
@@ -949,6 +990,90 @@
     color: white;
     font-size: 0.75rem;
     cursor: pointer;
+}
+
+/* Video Playlist Section */
+.video-playlist-section {
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.playlist-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.playlist-header label {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.8rem;
+}
+
+.playlist-name-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.edit-name-btn {
+    padding: 0.4rem 0.6rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    font-size: 0.7rem;
+}
+
+.edit-name-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.video-playlist-input {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.video-playlist-tracks {
+    max-height: 120px;
+    overflow-y: auto;
+    margin-bottom: 0.5rem;
+}
+
+.video-track-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    margin-bottom: 0.25rem;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.video-track-item .track-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.video-track-item button {
+    padding: 0.2rem 0.4rem;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    font-size: 0.65rem;
+}
+
+.video-track-item button:hover {
+    color: white;
 }
 
 .video-bg-player {
