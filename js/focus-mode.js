@@ -926,11 +926,12 @@ const FocusMode = {
 
     playAudioFile(sound) {
         // Use reliable public domain audio sources
+        // These are from SoundBible and other free audio CDNs
         const soundUrls = {
-            'rain': 'https://assets.mixkit.co/active_storage/sfx/212/212-preview.mp3',
-            'fire': 'https://assets.mixkit.co/active_storage/sfx/1/1-preview.mp3',
-            'ocean': 'https://assets.mixkit.co/active_storage/sfx/2198/2198-preview.mp3',
-            'forest': 'https://assets.mixkit.co/active_storage/sfx/2194/2194-preview.mp3'
+            'rain': 'https://soundbible.com/mp3/Rain-SoundBible.com-1655499074.mp3',
+            'fire': 'https://soundbible.com/mp3/Campfire-SoundBible.com-767541069.mp3',
+            'ocean': 'https://soundbible.com/mp3/Ocean_Waves-Mike_Koenig-980635527.mp3',
+            'forest': 'https://soundbible.com/mp3/bird-forest-ambient.mp3'
         };
 
         const url = soundUrls[sound];
@@ -942,8 +943,12 @@ const FocusMode = {
         this.currentAudio.volume = this.volume;
         this.currentAudio.play().catch(e => {
             console.log('Audio playback failed:', e.message);
-            // Try to inform user
-            alert('Please click anywhere on the page first to enable audio playback.');
+            // Fallback: suggest using custom upload or YouTube
+            const statusEl = document.getElementById('youtubeStatus');
+            if (statusEl) {
+                statusEl.textContent = 'Audio failed - try YouTube or upload custom';
+                statusEl.className = 'youtube-status error';
+            }
         });
     },
 
