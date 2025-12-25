@@ -3,9 +3,14 @@ const Analytics = {
     monthlyChart: null,
     goalsChart: null,
     habitCharts: [], // Store all habit chart instances
+    initialized: false,
 
     init() {
-        this.renderCharts();
+        // Delay initial render to ensure DOM and data are ready
+        setTimeout(() => {
+            this.renderCharts();
+            this.initialized = true;
+        }, 200);
     },
 
     renderCharts() {
