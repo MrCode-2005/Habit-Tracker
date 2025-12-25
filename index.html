@@ -16,6 +16,7 @@
 
     <title>Habit & Task Tracker</title>
     <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/focus-mode.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
@@ -427,6 +428,153 @@
         </div>
     </div>
 
+    <!-- Focus Mode (Full Page Timer) -->
+    <div class="focus-mode" id="focusMode">
+        <!-- Animated Background -->
+        <div class="focus-background">
+            <canvas id="focusAnimationCanvas"></canvas>
+        </div>
+
+        <!-- Header -->
+        <header class="focus-header">
+            <button class="focus-back-btn" id="focusBackBtn">
+                <i class="fas fa-arrow-left"></i>
+                <span>Back</span>
+            </button>
+
+            <div class="focus-header-controls">
+                <button class="focus-control-btn" id="focusSoundBtn" title="Ambient Sounds">
+                    <i class="fas fa-volume-up"></i>
+                </button>
+                <button class="focus-control-btn" id="focusAnimationBtn" title="Background Animation">
+                    <i class="fas fa-palette"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Sound Settings Panel -->
+        <div class="focus-settings-panel" id="focusSoundPanel">
+            <h3 class="focus-panel-title"><i class="fas fa-music"></i> Ambient Sounds</h3>
+            <div class="sound-options">
+                <button class="sound-option active" data-sound="none">
+                    <i class="fas fa-volume-mute"></i> Silence
+                </button>
+                <button class="sound-option" data-sound="white">
+                    <i class="fas fa-broadcast-tower"></i> White Noise
+                </button>
+                <button class="sound-option" data-sound="brown">
+                    <i class="fas fa-wave-square"></i> Brown Noise
+                </button>
+                <button class="sound-option" data-sound="pink">
+                    <i class="fas fa-signal"></i> Pink Noise
+                </button>
+                <button class="sound-option" data-sound="rain">
+                    <i class="fas fa-cloud-rain"></i> Rain
+                </button>
+                <button class="sound-option" data-sound="fire">
+                    <i class="fas fa-fire"></i> Fireplace
+                </button>
+                <button class="sound-option" data-sound="ocean">
+                    <i class="fas fa-water"></i> Ocean Waves
+                </button>
+                <button class="sound-option" data-sound="forest">
+                    <i class="fas fa-tree"></i> Forest
+                </button>
+            </div>
+            <div class="volume-control">
+                <label><i class="fas fa-volume-down"></i> Volume</label>
+                <input type="range" class="volume-slider" id="focusVolumeSlider" min="0" max="100" value="50">
+            </div>
+        </div>
+
+        <!-- Animation Settings Panel -->
+        <div class="focus-settings-panel" id="focusAnimationPanel">
+            <h3 class="focus-panel-title"><i class="fas fa-palette"></i> Background</h3>
+            <div class="animation-options">
+                <button class="animation-option active" data-animation="stars">
+                    <i class="fas fa-star"></i>
+                    Starry Night
+                </button>
+                <button class="animation-option" data-animation="campfire">
+                    <i class="fas fa-fire-alt"></i>
+                    Campfire
+                </button>
+                <button class="animation-option" data-animation="rain">
+                    <i class="fas fa-cloud-rain"></i>
+                    Rain
+                </button>
+                <button class="animation-option" data-animation="ocean">
+                    <i class="fas fa-water"></i>
+                    Ocean
+                </button>
+                <button class="animation-option" data-animation="forest">
+                    <i class="fas fa-tree"></i>
+                    Forest
+                </button>
+                <button class="animation-option" data-animation="cozy">
+                    <i class="fas fa-couch"></i>
+                    Cozy Room
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="focus-content">
+            <!-- Task Info -->
+            <div class="focus-task-info">
+                <h1 class="focus-task-title" id="focusTaskTitle">Focus Session</h1>
+                <p class="focus-subtask-title" id="focusSubtaskTitle"></p>
+            </div>
+
+            <!-- Timer Display -->
+            <div class="focus-timer-container">
+                <div class="focus-timer-ring">
+                    <svg viewBox="0 0 320 320">
+                        <defs>
+                            <linearGradient id="timerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#7c3aed" />
+                                <stop offset="100%" style="stop-color:#06b6d4" />
+                            </linearGradient>
+                        </defs>
+                        <circle class="progress-bg" cx="160" cy="160" r="140" />
+                        <circle class="progress-bar" cx="160" cy="160" r="140" />
+                    </svg>
+                    <div class="focus-timer-display">
+                        <div class="focus-timer-time" id="focusTimerDisplay">00:00:00</div>
+                        <div class="focus-timer-label" id="focusTimerLabel">FOCUS TIME</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timer Controls -->
+            <div class="focus-timer-controls">
+                <button class="focus-btn focus-btn-primary" id="focusStartBtn">
+                    <i class="fas fa-play"></i> Start
+                </button>
+                <button class="focus-btn focus-btn-secondary" id="focusResetBtn">
+                    <i class="fas fa-redo"></i> Reset
+                </button>
+                <button class="focus-btn focus-btn-break" id="focusBreakBtn">
+                    <i class="fas fa-coffee"></i> Break
+                </button>
+            </div>
+
+            <!-- Break Duration Selector -->
+            <div class="break-duration-selector">
+                <button class="break-option active" data-minutes="5">5 min</button>
+                <button class="break-option" data-minutes="10">10 min</button>
+                <button class="break-option" data-minutes="15">15 min</button>
+                <button class="break-option" data-minutes="30">30 min</button>
+            </div>
+
+            <!-- Quote Section -->
+            <div class="focus-quote">
+                <p class="focus-quote-text" id="focusQuoteText">"The secret of getting ahead is getting started."</p>
+                <p class="focus-quote-author" id="focusQuoteAuthor">— Mark Twain</p>
+            </div>
+        </main>
+    </div>
+
     <!-- Login Modal -->
     <div class="modal" id="loginModal">
         <div class="modal-content">
@@ -522,6 +670,7 @@
     <script src="js/goals.js"></script>
     <script src="js/quotes.js"></script>
     <script src="js/analytics.js"></script>
+    <script src="js/focus-mode.js"></script>
 
     <!-- Supabase Integration -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

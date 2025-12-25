@@ -1,0 +1,526 @@
+/* ===================================
+   Focus Mode - Full Page Timer
+   =================================== */
+
+/* Focus Mode Container */
+.focus-mode {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 5000;
+    display: none;
+    flex-direction: column;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+    overflow: hidden;
+}
+
+.focus-mode.active {
+    display: flex;
+}
+
+/* Animated Background Container */
+.focus-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    overflow: hidden;
+}
+
+/* Canvas for animations */
+.focus-background canvas {
+    width: 100%;
+    height: 100%;
+}
+
+/* Focus Mode Header */
+.focus-header {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+}
+
+.focus-back-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: white;
+    font-size: 0.938rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.focus-back-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateX(-3px);
+}
+
+.focus-header-controls {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.focus-control-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: white;
+    font-size: 1.25rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.focus-control-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.05);
+}
+
+.focus-control-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+}
+
+/* Focus Mode Content */
+.focus-content {
+    position: relative;
+    z-index: 10;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    gap: 2rem;
+}
+
+/* Task Info */
+.focus-task-info {
+    text-align: center;
+    color: white;
+}
+
+.focus-task-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.focus-subtask-title {
+    font-size: 1.125rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 400;
+}
+
+/* Timer Display */
+.focus-timer-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.focus-timer-ring {
+    position: relative;
+    width: 320px;
+    height: 320px;
+}
+
+.focus-timer-ring svg {
+    transform: rotate(-90deg);
+    width: 100%;
+    height: 100%;
+}
+
+.focus-timer-ring .progress-bg {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.1);
+    stroke-width: 8;
+}
+
+.focus-timer-ring .progress-bar {
+    fill: none;
+    stroke: url(#timerGradient);
+    stroke-width: 8;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1s linear;
+}
+
+.focus-timer-display {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+.focus-timer-time {
+    font-size: 4.5rem;
+    font-weight: 700;
+    color: white;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 40px rgba(124, 58, 237, 0.5);
+    letter-spacing: 2px;
+}
+
+.focus-timer-label {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin-top: 0.5rem;
+}
+
+/* Timer is in break mode */
+.focus-mode.break-mode .focus-timer-time {
+    text-shadow: 0 0 40px rgba(16, 185, 129, 0.5);
+}
+
+.focus-mode.break-mode .progress-bar {
+    stroke: #10b981;
+}
+
+/* Timer Controls */
+.focus-timer-controls {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.focus-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 1rem 2rem;
+    border-radius: 16px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+    min-width: 140px;
+}
+
+.focus-btn-primary {
+    background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+    color: white;
+    box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4);
+}
+
+.focus-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 30px rgba(124, 58, 237, 0.5);
+}
+
+.focus-btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.focus-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+.focus-btn-break {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.focus-btn-break:hover {
+    background: rgba(16, 185, 129, 0.3);
+}
+
+.focus-btn-break.active {
+    background: #10b981;
+    color: white;
+}
+
+/* Break Duration Selector */
+.break-duration-selector {
+    display: none;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+    margin-top: 0.5rem;
+}
+
+.break-duration-selector.active {
+    display: flex;
+}
+
+.break-option {
+    padding: 0.5rem 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: white;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.break-option:hover,
+.break-option.active {
+    background: rgba(16, 185, 129, 0.3);
+    border-color: #10b981;
+}
+
+/* Quote Section */
+.focus-quote {
+    text-align: center;
+    max-width: 600px;
+    padding: 1.5rem 2rem;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.focus-quote-text {
+    font-size: 1.25rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-style: italic;
+    line-height: 1.6;
+    margin-bottom: 0.75rem;
+    transition: opacity 0.5s ease;
+}
+
+.focus-quote-author {
+    font-size: 0.938rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* Settings Panels */
+.focus-settings-panel {
+    position: fixed;
+    top: 80px;
+    right: 1.5rem;
+    width: 280px;
+    background: rgba(20, 20, 35, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 1.25rem;
+    z-index: 100;
+    display: none;
+    animation: slideIn 0.3s ease;
+}
+
+.focus-settings-panel.active {
+    display: block;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.focus-panel-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Animation Options */
+.animation-options {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+}
+
+.animation-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 0.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.813rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.animation-option:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.animation-option.active {
+    background: rgba(124, 58, 237, 0.2);
+    border-color: var(--primary);
+    color: white;
+}
+
+.animation-option i {
+    font-size: 1.5rem;
+}
+
+/* Sound Options */
+.sound-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.sound-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.sound-option:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.sound-option.active {
+    background: rgba(124, 58, 237, 0.2);
+    border-color: var(--primary);
+    color: white;
+}
+
+.sound-option i {
+    width: 24px;
+    text-align: center;
+}
+
+/* Volume Control */
+.volume-control {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.volume-control label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 0.5rem;
+}
+
+.volume-slider {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.1);
+    appearance: none;
+    cursor: pointer;
+}
+
+.volume-slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.volume-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .focus-header {
+        padding: 1rem;
+    }
+
+    .focus-timer-ring {
+        width: 260px;
+        height: 260px;
+    }
+
+    .focus-timer-time {
+        font-size: 3.5rem;
+    }
+
+    .focus-task-title {
+        font-size: 1.5rem;
+    }
+
+    .focus-btn {
+        padding: 0.875rem 1.5rem;
+        min-width: 120px;
+    }
+
+    .focus-settings-panel {
+        right: 0.5rem;
+        left: 0.5rem;
+        width: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .focus-timer-ring {
+        width: 220px;
+        height: 220px;
+    }
+
+    .focus-timer-time {
+        font-size: 2.75rem;
+    }
+
+    .focus-quote-text {
+        font-size: 1rem;
+    }
+
+    .focus-timer-controls {
+        flex-direction: column;
+        width: 100%;
+        max-width: 300px;
+    }
+
+    .focus-btn {
+        width: 100%;
+    }
+}

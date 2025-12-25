@@ -1,5 +1,5 @@
 // Service Worker for Habit Tracker PWA
-const CACHE_NAME = 'habit-tracker-v8';
+const CACHE_NAME = 'habit-tracker-v9';
 const OFFLINE_URL = '/offline.html';
 
 // Assets to cache on install
@@ -8,6 +8,7 @@ const PRECACHE_ASSETS = [
     '/index.html',
     '/offline.html',
     '/styles/main.css',
+    '/styles/focus-mode.css',
     '/js/app.js',
     '/js/state.js',
     '/js/storage.js',
@@ -19,6 +20,7 @@ const PRECACHE_ASSETS = [
     '/js/goals.js',
     '/js/quotes.js',
     '/js/analytics.js',
+    '/js/focus-mode.js',
     '/js/supabase.js',
     '/js/auth.js',
     '/manifest.json',

@@ -1,0 +1,869 @@
+// ===================================
+// Focus Mode - Immersive Timer Experience
+// ===================================
+
+const FocusMode = {
+    isActive: false,
+    isPaused: true,
+    isBreakMode: false,
+    currentTask: null,
+    currentSubtask: null,
+
+    // Timer state
+    totalSeconds: 0,
+    remainingSeconds: 0,
+    timerInterval: null,
+
+    // Break settings
+    breakDuration: 5 * 60, // 5 minutes default
+
+    // Quote rotation
+    quoteInterval: null,
+    currentQuoteIndex: 0,
+
+    // Animation & Sound
+    currentAnimation: 'stars',
+    currentSound: 'none',
+    audioContext: null,
+    currentAudio: null,
+    volume: 0.5,
+
+    // Animation canvas
+    animationCanvas: null,
+    animationCtx: null,
+    animationFrame: null,
+
+    // Focus quotes
+    focusQuotes: [
+        { text: "The secret of getting ahead is getting started.", author: "Mark Twain" },
+        { text: "Focus on being productive instead of busy.", author: "Tim Ferriss" },
+        { text: "It's not always that we need to do more but rather that we need to focus on less.", author: "Nathan W. Morris" },
+        { text: "Concentrate all your thoughts upon the work at hand.", author: "Alexander Graham Bell" },
+        { text: "The successful warrior is the average man, with laser-like focus.", author: "Bruce Lee" },
+        { text: "Where focus goes, energy flows.", author: "Tony Robbins" },
+        { text: "Lack of direction, not lack of time, is the problem.", author: "Zig Ziglar" },
+        { text: "You can do anything, but not everything.", author: "David Allen" },
+        { text: "The main thing is to keep the main thing the main thing.", author: "Stephen Covey" },
+        { text: "Starve your distractions and feed your focus.", author: "Unknown" },
+        { text: "Do what you have to do until you can do what you want to do.", author: "Oprah Winfrey" },
+        { text: "Action is the foundational key to all success.", author: "Pablo Picasso" },
+        { text: "The way to get started is to quit talking and begin doing.", author: "Walt Disney" },
+        { text: "Success is the sum of small efforts repeated day in and day out.", author: "Robert Collier" },
+        { text: "Don't watch the clock; do what it does. Keep going.", author: "Sam Levenson" }
+    ],
+
+    init() {
+        this.setupEventListeners();
+        this.setupCanvas();
+    },
+
+    setupEventListeners() {
+        // Back button
+        document.getElementById('focusBackBtn')?.addEventListener('click', () => this.close());
+
+        // Timer controls
+        document.getElementById('focusStartBtn')?.addEventListener('click', () => this.toggleTimer());
+        document.getElementById('focusResetBtn')?.addEventListener('click', () => this.resetTimer());
+        document.getElementById('focusBreakBtn')?.addEventListener('click', () => this.toggleBreakMode());
+
+        // Break duration options
+        document.querySelectorAll('.break-option').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const minutes = parseInt(e.target.dataset.minutes);
+                this.setBreakDuration(minutes);
+            });
+        });
+
+        // Settings panels
+        document.getElementById('focusSoundBtn')?.addEventListener('click', () => this.togglePanel('sound'));
+        document.getElementById('focusAnimationBtn')?.addEventListener('click', () => this.togglePanel('animation'));
+
+        // Animation options
+        document.querySelectorAll('.animation-option').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const animation = e.currentTarget.dataset.animation;
+                this.setAnimation(animation);
+            });
+        });
+
+        // Sound options
+        document.querySelectorAll('.sound-option').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const sound = e.currentTarget.dataset.sound;
+                this.setSound(sound);
+            });
+        });
+
+        // Volume control
+        document.getElementById('focusVolumeSlider')?.addEventListener('input', (e) => {
+            this.setVolume(e.target.value / 100);
+        });
+
+        // Close panels when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.focus-settings-panel') &&
+                !e.target.closest('.focus-control-btn')) {
+                this.closePanels();
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (!this.isActive) return;
+
+            if (e.key === 'Escape') {
+                this.close();
+            } else if (e.key === ' ' && !e.target.matches('input, textarea')) {
+                e.preventDefault();
+                this.toggleTimer();
+            }
+        });
+    },
+
+    setupCanvas() {
+        this.animationCanvas = document.getElementById('focusAnimationCanvas');
+        if (this.animationCanvas) {
+            this.animationCtx = this.animationCanvas.getContext('2d');
+            this.resizeCanvas();
+            window.addEventListener('resize', () => this.resizeCanvas());
+        }
+    },
+
+    resizeCanvas() {
+        if (this.animationCanvas) {
+            this.animationCanvas.width = window.innerWidth;
+            this.animationCanvas.height = window.innerHeight;
+        }
+    },
+
+    // Open focus mode with a task
+    open(task, subtask = null) {
+        this.currentTask = task;
+        this.currentSubtask = subtask;
+
+        // Calculate total time
+        let hours = 0, minutes = 0;
+        if (subtask && subtask.hours !== undefined) {
+            hours = subtask.hours || 0;
+            minutes = subtask.minutes || 0;
+        } else if (task) {
+            hours = task.hours || 0;
+            minutes = task.minutes || 0;
+        }
+
+        this.totalSeconds = (hours * 60 + minutes) * 60;
+        this.remainingSeconds = this.totalSeconds;
+
+        // Update UI
+        this.updateTaskInfo();
+        this.updateTimerDisplay();
+        this.updateProgress(1);
+
+        // Show focus mode
+        document.getElementById('focusMode').classList.add('active');
+        document.body.style.overflow = 'hidden';
+        this.isActive = true;
+        this.isPaused = true;
+
+        // Start animation
+        this.startAnimation();
+
+        // Show initial quote
+        this.showRandomQuote();
+        this.startQuoteRotation();
+
+        // Auto-start timer
+        setTimeout(() => {
+            this.startTimer();
+        }, 500);
+    },
+
+    close() {
+        this.pauseTimer();
+        this.stopAnimation();
+        this.stopQuoteRotation();
+        this.stopSound();
+
+        document.getElementById('focusMode').classList.remove('active');
+        document.body.style.overflow = '';
+        this.isActive = false;
+        this.closePanels();
+    },
+
+    updateTaskInfo() {
+        const titleEl = document.getElementById('focusTaskTitle');
+        const subtaskEl = document.getElementById('focusSubtaskTitle');
+
+        if (titleEl) {
+            titleEl.textContent = this.currentTask?.title || 'Focus Session';
+        }
+
+        if (subtaskEl) {
+            if (this.currentSubtask) {
+                subtaskEl.textContent = `Sub-task: ${this.currentSubtask.title}`;
+                subtaskEl.style.display = 'block';
+            } else {
+                subtaskEl.style.display = 'none';
+            }
+        }
+    },
+
+    // Timer functions
+    toggleTimer() {
+        if (this.isPaused) {
+            this.startTimer();
+        } else {
+            this.pauseTimer();
+        }
+    },
+
+    startTimer() {
+        if (this.remainingSeconds <= 0) return;
+
+        this.isPaused = false;
+        this.updateStartButton();
+
+        this.timerInterval = setInterval(() => {
+            if (this.remainingSeconds > 0) {
+                this.remainingSeconds--;
+                this.updateTimerDisplay();
+                this.updateProgress(this.remainingSeconds / this.totalSeconds);
+            } else {
+                this.timerComplete();
+            }
+        }, 1000);
+    },
+
+    pauseTimer() {
+        this.isPaused = true;
+        if (this.timerInterval) {
+            clearInterval(this.timerInterval);
+            this.timerInterval = null;
+        }
+        this.updateStartButton();
+    },
+
+    resetTimer() {
+        this.pauseTimer();
+        this.remainingSeconds = this.isBreakMode ? this.breakDuration : this.totalSeconds;
+        this.updateTimerDisplay();
+        this.updateProgress(1);
+    },
+
+    timerComplete() {
+        this.pauseTimer();
+
+        if (this.isBreakMode) {
+            // Break complete - switch back to focus
+            this.toggleBreakMode();
+            this.showNotification('Break complete! Ready to focus?');
+        } else {
+            // Focus complete
+            this.showNotification('Great job! Session complete! 🎉');
+            // Optionally mark task as complete
+        }
+    },
+
+    updateTimerDisplay() {
+        const hours = Math.floor(this.remainingSeconds / 3600);
+        const minutes = Math.floor((this.remainingSeconds % 3600) / 60);
+        const seconds = this.remainingSeconds % 60;
+
+        const display = document.getElementById('focusTimerDisplay');
+        if (display) {
+            if (hours > 0) {
+                display.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            } else {
+                display.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }
+        }
+
+        // Update label
+        const label = document.getElementById('focusTimerLabel');
+        if (label) {
+            label.textContent = this.isBreakMode ? 'BREAK TIME' : 'FOCUS TIME';
+        }
+    },
+
+    updateProgress(progress) {
+        const progressBar = document.querySelector('.progress-bar');
+        if (progressBar) {
+            const circumference = 2 * Math.PI * 140; // radius = 140
+            const offset = circumference * (1 - progress);
+            progressBar.style.strokeDasharray = circumference;
+            progressBar.style.strokeDashoffset = offset;
+        }
+    },
+
+    updateStartButton() {
+        const btn = document.getElementById('focusStartBtn');
+        if (btn) {
+            if (this.isPaused) {
+                btn.innerHTML = '<i class="fas fa-play"></i> Start';
+            } else {
+                btn.innerHTML = '<i class="fas fa-pause"></i> Pause';
+            }
+        }
+    },
+
+    // Break mode
+    toggleBreakMode() {
+        this.isBreakMode = !this.isBreakMode;
+        this.pauseTimer();
+
+        const focusMode = document.getElementById('focusMode');
+        const breakBtn = document.getElementById('focusBreakBtn');
+        const durationSelector = document.querySelector('.break-duration-selector');
+
+        if (this.isBreakMode) {
+            focusMode?.classList.add('break-mode');
+            breakBtn?.classList.add('active');
+            durationSelector?.classList.add('active');
+            this.remainingSeconds = this.breakDuration;
+            this.totalSeconds = this.breakDuration;
+        } else {
+            focusMode?.classList.remove('break-mode');
+            breakBtn?.classList.remove('active');
+            durationSelector?.classList.remove('active');
+            // Restore original task time
+            let hours = 0, minutes = 0;
+            if (this.currentSubtask) {
+                hours = this.currentSubtask.hours || 0;
+                minutes = this.currentSubtask.minutes || 0;
+            } else if (this.currentTask) {
+                hours = this.currentTask.hours || 0;
+                minutes = this.currentTask.minutes || 0;
+            }
+            this.totalSeconds = (hours * 60 + minutes) * 60;
+            this.remainingSeconds = this.totalSeconds;
+        }
+
+        this.updateTimerDisplay();
+        this.updateProgress(1);
+    },
+
+    setBreakDuration(minutes) {
+        this.breakDuration = minutes * 60;
+
+        // Update UI
+        document.querySelectorAll('.break-option').forEach(btn => {
+            btn.classList.toggle('active', parseInt(btn.dataset.minutes) === minutes);
+        });
+
+        if (this.isBreakMode) {
+            this.remainingSeconds = this.breakDuration;
+            this.totalSeconds = this.breakDuration;
+            this.updateTimerDisplay();
+            this.updateProgress(1);
+        }
+    },
+
+    // Quotes
+    showRandomQuote() {
+        const quotes = this.focusQuotes;
+        this.currentQuoteIndex = Math.floor(Math.random() * quotes.length);
+        this.displayQuote(quotes[this.currentQuoteIndex]);
+    },
+
+    displayQuote(quote) {
+        const textEl = document.getElementById('focusQuoteText');
+        const authorEl = document.getElementById('focusQuoteAuthor');
+
+        if (textEl && authorEl) {
+            textEl.style.opacity = 0;
+            authorEl.style.opacity = 0;
+
+            setTimeout(() => {
+                textEl.textContent = `"${quote.text}"`;
+                authorEl.textContent = `— ${quote.author}`;
+                textEl.style.opacity = 1;
+                authorEl.style.opacity = 1;
+            }, 300);
+        }
+    },
+
+    startQuoteRotation() {
+        // Rotate quotes every 15 minutes
+        this.quoteInterval = setInterval(() => {
+            this.showRandomQuote();
+        }, 15 * 60 * 1000);
+    },
+
+    stopQuoteRotation() {
+        if (this.quoteInterval) {
+            clearInterval(this.quoteInterval);
+            this.quoteInterval = null;
+        }
+    },
+
+    // Settings panels
+    togglePanel(panel) {
+        const soundPanel = document.getElementById('focusSoundPanel');
+        const animationPanel = document.getElementById('focusAnimationPanel');
+
+        if (panel === 'sound') {
+            animationPanel?.classList.remove('active');
+            soundPanel?.classList.toggle('active');
+        } else if (panel === 'animation') {
+            soundPanel?.classList.remove('active');
+            animationPanel?.classList.toggle('active');
+        }
+    },
+
+    closePanels() {
+        document.querySelectorAll('.focus-settings-panel').forEach(panel => {
+            panel.classList.remove('active');
+        });
+    },
+
+    // Animation system
+    setAnimation(animation) {
+        this.currentAnimation = animation;
+
+        // Update UI
+        document.querySelectorAll('.animation-option').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.animation === animation);
+        });
+
+        // Restart animation
+        this.stopAnimation();
+        this.startAnimation();
+    },
+
+    startAnimation() {
+        this.stopAnimation();
+
+        switch (this.currentAnimation) {
+            case 'campfire':
+                this.animateCampfire();
+                break;
+            case 'rain':
+                this.animateRain();
+                break;
+            case 'ocean':
+                this.animateOcean();
+                break;
+            case 'stars':
+                this.animateStars();
+                break;
+            case 'forest':
+                this.animateForest();
+                break;
+            case 'cozy':
+                this.animateCozy();
+                break;
+            default:
+                this.animateStars();
+        }
+    },
+
+    stopAnimation() {
+        if (this.animationFrame) {
+            cancelAnimationFrame(this.animationFrame);
+            this.animationFrame = null;
+        }
+    },
+
+    // Star animation
+    animateStars() {
+        const ctx = this.animationCtx;
+        const canvas = this.animationCanvas;
+        if (!ctx || !canvas) return;
+
+        const stars = [];
+        const numStars = 200;
+
+        for (let i = 0; i < numStars; i++) {
+            stars.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                radius: Math.random() * 1.5 + 0.5,
+                alpha: Math.random(),
+                alphaChange: (Math.random() - 0.5) * 0.02
+            });
+        }
+
+        const animate = () => {
+            ctx.fillStyle = 'rgba(15, 15, 35, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            stars.forEach(star => {
+                star.alpha += star.alphaChange;
+                if (star.alpha <= 0.2 || star.alpha >= 1) {
+                    star.alphaChange *= -1;
+                }
+
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
+                ctx.fill();
+            });
+
+            this.animationFrame = requestAnimationFrame(animate);
+        };
+
+        // Initial clear
+        ctx.fillStyle = '#0f0f23';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        animate();
+    },
+
+    // Rain animation
+    animateRain() {
+        const ctx = this.animationCtx;
+        const canvas = this.animationCanvas;
+        if (!ctx || !canvas) return;
+
+        const drops = [];
+        const numDrops = 300;
+
+        for (let i = 0; i < numDrops; i++) {
+            drops.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                length: Math.random() * 20 + 10,
+                speed: Math.random() * 10 + 10,
+                opacity: Math.random() * 0.3 + 0.1
+            });
+        }
+
+        const animate = () => {
+            ctx.fillStyle = 'rgba(20, 30, 48, 0.3)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.strokeStyle = 'rgba(174, 194, 224, 0.5)';
+            ctx.lineWidth = 1;
+
+            drops.forEach(drop => {
+                ctx.beginPath();
+                ctx.moveTo(drop.x, drop.y);
+                ctx.lineTo(drop.x + 1, drop.y + drop.length);
+                ctx.globalAlpha = drop.opacity;
+                ctx.stroke();
+
+                drop.y += drop.speed;
+                if (drop.y > canvas.height) {
+                    drop.y = -drop.length;
+                    drop.x = Math.random() * canvas.width;
+                }
+            });
+
+            ctx.globalAlpha = 1;
+            this.animationFrame = requestAnimationFrame(animate);
+        };
+
+        ctx.fillStyle = '#141e30';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        animate();
+    },
+
+    // Campfire animation
+    animateCampfire() {
+        const ctx = this.animationCtx;
+        const canvas = this.animationCanvas;
+        if (!ctx || !canvas) return;
+
+        const particles = [];
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height * 0.8;
+
+        const animate = () => {
+            ctx.fillStyle = 'rgba(15, 10, 5, 0.15)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Add new particles
+            if (particles.length < 100) {
+                particles.push({
+                    x: centerX + (Math.random() - 0.5) * 60,
+                    y: centerY,
+                    vx: (Math.random() - 0.5) * 2,
+                    vy: -Math.random() * 3 - 2,
+                    radius: Math.random() * 8 + 4,
+                    life: 1,
+                    decay: Math.random() * 0.02 + 0.01
+                });
+            }
+
+            // Update and draw particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy -= 0.05;
+                p.life -= p.decay;
+                p.radius *= 0.99;
+
+                if (p.life <= 0) {
+                    particles.splice(i, 1);
+                    continue;
+                }
+
+                const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius);
+                const alpha = p.life * 0.8;
+                gradient.addColorStop(0, `rgba(255, 200, 50, ${alpha})`);
+                gradient.addColorStop(0.5, `rgba(255, 100, 20, ${alpha * 0.6})`);
+                gradient.addColorStop(1, `rgba(100, 20, 0, 0)`);
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fillStyle = gradient;
+                ctx.fill();
+            }
+
+            // Base glow
+            const baseGlow = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 150);
+            baseGlow.addColorStop(0, 'rgba(255, 150, 50, 0.3)');
+            baseGlow.addColorStop(1, 'rgba(255, 50, 0, 0)');
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 150, 0, Math.PI * 2);
+            ctx.fillStyle = baseGlow;
+            ctx.fill();
+
+            this.animationFrame = requestAnimationFrame(animate);
+        };
+
+        ctx.fillStyle = '#0a0805';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        animate();
+    },
+
+    // Ocean waves animation
+    animateOcean() {
+        const ctx = this.animationCtx;
+        const canvas = this.animationCanvas;
+        if (!ctx || !canvas) return;
+
+        let time = 0;
+
+        const animate = () => {
+            time += 0.02;
+
+            // Sky gradient
+            const skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height * 0.6);
+            skyGradient.addColorStop(0, '#1a1a3e');
+            skyGradient.addColorStop(1, '#2d3a5f');
+            ctx.fillStyle = skyGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height * 0.6);
+
+            // Ocean
+            const oceanGradient = ctx.createLinearGradient(0, canvas.height * 0.5, 0, canvas.height);
+            oceanGradient.addColorStop(0, '#1e3a5f');
+            oceanGradient.addColorStop(1, '#0a1628');
+            ctx.fillStyle = oceanGradient;
+            ctx.fillRect(0, canvas.height * 0.5, canvas.width, canvas.height * 0.5);
+
+            // Draw waves
+            for (let i = 0; i < 5; i++) {
+                ctx.beginPath();
+                ctx.moveTo(0, canvas.height);
+
+                const waveY = canvas.height * 0.55 + i * 30;
+                const amplitude = 15 - i * 2;
+                const frequency = 0.005 + i * 0.002;
+                const speed = time * (1 + i * 0.2);
+
+                for (let x = 0; x <= canvas.width; x += 5) {
+                    const y = waveY + Math.sin(x * frequency + speed) * amplitude;
+                    ctx.lineTo(x, y);
+                }
+
+                ctx.lineTo(canvas.width, canvas.height);
+                ctx.closePath();
+
+                const alpha = 0.2 - i * 0.03;
+                ctx.fillStyle = `rgba(100, 150, 200, ${alpha})`;
+                ctx.fill();
+            }
+
+            this.animationFrame = requestAnimationFrame(animate);
+        };
+
+        animate();
+    },
+
+    // Forest animation (floating particles like pollen/fireflies)
+    animateForest() {
+        const ctx = this.animationCtx;
+        const canvas = this.animationCanvas;
+        if (!ctx || !canvas) return;
+
+        const particles = [];
+        for (let i = 0; i < 50; i++) {
+            particles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                radius: Math.random() * 3 + 1,
+                vx: (Math.random() - 0.5) * 0.5,
+                vy: (Math.random() - 0.5) * 0.3 - 0.2,
+                alpha: Math.random() * 0.5 + 0.2,
+                pulse: Math.random() * Math.PI * 2
+            });
+        }
+
+        const animate = () => {
+            // Forest background gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#0d1f12');
+            gradient.addColorStop(0.5, '#162419');
+            gradient.addColorStop(1, '#0a150c');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            particles.forEach(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.pulse += 0.03;
+
+                const currentAlpha = p.alpha * (0.7 + Math.sin(p.pulse) * 0.3);
+
+                // Wrap around
+                if (p.x < 0) p.x = canvas.width;
+                if (p.x > canvas.width) p.x = 0;
+                if (p.y < 0) p.y = canvas.height;
+                if (p.y > canvas.height) p.y = 0;
+
+                // Glow effect
+                const glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius * 3);
+                glow.addColorStop(0, `rgba(180, 255, 150, ${currentAlpha})`);
+                glow.addColorStop(1, 'rgba(100, 200, 80, 0)');
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius * 3, 0, Math.PI * 2);
+                ctx.fillStyle = glow;
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(220, 255, 200, ${currentAlpha})`;
+                ctx.fill();
+            });
+
+            this.animationFrame = requestAnimationFrame(animate);
+        };
+
+        animate();
+    },
+
+    // Cozy room animation (warm ambient lighting shifts)
+    animateCozy() {
+        const ctx = this.animationCtx;
+        const canvas = this.animationCanvas;
+        if (!ctx || !canvas) return;
+
+        let hue = 30;
+        let time = 0;
+
+        const animate = () => {
+            time += 0.01;
+            hue = 25 + Math.sin(time) * 5;
+
+            const gradient = ctx.createRadialGradient(
+                canvas.width * 0.3, canvas.height * 0.3, 0,
+                canvas.width * 0.5, canvas.height * 0.5, canvas.width * 0.8
+            );
+            gradient.addColorStop(0, `hsl(${hue}, 60%, 25%)`);
+            gradient.addColorStop(0.5, `hsl(${hue - 5}, 40%, 15%)`);
+            gradient.addColorStop(1, `hsl(${hue - 10}, 30%, 8%)`);
+
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Warm light spots
+            const lightX = canvas.width * 0.7 + Math.sin(time * 0.5) * 20;
+            const lightY = canvas.height * 0.4 + Math.cos(time * 0.3) * 10;
+
+            const light = ctx.createRadialGradient(lightX, lightY, 0, lightX, lightY, 200);
+            light.addColorStop(0, 'rgba(255, 200, 100, 0.15)');
+            light.addColorStop(1, 'rgba(255, 150, 50, 0)');
+
+            ctx.beginPath();
+            ctx.arc(lightX, lightY, 200, 0, Math.PI * 2);
+            ctx.fillStyle = light;
+            ctx.fill();
+
+            this.animationFrame = requestAnimationFrame(animate);
+        };
+
+        animate();
+    },
+
+    // Sound system
+    setSound(sound) {
+        this.currentSound = sound;
+
+        // Update UI
+        document.querySelectorAll('.sound-option').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.sound === sound);
+        });
+
+        // Play sound
+        this.stopSound();
+        if (sound !== 'none') {
+            this.playSound(sound);
+        }
+    },
+
+    playSound(sound) {
+        // Use free ambient sound URLs (you can replace with your own)
+        const soundUrls = {
+            'white': 'https://cdn.freesound.org/previews/612/612608_5674468-lq.mp3',
+            'brown': 'https://cdn.freesound.org/previews/176/176033_3170491-lq.mp3',
+            'pink': 'https://cdn.freesound.org/previews/346/346639_5121236-lq.mp3',
+            'rain': 'https://cdn.freesound.org/previews/531/531947_10476875-lq.mp3',
+            'fire': 'https://cdn.freesound.org/previews/199/199711_3499084-lq.mp3',
+            'ocean': 'https://cdn.freesound.org/previews/467/467960_9497060-lq.mp3',
+            'forest': 'https://cdn.freesound.org/previews/591/591064_12176701-lq.mp3'
+        };
+
+        const url = soundUrls[sound];
+        if (!url) return;
+
+        this.currentAudio = new Audio(url);
+        this.currentAudio.loop = true;
+        this.currentAudio.volume = this.volume;
+        this.currentAudio.play().catch(e => {
+            console.log('Audio playback requires user interaction first');
+        });
+    },
+
+    stopSound() {
+        if (this.currentAudio) {
+            this.currentAudio.pause();
+            this.currentAudio.currentTime = 0;
+            this.currentAudio = null;
+        }
+    },
+
+    setVolume(value) {
+        this.volume = value;
+        if (this.currentAudio) {
+            this.currentAudio.volume = value;
+        }
+    },
+
+    // Notification
+    showNotification(message) {
+        // Simple notification - could be enhanced
+        if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('Focus Mode', { body: message });
+        }
+
+        // Also show on screen
+        const label = document.getElementById('focusTimerLabel');
+        if (label) {
+            const originalText = label.textContent;
+            label.textContent = message;
+            setTimeout(() => {
+                label.textContent = this.isBreakMode ? 'BREAK TIME' : 'FOCUS TIME';
+            }, 3000);
+        }
+    }
+};
+
+// Initialize on DOM ready
+document.addEventListener('DOMContentLoaded', () => {
+    FocusMode.init();
+});
+
+// Expose globally
+window.FocusMode = FocusMode;

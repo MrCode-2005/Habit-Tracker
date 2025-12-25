@@ -186,7 +186,7 @@ const Tasks = {
                             <input type="checkbox" class="subtask-checkbox" ${subtask.completed ? 'checked' : ''} onclick="event.stopPropagation(); Tasks.toggleSubtask('${task.id}', ${index})">
                             <span class="subtask-title">${subtask.title}</span>
                             <span class="task-time"><i class="fa-solid fa-clock"></i> ${subtask.duration}m</span>
-                            <button class="task-action-btn" onclick="event.stopPropagation(); Timer.openPanel(${JSON.stringify(task).replace(/"/g, '&quot;')}, ${JSON.stringify(subtask).replace(/"/g, '&quot;')})">
+                            <button class="task-action-btn" onclick="event.stopPropagation(); FocusMode.open(${JSON.stringify(task).replace(/"/g, '&quot;')}, { title: '${subtask.title.replace(/'/g, "\\'")}', hours: 0, minutes: ${subtask.duration} })">
                                 <i class="fa-solid fa-play"></i>
                             </button>
                         </div>
@@ -214,8 +214,8 @@ const Tasks = {
             ${task.notes ? `<div class="task-notes">${task.notes}</div>` : ''}
             ${subtasksHTML}
             <div class="task-actions">
-                <button class="task-action-btn" onclick="Timer.openPanel(${JSON.stringify(task).replace(/"/g, '&quot;')})">
-                    <i class="fa-solid fa-play"></i> Start Timer
+                <button class="task-action-btn" onclick="FocusMode.open(${JSON.stringify(task).replace(/"/g, '&quot;')})">
+                    <i class="fa-solid fa-play"></i> Start Focus
                 </button>
                 <button class="task-action-btn" onclick="Tasks.showTaskModal('${task.id}')">
                     <i class="fa-solid fa-edit"></i> Edit
