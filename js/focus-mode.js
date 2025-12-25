@@ -617,6 +617,12 @@ const FocusMode = {
         }
 
         const animate = () => {
+            // Check if animation is paused
+            if (this.animationPaused) {
+                this.animationFrame = requestAnimationFrame(animate);
+                return;
+            }
+
             ctx.fillStyle = 'rgba(20, 30, 48, 0.3)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -657,6 +663,12 @@ const FocusMode = {
         const centerY = canvas.height * 0.8;
 
         const animate = () => {
+            // Check if animation is paused
+            if (this.animationPaused) {
+                this.animationFrame = requestAnimationFrame(animate);
+                return;
+            }
+
             ctx.fillStyle = 'rgba(15, 10, 5, 0.15)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -725,6 +737,12 @@ const FocusMode = {
         let time = 0;
 
         const animate = () => {
+            // Check if animation is paused
+            if (this.animationPaused) {
+                this.animationFrame = requestAnimationFrame(animate);
+                return;
+            }
+
             time += 0.02;
 
             // Sky gradient
@@ -790,6 +808,12 @@ const FocusMode = {
         }
 
         const animate = () => {
+            // Check if animation is paused
+            if (this.animationPaused) {
+                this.animationFrame = requestAnimationFrame(animate);
+                return;
+            }
+
             // Forest background gradient
             const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
             gradient.addColorStop(0, '#0d1f12');
@@ -843,6 +867,12 @@ const FocusMode = {
         let time = 0;
 
         const animate = () => {
+            // Check if animation is paused
+            if (this.animationPaused) {
+                this.animationFrame = requestAnimationFrame(animate);
+                return;
+            }
+
             time += 0.01;
             hue = 25 + Math.sin(time) * 5;
 
