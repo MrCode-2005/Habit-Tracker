@@ -576,6 +576,161 @@
     overflow: hidden;
 }
 
+/* Add to Playlist Button */
+.youtube-add-btn {
+    padding: 0.6rem 0.8rem;
+    background: rgba(16, 185, 129, 0.8);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.youtube-add-btn:hover {
+    background: #10b981;
+    transform: scale(1.05);
+}
+
+/* YouTube Playlist */
+.youtube-playlist {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.playlist-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.playlist-new-btn {
+    padding: 0.4rem 0.6rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.playlist-new-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.playlist-select {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: white;
+    font-size: 0.813rem;
+    cursor: pointer;
+    margin-bottom: 0.5rem;
+}
+
+.playlist-select option {
+    background: #1a1a2e;
+    color: white;
+}
+
+.playlist-tracks {
+    max-height: 150px;
+    overflow-y: auto;
+    margin-bottom: 0.5rem;
+}
+
+.playlist-track {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    margin-bottom: 0.25rem;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.playlist-track.playing {
+    background: rgba(124, 58, 237, 0.2);
+    border-left: 3px solid var(--primary);
+}
+
+.playlist-track-title {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.playlist-track-btn {
+    padding: 0.25rem 0.4rem;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.playlist-track-btn:hover {
+    color: white;
+}
+
+.playlist-track-btn.delete:hover {
+    color: #ef4444;
+}
+
+.playlist-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.playlist-play-btn {
+    flex: 1;
+    padding: 0.5rem;
+    background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 0.813rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.playlist-play-btn:hover {
+    transform: scale(1.02);
+}
+
+.playlist-shuffle-btn {
+    padding: 0.5rem 0.75rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.playlist-shuffle-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.playlist-shuffle-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+}
+
+.playlist-empty {
+    text-align: center;
+    padding: 1rem;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.75rem;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .focus-header {

@@ -28,6 +28,12 @@ const FocusMode = {
     currentAudio: null,
     volume: 0.5,
 
+    // Playlist
+    playlists: {},
+    currentPlaylist: null,
+    currentTrackIndex: 0,
+    isShuffleMode: false,
+
     // Animation canvas
     animationCanvas: null,
     animationCtx: null,
@@ -55,6 +61,7 @@ const FocusMode = {
     init() {
         this.setupEventListeners();
         this.setupCanvas();
+        this.loadPlaylists();
     },
 
     setupEventListeners() {
@@ -123,6 +130,30 @@ const FocusMode = {
         // Volume control
         document.getElementById('focusVolumeSlider')?.addEventListener('input', (e) => {
             this.setVolume(e.target.value / 100);
+        });
+
+        // Playlist event listeners
+        document.getElementById('youtubeAddBtn')?.addEventListener('click', () => {
+            const url = document.getElementById('youtubeUrlInput')?.value;
+            if (url) {
+                this.addToPlaylist(url);
+            }
+        });
+
+        document.getElementById('newPlaylistBtn')?.addEventListener('click', () => {
+            this.createNewPlaylist();
+        });
+
+        document.getElementById('playlistSelect')?.addEventListener('change', (e) => {
+            this.selectPlaylist(e.target.value);
+        });
+
+        document.getElementById('playPlaylistBtn')?.addEventListener('click', () => {
+            this.playPlaylist();
+        });
+
+        document.getElementById('shufflePlaylistBtn')?.addEventListener('click', () => {
+            this.toggleShuffle();
         });
 
         // Close panels when clicking outside
@@ -1024,8 +1055,8 @@ const FocusMode = {
             videoId: videoId,
             playerVars: {
                 'autoplay': 1,
-                'loop': 1,
-                'playlist': videoId,
+                'loop': this.currentPlaylist ? 0 : 1, // Don't loop single video if in playlist mode
+                'playlist': this.currentPlaylist ? undefined : videoId,
                 'controls': 0
             },
             events: {
@@ -1035,6 +1066,12 @@ const FocusMode = {
                     if (statusEl) {
                         statusEl.textContent = '▶ Playing from YouTube';
                         statusEl.className = 'youtube-status playing';
+                    }
+                },
+                'onStateChange': (event) => {
+                    // State 0 = ended
+                    if (event.data === 0 && this.currentPlaylist) {
+                        this.playNextTrack();
                     }
                 },
                 'onError': (event) => {
@@ -1122,6 +1159,220 @@ const FocusMode = {
             setTimeout(() => {
                 label.textContent = this.isBreakMode ? 'BREAK TIME' : 'FOCUS TIME';
             }, 3000);
+        }
+    },
+
+    // ==============================
+    // Playlist Methods
+    // ==============================
+
+    loadPlaylists() {
+        try {
+            const saved = localStorage.getItem('focusPlaylists');
+            this.playlists = saved ? JSON.parse(saved) : {};
+            this.updatePlaylistDropdown();
+        } catch (e) {
+            console.log('Error loading playlists:', e);
+            this.playlists = {};
+        }
+    },
+
+    savePlaylists() {
+        try {
+            localStorage.setItem('focusPlaylists', JSON.stringify(this.playlists));
+        } catch (e) {
+            console.log('Error saving playlists:', e);
+        }
+    },
+
+    createNewPlaylist() {
+        const name = prompt('Enter playlist name:');
+        if (!name || name.trim() === '') return;
+
+        const playlistId = 'pl_' + Date.now();
+        this.playlists[playlistId] = {
+            name: name.trim(),
+            tracks: []
+        };
+
+        this.savePlaylists();
+        this.updatePlaylistDropdown();
+
+        // Select the new playlist
+        const selectEl = document.getElementById('playlistSelect');
+        if (selectEl) {
+            selectEl.value = playlistId;
+            this.selectPlaylist(playlistId);
+        }
+    },
+
+    addToPlaylist(url) {
+        const videoId = this.getYouTubeVideoId(url);
+        if (!videoId) {
+            alert('Invalid YouTube URL');
+            return;
+        }
+
+        // Get current selected playlist or create a default one
+        let playlistId = document.getElementById('playlistSelect')?.value;
+
+        if (!playlistId) {
+            // Create default playlist if none exists
+            playlistId = 'pl_default';
+            if (!this.playlists[playlistId]) {
+                this.playlists[playlistId] = {
+                    name: 'My Focus Mix',
+                    tracks: []
+                };
+                this.updatePlaylistDropdown();
+            }
+            document.getElementById('playlistSelect').value = playlistId;
+            this.currentPlaylist = playlistId;
+        }
+
+        // Add track
+        const track = {
+            id: videoId,
+            url: url,
+            title: `Track ${this.playlists[playlistId].tracks.length + 1}` // Will be updated with actual title
+        };
+
+        this.playlists[playlistId].tracks.push(track);
+        this.savePlaylists();
+        this.renderPlaylistTracks(playlistId);
+
+        // Clear input
+        const input = document.getElementById('youtubeUrlInput');
+        if (input) input.value = '';
+
+        // Show confirmation
+        const statusEl = document.getElementById('youtubeStatus');
+        if (statusEl) {
+            statusEl.textContent = '✓ Added to playlist';
+            statusEl.className = 'youtube-status playing';
+            setTimeout(() => {
+                statusEl.textContent = '';
+            }, 2000);
+        }
+    },
+
+    removeFromPlaylist(playlistId, trackIndex) {
+        if (!this.playlists[playlistId]) return;
+
+        this.playlists[playlistId].tracks.splice(trackIndex, 1);
+        this.savePlaylists();
+        this.renderPlaylistTracks(playlistId);
+    },
+
+    selectPlaylist(playlistId) {
+        this.currentPlaylist = playlistId;
+        this.currentTrackIndex = 0;
+        this.renderPlaylistTracks(playlistId);
+    },
+
+    renderPlaylistTracks(playlistId) {
+        const container = document.getElementById('playlistTracks');
+        if (!container) return;
+
+        if (!playlistId || !this.playlists[playlistId]) {
+            container.innerHTML = '<div class="playlist-empty">Select or create a playlist</div>';
+            return;
+        }
+
+        const playlist = this.playlists[playlistId];
+
+        if (playlist.tracks.length === 0) {
+            container.innerHTML = '<div class="playlist-empty">No tracks. Paste a YouTube URL and click + to add.</div>';
+            return;
+        }
+
+        container.innerHTML = playlist.tracks.map((track, index) => `
+            <div class="playlist-track ${index === this.currentTrackIndex && this.currentSound === 'youtube' ? 'playing' : ''}" data-index="${index}">
+                <button class="playlist-track-btn play" onclick="FocusMode.playTrack(${index})">
+                    <i class="fas fa-play"></i>
+                </button>
+                <span class="playlist-track-title">${track.title || 'Track ' + (index + 1)}</span>
+                <button class="playlist-track-btn delete" onclick="FocusMode.removeFromPlaylist('${playlistId}', ${index})">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `).join('');
+    },
+
+    updatePlaylistDropdown() {
+        const selectEl = document.getElementById('playlistSelect');
+        if (!selectEl) return;
+
+        const currentValue = selectEl.value;
+        selectEl.innerHTML = '<option value="">-- Select Playlist --</option>';
+
+        Object.keys(this.playlists).forEach(playlistId => {
+            const playlist = this.playlists[playlistId];
+            const option = document.createElement('option');
+            option.value = playlistId;
+            option.textContent = `${playlist.name} (${playlist.tracks.length})`;
+            selectEl.appendChild(option);
+        });
+
+        // Restore selection
+        if (currentValue && this.playlists[currentValue]) {
+            selectEl.value = currentValue;
+        }
+    },
+
+    playTrack(index) {
+        if (!this.currentPlaylist || !this.playlists[this.currentPlaylist]) return;
+
+        const tracks = this.playlists[this.currentPlaylist].tracks;
+        if (index < 0 || index >= tracks.length) return;
+
+        this.currentTrackIndex = index;
+        const track = tracks[index];
+        this.playYouTubeAudio(track.url);
+        this.renderPlaylistTracks(this.currentPlaylist);
+    },
+
+    playPlaylist() {
+        if (!this.currentPlaylist || !this.playlists[this.currentPlaylist]) {
+            alert('Please select a playlist first');
+            return;
+        }
+
+        const tracks = this.playlists[this.currentPlaylist].tracks;
+        if (tracks.length === 0) {
+            alert('Playlist is empty. Add some tracks first.');
+            return;
+        }
+
+        if (this.isShuffleMode) {
+            this.currentTrackIndex = Math.floor(Math.random() * tracks.length);
+        } else {
+            this.currentTrackIndex = 0;
+        }
+
+        this.playTrack(this.currentTrackIndex);
+    },
+
+    playNextTrack() {
+        if (!this.currentPlaylist || !this.playlists[this.currentPlaylist]) return;
+
+        const tracks = this.playlists[this.currentPlaylist].tracks;
+        if (tracks.length === 0) return;
+
+        if (this.isShuffleMode) {
+            this.currentTrackIndex = Math.floor(Math.random() * tracks.length);
+        } else {
+            this.currentTrackIndex = (this.currentTrackIndex + 1) % tracks.length;
+        }
+
+        this.playTrack(this.currentTrackIndex);
+    },
+
+    toggleShuffle() {
+        this.isShuffleMode = !this.isShuffleMode;
+        const btn = document.getElementById('shufflePlaylistBtn');
+        if (btn) {
+            btn.classList.toggle('active', this.isShuffleMode);
         }
     }
 };

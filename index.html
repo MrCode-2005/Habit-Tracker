@@ -499,8 +499,28 @@
                     <input type="text" id="youtubeUrlInput" placeholder="Paste YouTube URL here..."
                         class="youtube-url-field">
                     <button id="youtubePlayBtn" class="youtube-play-btn"><i class="fas fa-play"></i></button>
+                    <button id="youtubeAddBtn" class="youtube-add-btn" title="Add to Playlist"><i
+                            class="fas fa-plus"></i></button>
                 </div>
                 <span class="youtube-status" id="youtubeStatus"></span>
+            </div>
+            <!-- YouTube Playlist -->
+            <div class="youtube-playlist">
+                <div class="playlist-header">
+                    <label class="youtube-label"><i class="fas fa-list-ul"></i> My Playlists</label>
+                    <button id="newPlaylistBtn" class="playlist-new-btn" title="New Playlist"><i
+                            class="fas fa-folder-plus"></i></button>
+                </div>
+                <select id="playlistSelect" class="playlist-select">
+                    <option value="">-- Select Playlist --</option>
+                </select>
+                <div class="playlist-tracks" id="playlistTracks">
+                    <!-- Tracks will be populated here -->
+                </div>
+                <div class="playlist-controls">
+                    <button id="playPlaylistBtn" class="playlist-play-btn"><i class="fas fa-play"></i> Play All</button>
+                    <button id="shufflePlaylistBtn" class="playlist-shuffle-btn"><i class="fas fa-random"></i></button>
+                </div>
             </div>
             <div class="volume-control">
                 <label><i class="fas fa-volume-down"></i> Volume</label>
