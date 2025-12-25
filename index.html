@@ -17,6 +17,7 @@
     <title>Habit & Task Tracker</title>
     <link rel="stylesheet" href="styles/main.css">
     <link rel="stylesheet" href="styles/focus-mode.css">
+    <link rel="stylesheet" href="styles/calendar.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
@@ -195,16 +196,98 @@
         <!-- Events View -->
         <section class="view" id="events">
             <div class="view-header">
-                <h1>Scheduled Events</h1>
+                <h1>Calendar & Events</h1>
                 <button class="btn btn-primary" id="addEventBtn">
                     <i class="fa-solid fa-plus"></i>
                     Add Event
                 </button>
             </div>
+
+            <!-- Calendar Container -->
+            <div class="calendar-container">
+                <div class="calendar-header">
+                    <button class="calendar-nav-btn" id="prevMonth"><i class="fas fa-chevron-left"></i></button>
+                    <h2 id="calendarMonthYear"></h2>
+                    <button class="calendar-nav-btn" id="nextMonth"><i class="fas fa-chevron-right"></i></button>
+                </div>
+                <div class="calendar-weekdays">
+                    <div>Sun</div>
+                    <div>Mon</div>
+                    <div>Tue</div>
+                    <div>Wed</div>
+                    <div>Thu</div>
+                    <div>Fri</div>
+                    <div>Sat</div>
+                </div>
+                <div class="calendar-days" id="calendarDays">
+                    <!-- Calendar days will be rendered here -->
+                </div>
+            </div>
+
+            <!-- Upcoming Events Reminder -->
+            <div class="upcoming-events">
+                <h3><i class="fas fa-bell"></i> Upcoming Reminders</h3>
+                <div class="upcoming-list" id="upcomingEventsList">
+                    <!-- Upcoming events will be shown here -->
+                </div>
+            </div>
+
             <div class="events-list" id="eventsList">
                 <!-- Event cards will be inserted here -->
             </div>
         </section>
+
+        <!-- Calendar Event Modal -->
+        <div class="modal" id="calendarEventModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="calendarEventModalTitle">Add Event</h2>
+                    <button class="close-modal" onclick="Calendar.closeModal()"><i class="fas fa-times"></i></button>
+                </div>
+                <form id="calendarEventForm">
+                    <div class="form-group">
+                        <label for="eventName">Event Name</label>
+                        <input type="text" id="calEventName" required placeholder="Event name...">
+                    </div>
+                    <div class="form-group">
+                        <label for="eventDate">Date</label>
+                        <input type="date" id="calEventDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="eventTime">Time</label>
+                        <input type="time" id="calEventTime">
+                    </div>
+                    <div class="form-group">
+                        <label for="eventLink">Link (optional)</label>
+                        <input type="url" id="calEventLink" placeholder="https://...">
+                    </div>
+                    <div class="form-group">
+                        <label for="eventComments">Comments (optional)</label>
+                        <textarea id="calEventComments" rows="3" placeholder="Additional notes..."></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="Calendar.closeModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Event</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Event Details Popup -->
+        <div class="event-details-popup" id="eventDetailsPopup">
+            <div class="popup-content">
+                <button class="close-popup" onclick="Calendar.closeDetails()"><i class="fas fa-times"></i></button>
+                <h3 id="detailEventName"></h3>
+                <p class="event-time"><i class="fas fa-clock"></i> <span id="detailEventTime"></span></p>
+                <p class="event-link" id="detailEventLinkContainer"><i class="fas fa-link"></i> <a id="detailEventLink"
+                        href="#" target="_blank"></a></p>
+                <p class="event-comments" id="detailEventComments"></p>
+                <div class="popup-actions">
+                    <button class="btn btn-danger" onclick="Calendar.deleteEvent()"><i class="fas fa-trash"></i>
+                        Delete</button>
+                </div>
+            </div>
+        </div>
 
         <!-- Goals View -->
         <section class="view" id="goals">
@@ -865,6 +948,7 @@
     <script src="js/quotes.js"></script>
     <script src="js/analytics.js"></script>
     <script src="js/focus-mode.js"></script>
+    <script src="js/calendar.js"></script>
 
     <!-- Supabase Integration -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
