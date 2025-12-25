@@ -62,6 +62,9 @@ const FocusMode = {
         this.setupEventListeners();
         this.setupCanvas();
         this.loadPlaylists();
+
+        // Restore focus mode if it was active before refresh
+        this.restoreState();
     },
 
     setupEventListeners() {
@@ -229,6 +232,9 @@ const FocusMode = {
         this.showRandomQuote();
         this.startQuoteRotation();
 
+        // Save state for refresh persistence
+        this.saveState();
+
         // Auto-start timer
         setTimeout(() => {
             this.startTimer();
@@ -245,6 +251,9 @@ const FocusMode = {
         document.body.style.overflow = '';
         this.isActive = false;
         this.closePanels();
+
+        // Clear saved state
+        this.clearState();
     },
 
     updateTaskInfo() {
@@ -1378,6 +1387,71 @@ const FocusMode = {
         const btn = document.getElementById('shufflePlaylistBtn');
         if (btn) {
             btn.classList.toggle('active', this.isShuffleMode);
+        }
+    },
+
+    // ==============================
+    // State Persistence Methods
+    // ==============================
+
+    saveState() {
+        const state = {
+            isActive: this.isActive,
+            task: this.currentTask,
+            subtask: this.currentSubtask,
+            totalSeconds: this.totalSeconds,
+            remainingSeconds: this.remainingSeconds,
+            isBreakMode: this.isBreakMode,
+            breakDuration: this.breakDuration
+        };
+        sessionStorage.setItem('focusModeState', JSON.stringify(state));
+    },
+
+    clearState() {
+        sessionStorage.removeItem('focusModeState');
+    },
+
+    restoreState() {
+        try {
+            const saved = sessionStorage.getItem('focusModeState');
+            if (!saved) return;
+
+            const state = JSON.parse(saved);
+            if (!state.isActive) return;
+
+            // Restore state
+            this.currentTask = state.task;
+            this.currentSubtask = state.subtask;
+            this.totalSeconds = state.totalSeconds;
+            this.remainingSeconds = state.remainingSeconds;
+            this.isBreakMode = state.isBreakMode;
+            this.breakDuration = state.breakDuration;
+
+            // Update UI
+            this.updateTaskInfo();
+            this.updateTimerDisplay();
+            this.updateProgress(this.remainingSeconds / this.totalSeconds);
+
+            // Show focus mode
+            document.getElementById('focusMode').classList.add('active');
+            document.body.style.overflow = 'hidden';
+            this.isActive = true;
+            this.isPaused = true;
+
+            if (this.isBreakMode) {
+                document.getElementById('focusMode')?.classList.add('break-mode');
+                document.getElementById('focusBreakBtn')?.classList.add('active');
+                document.querySelector('.break-duration-selector')?.classList.add('active');
+            }
+
+            // Start animation and quote
+            this.startAnimation();
+            this.showRandomQuote();
+            this.startQuoteRotation();
+
+            console.log('Focus mode restored after refresh');
+        } catch (e) {
+            console.log('Error restoring focus state:', e);
         }
     }
 };
