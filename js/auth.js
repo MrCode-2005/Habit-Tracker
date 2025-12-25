@@ -271,9 +271,13 @@ const Auth = {
             // Sync data from Supabase to local state
             const userId = this.currentUser.id;
 
-            // Load tasks
+            // Load tasks (convert snake_case to camelCase)
             const tasks = await SupabaseDB.getTasks(userId);
-            State.tasks = tasks || [];
+            State.tasks = (tasks || []).map(t => ({
+                ...t,
+                completedAt: t.completed_at,
+                createdAt: t.created_at
+            }));
             State.saveTasks();
 
             // Load habits

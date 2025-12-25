@@ -72,7 +72,8 @@ const SupabaseDB = {
             priority: task.priority,
             notes: task.notes || '',
             subtasks: task.subtasks || [],
-            completed: task.completed || false
+            completed: task.completed || false,
+            completed_at: task.completedAt || null
         };
 
         const { data, error } = await client
