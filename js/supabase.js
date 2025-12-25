@@ -277,7 +277,8 @@ const SupabaseDB = {
             id: playlist.id || `playlist_${Date.now()}`,
             user_id: userId,
             name: playlist.name,
-            url: playlist.url
+            url: playlist.url || '',
+            tracks: playlist.tracks || []
         };
 
         const { data, error } = await client

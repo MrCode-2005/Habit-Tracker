@@ -2324,7 +2324,7 @@ const FocusMode = {
                             this.playlists[pl.id] = {
                                 name: pl.name,
                                 url: pl.url,
-                                tracks: this.playlists[pl.id]?.tracks || []
+                                tracks: pl.tracks || this.playlists[pl.id]?.tracks || []
                             };
                         });
                         // Save merged result to localStorage
@@ -2349,12 +2349,13 @@ const FocusMode = {
             if (typeof SupabaseDB !== 'undefined') {
                 const user = await SupabaseDB.getCurrentUser();
                 if (user) {
-                    // Sync each playlist to cloud
+                    // Sync each playlist to cloud (including tracks)
                     for (const [playlistId, playlist] of Object.entries(this.playlists)) {
                         await SupabaseDB.upsertPlaylist(user.id, {
                             id: playlistId,
                             name: playlist.name,
-                            url: playlist.url || ''
+                            url: playlist.url || '',
+                            tracks: playlist.tracks || []
                         });
                     }
                 }
