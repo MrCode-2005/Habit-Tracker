@@ -787,7 +787,7 @@ const FocusMode = {
         animate();
     },
 
-    // Sound system
+    // Sound system using Web Audio API
     setSound(sound) {
         this.currentSound = sound;
 
@@ -804,29 +804,108 @@ const FocusMode = {
     },
 
     playSound(sound) {
-        // Use free ambient sound URLs (you can replace with your own)
+        // For noise types, use Web Audio API to generate them
+        const noiseTypes = ['white', 'brown', 'pink'];
+
+        if (noiseTypes.includes(sound)) {
+            this.playGeneratedNoise(sound);
+        } else {
+            this.playAudioFile(sound);
+        }
+    },
+
+    playGeneratedNoise(type) {
+        // Create audio context
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        const bufferSize = 2 * this.audioContext.sampleRate;
+        const noiseBuffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+
+        if (type === 'white') {
+            // White noise - random values
+            for (let i = 0; i < bufferSize; i++) {
+                output[i] = Math.random() * 2 - 1;
+            }
+        } else if (type === 'brown') {
+            // Brown noise - integrated white noise
+            let lastOut = 0.0;
+            for (let i = 0; i < bufferSize; i++) {
+                const white = Math.random() * 2 - 1;
+                output[i] = (lastOut + (0.02 * white)) / 1.02;
+                lastOut = output[i];
+                output[i] *= 3.5; // Compensate for volume loss
+            }
+        } else if (type === 'pink') {
+            // Pink noise - Paul Kellet's method
+            let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+            for (let i = 0; i < bufferSize; i++) {
+                const white = Math.random() * 2 - 1;
+                b0 = 0.99886 * b0 + white * 0.0555179;
+                b1 = 0.99332 * b1 + white * 0.0750759;
+                b2 = 0.96900 * b2 + white * 0.1538520;
+                b3 = 0.86650 * b3 + white * 0.3104856;
+                b4 = 0.55000 * b4 + white * 0.5329522;
+                b5 = -0.7616 * b5 - white * 0.0168980;
+                output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+                output[i] *= 0.11; // Compensate for gain
+                b6 = white * 0.115926;
+            }
+        }
+
+        // Create buffer source and play
+        this.noiseSource = this.audioContext.createBufferSource();
+        this.noiseSource.buffer = noiseBuffer;
+        this.noiseSource.loop = true;
+
+        // Create gain node for volume control
+        this.gainNode = this.audioContext.createGain();
+        this.gainNode.gain.value = this.volume;
+
+        this.noiseSource.connect(this.gainNode);
+        this.gainNode.connect(this.audioContext.destination);
+        this.noiseSource.start();
+    },
+
+    playAudioFile(sound) {
+        // Use reliable public domain audio sources
         const soundUrls = {
-            'white': 'https://cdn.freesound.org/previews/612/612608_5674468-lq.mp3',
-            'brown': 'https://cdn.freesound.org/previews/176/176033_3170491-lq.mp3',
-            'pink': 'https://cdn.freesound.org/previews/346/346639_5121236-lq.mp3',
-            'rain': 'https://cdn.freesound.org/previews/531/531947_10476875-lq.mp3',
-            'fire': 'https://cdn.freesound.org/previews/199/199711_3499084-lq.mp3',
-            'ocean': 'https://cdn.freesound.org/previews/467/467960_9497060-lq.mp3',
-            'forest': 'https://cdn.freesound.org/previews/591/591064_12176701-lq.mp3'
+            'rain': 'https://assets.mixkit.co/active_storage/sfx/212/212-preview.mp3',
+            'fire': 'https://assets.mixkit.co/active_storage/sfx/1/1-preview.mp3',
+            'ocean': 'https://assets.mixkit.co/active_storage/sfx/2198/2198-preview.mp3',
+            'forest': 'https://assets.mixkit.co/active_storage/sfx/2194/2194-preview.mp3'
         };
 
         const url = soundUrls[sound];
         if (!url) return;
 
         this.currentAudio = new Audio(url);
+        this.currentAudio.crossOrigin = 'anonymous';
         this.currentAudio.loop = true;
         this.currentAudio.volume = this.volume;
         this.currentAudio.play().catch(e => {
-            console.log('Audio playback requires user interaction first');
+            console.log('Audio playback failed:', e.message);
+            // Try to inform user
+            alert('Please click anywhere on the page first to enable audio playback.');
         });
     },
 
     stopSound() {
+        // Stop generated noise
+        if (this.noiseSource) {
+            this.noiseSource.stop();
+            this.noiseSource.disconnect();
+            this.noiseSource = null;
+        }
+        if (this.audioContext) {
+            this.audioContext.close();
+            this.audioContext = null;
+        }
+        if (this.gainNode) {
+            this.gainNode = null;
+        }
+
+        // Stop audio file
         if (this.currentAudio) {
             this.currentAudio.pause();
             this.currentAudio.currentTime = 0;
@@ -836,6 +915,9 @@ const FocusMode = {
 
     setVolume(value) {
         this.volume = value;
+        if (this.gainNode) {
+            this.gainNode.gain.value = value;
+        }
         if (this.currentAudio) {
             this.currentAudio.volume = value;
         }

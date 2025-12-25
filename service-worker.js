@@ -1,5 +1,5 @@
 // Service Worker for Habit Tracker PWA
-const CACHE_NAME = 'habit-tracker-v9';
+const CACHE_NAME = 'habit-tracker-v10';
 const OFFLINE_URL = '/offline.html';
 
 // Assets to cache on install
