@@ -94,6 +94,14 @@ const FocusMode = {
             });
         });
 
+        // Custom sound upload
+        document.getElementById('customSoundInput')?.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                this.loadCustomSound(file);
+            }
+        });
+
         // Volume control
         document.getElementById('focusVolumeSlider')?.addEventListener('input', (e) => {
             this.setVolume(e.target.value / 100);
@@ -887,6 +895,39 @@ const FocusMode = {
             console.log('Audio playback failed:', e.message);
             // Try to inform user
             alert('Please click anywhere on the page first to enable audio playback.');
+        });
+    },
+
+    loadCustomSound(file) {
+        // Stop any currently playing sound
+        this.stopSound();
+
+        // Create a URL for the file
+        if (this.customSoundUrl) {
+            URL.revokeObjectURL(this.customSoundUrl);
+        }
+        this.customSoundUrl = URL.createObjectURL(file);
+
+        // Update UI
+        document.querySelectorAll('.sound-option').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.getElementById('customSoundLabel')?.classList.add('active');
+
+        // Show file name
+        const nameEl = document.getElementById('customSoundName');
+        if (nameEl) {
+            nameEl.textContent = file.name;
+        }
+
+        // Play the custom sound
+        this.currentSound = 'custom';
+        this.currentAudio = new Audio(this.customSoundUrl);
+        this.currentAudio.loop = true;
+        this.currentAudio.volume = this.volume;
+        this.currentAudio.play().catch(e => {
+            console.log('Audio playback failed:', e.message);
+            alert('Could not play the audio file. Please try a different format.');
         });
     },
 
