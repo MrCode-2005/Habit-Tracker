@@ -2433,32 +2433,23 @@ const FocusMode = {
         // Stop canvas animation
         this.stopAnimation();
 
-        // Hide canvas, show iframe
+        // Hide canvas
         const canvas = document.getElementById('focusAnimationCanvas');
         if (canvas) canvas.style.display = 'none';
 
-        // Create YouTube iframe for video background
-        const container = document.getElementById('youtubeContainer');
+        // Create YouTube iframe for video background (in the visible video bg container)
+        const container = document.getElementById('youtubeVideoBg');
         if (container) {
             container.innerHTML = `
                 <iframe 
                     id="videoBgIframe"
-                    width="100%" 
-                    height="100%" 
-                    src="https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&modestbranding=1&playsinline=1"
+                    src="https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&modestbranding=1&playsinline=1&rel=0&iv_load_policy=3&disablekb=1"
                     frameborder="0"
                     allow="autoplay; encrypted-media"
-                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none;"
+                    allowfullscreen
                 ></iframe>
             `;
-            container.style.display = 'block';
-            container.style.position = 'absolute';
-            container.style.top = '0';
-            container.style.left = '0';
-            container.style.width = '100%';
-            container.style.height = '100%';
-            container.style.zIndex = '0';
-            container.style.pointerEvents = 'none';
+            container.classList.add('active');
         }
 
         this.videoBgActive = true;
@@ -2488,16 +2479,16 @@ const FocusMode = {
     clearVideoBackground() {
         const videoPlayer = document.getElementById('videoBgPlayer');
         const canvas = document.getElementById('focusAnimationCanvas');
-        const container = document.getElementById('youtubeContainer');
+        const youtubeVideoBg = document.getElementById('youtubeVideoBg');
 
         if (videoPlayer) {
             videoPlayer.src = '';
             videoPlayer.classList.remove('active');
         }
 
-        if (container) {
-            container.innerHTML = '';
-            container.style.display = 'none';
+        if (youtubeVideoBg) {
+            youtubeVideoBg.innerHTML = '';
+            youtubeVideoBg.classList.remove('active');
         }
 
         if (canvas) {
@@ -2507,7 +2498,8 @@ const FocusMode = {
         this.videoBgActive = false;
         this.startAnimation();
 
-        document.getElementById('videoBgUrl').value = '';
+        const urlInput = document.getElementById('videoBgUrl');
+        if (urlInput) urlInput.value = '';
     },
 
     // ==============================
