@@ -1244,10 +1244,10 @@
 
 .focus-audio-panel {
     position: fixed;
-    top: 80px;
+    top: 150px;
     right: 20px;
     width: 280px;
-    max-height: calc(100vh - 100px);
+    max-height: calc(100vh - 180px);
     background: rgba(20, 20, 40, 0.95);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 16px;
@@ -1255,6 +1255,46 @@
     z-index: 100;
     overflow-y: auto;
     backdrop-filter: blur(10px);
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.focus-audio-panel.hidden {
+    transform: translateX(320px);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.audio-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 1rem;
+}
+
+.audio-panel-header h3 {
+    color: white;
+    font-size: 1rem;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.audio-panel-hide-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.audio-panel-hide-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
 }
 
 .focus-audio-panel h3 {

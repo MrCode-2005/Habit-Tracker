@@ -92,8 +92,17 @@ const FocusMode = {
         });
 
         // Settings panels
-        document.getElementById('focusSoundBtn')?.addEventListener('click', () => this.togglePanel('sound'));
+        document.getElementById('focusSoundBtn')?.addEventListener('click', () => {
+            this.togglePanel('sound');
+            // Hide the mini audio panel when opening main sound panel
+            document.getElementById('focusAudioPanel')?.classList.add('hidden');
+        });
         document.getElementById('focusAnimationBtn')?.addEventListener('click', () => this.togglePanel('animation'));
+
+        // Hide audio panel button
+        document.getElementById('hideAudioPanelBtn')?.addEventListener('click', () => {
+            document.getElementById('focusAudioPanel')?.classList.add('hidden');
+        });
 
         // Animation options
         document.querySelectorAll('.animation-option').forEach(btn => {
@@ -2296,22 +2305,41 @@ const FocusMode = {
 
     updatePlaylistDropdown() {
         const selectEl = document.getElementById('playlistSelect');
-        if (!selectEl) return;
+        const selectMini = document.getElementById('playlistSelectMini');
 
-        const currentValue = selectEl.value;
-        selectEl.innerHTML = '<option value="">-- Select Playlist --</option>';
+        const currentValue = selectEl?.value || '';
+        const currentValueMini = selectMini?.value || '';
 
-        Object.keys(this.playlists).forEach(playlistId => {
-            const playlist = this.playlists[playlistId];
-            const option = document.createElement('option');
-            option.value = playlistId;
-            option.textContent = `${playlist.name} (${playlist.tracks.length})`;
-            selectEl.appendChild(option);
-        });
+        // Update main panel dropdown
+        if (selectEl) {
+            selectEl.innerHTML = '<option value="">-- Select Playlist --</option>';
+            Object.keys(this.playlists).forEach(playlistId => {
+                const playlist = this.playlists[playlistId];
+                const option = document.createElement('option');
+                option.value = playlistId;
+                option.textContent = `${playlist.name} (${playlist.tracks.length})`;
+                selectEl.appendChild(option);
+            });
+            if (currentValue && this.playlists[currentValue]) {
+                selectEl.value = currentValue;
+            }
+        }
 
-        // Restore selection
-        if (currentValue && this.playlists[currentValue]) {
-            selectEl.value = currentValue;
+        // Also update mini panel dropdown
+        if (selectMini) {
+            selectMini.innerHTML = '<option value="">-- Select Playlist --</option>';
+            Object.keys(this.playlists).forEach(playlistId => {
+                const playlist = this.playlists[playlistId];
+                const option = document.createElement('option');
+                option.value = playlistId;
+                option.textContent = `${playlist.name} (${playlist.tracks.length})`;
+                selectMini.appendChild(option);
+            });
+            if (currentValueMini && this.playlists[currentValueMini]) {
+                selectMini.value = currentValueMini;
+            } else if (this.currentPlaylist) {
+                selectMini.value = this.currentPlaylist;
+            }
         }
     },
 
