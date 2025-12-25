@@ -1950,6 +1950,10 @@ const FocusMode = {
             events: {
                 'onReady': (event) => {
                     event.target.setVolume(this.volume * 100);
+                    // Apply playback speed if set
+                    if (this.playbackSpeed && this.playbackSpeed !== 1) {
+                        event.target.setPlaybackRate(this.playbackSpeed);
+                    }
                     event.target.playVideo();
                     if (statusEl) {
                         statusEl.textContent = '▶ Playing from YouTube';
