@@ -2652,19 +2652,53 @@ const FocusMode = {
     // Video Playlist Methods
     // ==============================
 
-    loadVideoPlaylists() {
+    async loadVideoPlaylists() {
         try {
+            // Load from localStorage first
             const stored = localStorage.getItem('focusVideoPlaylists');
             this.videoPlaylists = stored ? JSON.parse(stored) : {};
+
+            // If user is logged in, also fetch from Supabase and merge
+            if (typeof SupabaseDB !== 'undefined') {
+                const user = await SupabaseDB.getCurrentUser();
+                if (user) {
+                    const cloudPlaylists = await SupabaseDB.getVideoPlaylists(user.id);
+                    if (cloudPlaylists && cloudPlaylists.length > 0) {
+                        cloudPlaylists.forEach(pl => {
+                            this.videoPlaylists[pl.id] = {
+                                name: pl.name,
+                                videos: pl.videos || this.videoPlaylists[pl.id]?.videos || []
+                            };
+                        });
+                        localStorage.setItem('focusVideoPlaylists', JSON.stringify(this.videoPlaylists));
+                    }
+                }
+            }
+
             this.updateVideoPlaylistDropdown();
         } catch (e) {
             console.log('Error loading video playlists:', e);
         }
     },
 
-    saveVideoPlaylists() {
+    async saveVideoPlaylists() {
         try {
+            // Save to localStorage
             localStorage.setItem('focusVideoPlaylists', JSON.stringify(this.videoPlaylists));
+
+            // If user is logged in, sync to Supabase
+            if (typeof SupabaseDB !== 'undefined') {
+                const user = await SupabaseDB.getCurrentUser();
+                if (user) {
+                    for (const [playlistId, playlist] of Object.entries(this.videoPlaylists)) {
+                        await SupabaseDB.upsertVideoPlaylist(user.id, {
+                            id: playlistId,
+                            name: playlist.name,
+                            videos: playlist.videos || []
+                        });
+                    }
+                }
+            }
         } catch (e) {
             console.log('Error saving video playlists:', e);
         }

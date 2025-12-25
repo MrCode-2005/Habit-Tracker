@@ -299,5 +299,51 @@ const SupabaseDB = {
             .eq('id', playlistId);
 
         if (error) console.error('Error deleting playlist:', error);
+    },
+
+    // Video Playlists (Focus Mode Video Backgrounds)
+    async getVideoPlaylists(userId) {
+        const client = getSupabase();
+        if (!client) return [];
+        const { data, error } = await client
+            .from('video_playlists')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+
+        if (error) { console.error('Error fetching video playlists:', error); return []; }
+        return data || [];
+    },
+
+    async upsertVideoPlaylist(userId, playlist) {
+        const client = getSupabase();
+        if (!client) return null;
+
+        const dbPlaylist = {
+            id: playlist.id || `vpl_${Date.now()}`,
+            user_id: userId,
+            name: playlist.name,
+            videos: playlist.videos || []
+        };
+
+        const { data, error } = await client
+            .from('video_playlists')
+            .upsert([dbPlaylist])
+            .select()
+            .single();
+
+        if (error) console.error('Error upserting video playlist:', error);
+        return data;
+    },
+
+    async deleteVideoPlaylist(playlistId) {
+        const client = getSupabase();
+        if (!client) return;
+        const { error } = await client
+            .from('video_playlists')
+            .delete()
+            .eq('id', playlistId);
+
+        if (error) console.error('Error deleting video playlist:', error);
     }
 };

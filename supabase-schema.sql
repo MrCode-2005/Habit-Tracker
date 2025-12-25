@@ -177,6 +177,38 @@ CREATE POLICY "Users can delete own playlists"
     USING (auth.uid() = user_id);
 
 -- =============================================
+-- VIDEO PLAYLISTS TABLE (Focus Mode Video Backgrounds)
+-- =============================================
+CREATE TABLE IF NOT EXISTS video_playlists (
+    id TEXT PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    name TEXT NOT NULL,
+    videos JSONB DEFAULT '[]',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable RLS
+ALTER TABLE video_playlists ENABLE ROW LEVEL SECURITY;
+
+-- Policies for video_playlists
+CREATE POLICY "Users can view own video_playlists"
+    ON video_playlists FOR SELECT
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own video_playlists"
+    ON video_playlists FOR INSERT
+    WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own video_playlists"
+    ON video_playlists FOR UPDATE
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own video_playlists"
+    ON video_playlists FOR DELETE
+    USING (auth.uid() = user_id);
+
+-- =============================================
 -- INDEXES FOR PERFORMANCE
 -- =============================================
 CREATE INDEX IF NOT EXISTS tasks_user_id_idx ON tasks(user_id);
@@ -184,6 +216,7 @@ CREATE INDEX IF NOT EXISTS habits_user_id_idx ON habits(user_id);
 CREATE INDEX IF NOT EXISTS goals_user_id_idx ON goals(user_id);
 CREATE INDEX IF NOT EXISTS events_user_id_idx ON events(user_id);
 CREATE INDEX IF NOT EXISTS playlists_user_id_idx ON playlists(user_id);
+CREATE INDEX IF NOT EXISTS video_playlists_user_id_idx ON video_playlists(user_id);
 
 -- =============================================
 -- FUNCTIONS FOR AUTO-UPDATING updated_at
