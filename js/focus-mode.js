@@ -287,6 +287,7 @@ const FocusMode = {
         if (this.remainingSeconds <= 0) return;
 
         this.isPaused = false;
+        this.animationPaused = false; // Resume animation when timer starts
         this.updateStartButton();
 
         this.timerInterval = setInterval(() => {
@@ -294,6 +295,8 @@ const FocusMode = {
                 this.remainingSeconds--;
                 this.updateTimerDisplay();
                 this.updateProgress(this.remainingSeconds / this.totalSeconds);
+                // Update saved state periodically
+                this.saveState();
             } else {
                 this.timerComplete();
             }
@@ -302,6 +305,7 @@ const FocusMode = {
 
     pauseTimer() {
         this.isPaused = true;
+        this.animationPaused = true; // Pause animation when timer is paused
         if (this.timerInterval) {
             clearInterval(this.timerInterval);
             this.timerInterval = null;
@@ -545,19 +549,38 @@ const FocusMode = {
                 y: Math.random() * canvas.height,
                 radius: Math.random() * 1.5 + 0.5,
                 alpha: Math.random(),
-                alphaChange: (Math.random() - 0.5) * 0.02
+                alphaChange: (Math.random() - 0.5) * 0.02,
+                vx: (Math.random() - 0.5) * 0.3, // Horizontal velocity
+                vy: (Math.random() - 0.5) * 0.3  // Vertical velocity
             });
         }
 
         const animate = () => {
+            // Check if animation is paused
+            if (this.animationPaused) {
+                this.animationFrame = requestAnimationFrame(animate);
+                return;
+            }
+
             ctx.fillStyle = 'rgba(15, 15, 35, 0.1)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             stars.forEach(star => {
+                // Twinkle effect
                 star.alpha += star.alphaChange;
                 if (star.alpha <= 0.2 || star.alpha >= 1) {
                     star.alphaChange *= -1;
                 }
+
+                // Slow movement - stars drift
+                star.x += star.vx;
+                star.y += star.vy;
+
+                // Wrap around screen
+                if (star.x < 0) star.x = canvas.width;
+                if (star.x > canvas.width) star.x = 0;
+                if (star.y < 0) star.y = canvas.height;
+                if (star.y > canvas.height) star.y = 0;
 
                 ctx.beginPath();
                 ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
