@@ -200,6 +200,34 @@ const FocusMode = {
             this.playNextTrack();
         });
 
+        // ====== Right-Side Mini Audio Panel Controls ======
+        // Volume
+        document.getElementById('volumeSliderMini')?.addEventListener('input', (e) => {
+            this.setVolume(e.target.value / 100);
+            document.getElementById('focusVolumeSlider').value = e.target.value;
+        });
+
+        // Prev / Play-Pause / Next
+        document.getElementById('prevTrackMini')?.addEventListener('click', () => this.playPreviousTrack());
+        document.getElementById('playPauseMini')?.addEventListener('click', () => this.toggleAudioPause());
+        document.getElementById('nextTrackMini')?.addEventListener('click', () => this.playNextTrack());
+
+        // Skip controls
+        document.getElementById('skipBack10Mini')?.addEventListener('click', () => this.skipAudio(-10));
+        document.getElementById('skipBack5Mini')?.addEventListener('click', () => this.skipAudio(-5));
+        document.getElementById('skipForward5Mini')?.addEventListener('click', () => this.skipAudio(5));
+        document.getElementById('skipForward10Mini')?.addEventListener('click', () => this.skipAudio(10));
+
+        // Progress bar
+        document.getElementById('audioProgressMini')?.addEventListener('input', (e) => this.seekAudio(e.target.value));
+
+        // Playlist controls
+        document.getElementById('playAllBtnMini')?.addEventListener('click', () => this.playAllTracks());
+        document.getElementById('shuffleBtnMini')?.addEventListener('click', () => this.toggleShuffle());
+        document.getElementById('playlistSelectMini')?.addEventListener('change', (e) => {
+            this.selectPlaylist(e.target.value);
+        });
+
         // Video Background - YouTube URL
         document.getElementById('setVideoBgBtn')?.addEventListener('click', () => {
             const url = document.getElementById('videoBgUrl')?.value;
