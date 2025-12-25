@@ -83,6 +83,10 @@ const FocusMode = {
         document.getElementById('focusResetBtn')?.addEventListener('click', () => this.resetTimer());
         document.getElementById('focusBreakBtn')?.addEventListener('click', () => this.toggleBreakMode());
 
+        // Subtask navigation
+        document.getElementById('prevSubtaskBtn')?.addEventListener('click', () => this.navigateSubtask('prev'));
+        document.getElementById('nextSubtaskBtn')?.addEventListener('click', () => this.navigateSubtask('next'));
+
         // Break duration options
         document.querySelectorAll('.break-option').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -382,10 +386,27 @@ const FocusMode = {
 
         // Calculate total time
         let hours = 0, minutes = 0;
+
         if (subtask && subtask.hours !== undefined) {
+            // Specific subtask selected
             hours = subtask.hours || 0;
             minutes = subtask.minutes || 0;
+        } else if (task && task.subtasks && task.subtasks.length > 0) {
+            // Task with subtasks - calculate time for INCOMPLETE subtasks only
+            const incompleteSubtasks = task.subtasks.filter(s => !s.completed);
+
+            if (incompleteSubtasks.length > 0) {
+                // Set current subtask to first incomplete one
+                this.currentSubtask = incompleteSubtasks[0];
+                hours = this.currentSubtask.hours || 0;
+                minutes = this.currentSubtask.minutes || 0;
+            } else {
+                // All subtasks complete - use task total time
+                hours = task.hours || 0;
+                minutes = task.minutes || 0;
+            }
         } else if (task) {
+            // Task without subtasks
             hours = task.hours || 0;
             minutes = task.minutes || 0;
         }
@@ -454,6 +475,7 @@ const FocusMode = {
         }
 
         // Show task progress if we have a task with subtasks
+        const navEl = document.getElementById('focusSubtaskNav');
         if (progressEl && this.currentTask && this.currentTask.subtasks && this.currentTask.subtasks.length > 0) {
             const total = this.currentTask.subtasks.length;
             const completed = this.currentTask.subtasks.filter(s => s.completed).length;
@@ -468,9 +490,50 @@ const FocusMode = {
                 <span class="task-progress-text">${completed}/${total} completed${currentIdx > 0 ? ` • Working on #${currentIdx}` : ''}</span>
             `;
             progressEl.style.display = 'block';
+            if (navEl) navEl.style.display = 'flex';
         } else if (progressEl) {
             progressEl.style.display = 'none';
+            if (navEl) navEl.style.display = 'none';
         }
+    },
+
+    navigateSubtask(direction) {
+        if (!this.currentTask || !this.currentTask.subtasks || this.currentTask.subtasks.length === 0) return;
+
+        const subtasks = this.currentTask.subtasks;
+        const currentIdx = this.currentSubtask
+            ? subtasks.findIndex(s => s.id === this.currentSubtask.id)
+            : -1;
+
+        let newIdx;
+        if (direction === 'prev') {
+            newIdx = currentIdx > 0 ? currentIdx - 1 : subtasks.length - 1;
+        } else {
+            newIdx = currentIdx < subtasks.length - 1 ? currentIdx + 1 : 0;
+        }
+
+        // Skip completed subtasks when navigating forward
+        if (direction === 'next') {
+            let attempts = 0;
+            while (subtasks[newIdx].completed && attempts < subtasks.length) {
+                newIdx = (newIdx + 1) % subtasks.length;
+                attempts++;
+            }
+        }
+
+        const newSubtask = subtasks[newIdx];
+        this.currentSubtask = newSubtask;
+
+        // Update timer with new subtask's duration
+        if (newSubtask.duration) {
+            this.totalSeconds = newSubtask.duration * 60;
+            this.remainingSeconds = this.totalSeconds;
+        }
+
+        this.pauseTimer();
+        this.updateTimerDisplay();
+        this.updateProgress(1);
+        this.updateTaskInfo();
     },
 
     // Timer functions
@@ -510,6 +573,13 @@ const FocusMode = {
             this.timerInterval = null;
         }
         this.updateStartButton();
+
+        // Also pause YouTube video background if playing
+        if (this.youtubePlayer && this.youtubePlayer.pauseVideo) {
+            try {
+                this.youtubePlayer.pauseVideo();
+            } catch (e) { }
+        }
     },
 
     resetTimer() {
@@ -711,6 +781,9 @@ const FocusMode = {
         document.querySelectorAll('.animation-option').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.animation === animation);
         });
+
+        // Clear video background when switching to animation
+        this.clearVideoBackground();
 
         // Restart animation
         this.stopAnimation();
