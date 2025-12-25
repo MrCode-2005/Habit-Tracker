@@ -384,34 +384,34 @@ const FocusMode = {
         this.currentTask = task;
         this.currentSubtask = subtask;
 
-        // Calculate total time
-        let hours = 0, minutes = 0;
+        // Calculate total time in seconds
+        let totalMinutes = 0;
 
-        if (subtask && subtask.hours !== undefined) {
-            // Specific subtask selected
-            hours = subtask.hours || 0;
-            minutes = subtask.minutes || 0;
+        if (subtask) {
+            // Specific subtask selected - use duration or hours/minutes
+            if (subtask.duration !== undefined) {
+                totalMinutes = subtask.duration || 0;
+            } else if (subtask.hours !== undefined || subtask.minutes !== undefined) {
+                totalMinutes = (subtask.hours || 0) * 60 + (subtask.minutes || 0);
+            }
         } else if (task && task.subtasks && task.subtasks.length > 0) {
-            // Task with subtasks - calculate time for INCOMPLETE subtasks only
+            // Task with subtasks - find first INCOMPLETE subtask
             const incompleteSubtasks = task.subtasks.filter(s => !s.completed);
 
             if (incompleteSubtasks.length > 0) {
                 // Set current subtask to first incomplete one
                 this.currentSubtask = incompleteSubtasks[0];
-                hours = this.currentSubtask.hours || 0;
-                minutes = this.currentSubtask.minutes || 0;
+                totalMinutes = this.currentSubtask.duration || 0;
             } else {
                 // All subtasks complete - use task total time
-                hours = task.hours || 0;
-                minutes = task.minutes || 0;
+                totalMinutes = (task.hours || 0) * 60 + (task.minutes || 0);
             }
         } else if (task) {
             // Task without subtasks
-            hours = task.hours || 0;
-            minutes = task.minutes || 0;
+            totalMinutes = (task.hours || 0) * 60 + (task.minutes || 0);
         }
 
-        this.totalSeconds = (hours * 60 + minutes) * 60;
+        this.totalSeconds = totalMinutes * 60;
         this.remainingSeconds = this.totalSeconds;
 
         // Update UI
@@ -501,9 +501,15 @@ const FocusMode = {
         if (!this.currentTask || !this.currentTask.subtasks || this.currentTask.subtasks.length === 0) return;
 
         const subtasks = this.currentTask.subtasks;
-        const currentIdx = this.currentSubtask
-            ? subtasks.findIndex(s => s.id === this.currentSubtask.id)
-            : -1;
+
+        // Find current subtask index by title (subtasks may not have id)
+        let currentIdx = -1;
+        if (this.currentSubtask) {
+            currentIdx = subtasks.findIndex(s =>
+                (s.id && s.id === this.currentSubtask.id) ||
+                (s.title && s.title === this.currentSubtask.title)
+            );
+        }
 
         let newIdx;
         if (direction === 'prev') {
@@ -515,20 +521,21 @@ const FocusMode = {
         // Skip completed subtasks when navigating forward
         if (direction === 'next') {
             let attempts = 0;
-            while (subtasks[newIdx].completed && attempts < subtasks.length) {
+            while (subtasks[newIdx] && subtasks[newIdx].completed && attempts < subtasks.length) {
                 newIdx = (newIdx + 1) % subtasks.length;
                 attempts++;
             }
         }
 
         const newSubtask = subtasks[newIdx];
+        if (!newSubtask) return;
+
         this.currentSubtask = newSubtask;
 
-        // Update timer with new subtask's duration
-        if (newSubtask.duration) {
-            this.totalSeconds = newSubtask.duration * 60;
-            this.remainingSeconds = this.totalSeconds;
-        }
+        // Update timer with new subtask's duration (default to 25 min if not set)
+        const durationMinutes = newSubtask.duration || 25;
+        this.totalSeconds = durationMinutes * 60;
+        this.remainingSeconds = this.totalSeconds;
 
         this.pauseTimer();
         this.updateTimerDisplay();
