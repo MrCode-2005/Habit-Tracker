@@ -74,6 +74,20 @@ const State = {
         const task = this.tasks.find(t => String(t.id) === taskId);
         if (task && task.subtasks[subtaskIndex]) {
             task.subtasks[subtaskIndex].completed = !task.subtasks[subtaskIndex].completed;
+
+            // Auto-complete parent task if all subtasks are completed
+            if (task.subtasks && task.subtasks.length > 0) {
+                const allSubtasksComplete = task.subtasks.every(s => s.completed);
+                if (allSubtasksComplete && !task.completed) {
+                    task.completed = true;
+                    task.completedAt = new Date().toISOString();
+                } else if (!allSubtasksComplete && task.completed) {
+                    // Uncheck parent if a subtask is unchecked
+                    task.completed = false;
+                    task.completedAt = null;
+                }
+            }
+
             this.saveTasks();
             return task;
         }
