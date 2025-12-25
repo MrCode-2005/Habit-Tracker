@@ -2307,10 +2307,32 @@ const FocusMode = {
     // Playlist Methods
     // ==============================
 
-    loadPlaylists() {
+    async loadPlaylists() {
         try {
+            // Load from localStorage first
             const saved = localStorage.getItem('focusPlaylists');
             this.playlists = saved ? JSON.parse(saved) : {};
+
+            // If user is logged in, also fetch from Supabase and merge
+            if (typeof SupabaseDB !== 'undefined') {
+                const user = await SupabaseDB.getCurrentUser();
+                if (user) {
+                    const cloudPlaylists = await SupabaseDB.getPlaylists(user.id);
+                    if (cloudPlaylists && cloudPlaylists.length > 0) {
+                        // Merge cloud playlists with local (cloud takes precedence)
+                        cloudPlaylists.forEach(pl => {
+                            this.playlists[pl.id] = {
+                                name: pl.name,
+                                url: pl.url,
+                                tracks: this.playlists[pl.id]?.tracks || []
+                            };
+                        });
+                        // Save merged result to localStorage
+                        localStorage.setItem('focusPlaylists', JSON.stringify(this.playlists));
+                    }
+                }
+            }
+
             this.updatePlaylistDropdown();
         } catch (e) {
             console.log('Error loading playlists:', e);
@@ -2318,9 +2340,25 @@ const FocusMode = {
         }
     },
 
-    savePlaylists() {
+    async savePlaylists() {
         try {
+            // Save to localStorage
             localStorage.setItem('focusPlaylists', JSON.stringify(this.playlists));
+
+            // If user is logged in, sync to Supabase
+            if (typeof SupabaseDB !== 'undefined') {
+                const user = await SupabaseDB.getCurrentUser();
+                if (user) {
+                    // Sync each playlist to cloud
+                    for (const [playlistId, playlist] of Object.entries(this.playlists)) {
+                        await SupabaseDB.upsertPlaylist(user.id, {
+                            id: playlistId,
+                            name: playlist.name,
+                            url: playlist.url || ''
+                        });
+                    }
+                }
+            }
         } catch (e) {
             console.log('Error saving playlists:', e);
         }

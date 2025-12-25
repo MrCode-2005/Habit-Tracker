@@ -253,5 +253,51 @@ const SupabaseDB = {
             .eq('id', eventId);
 
         if (error) console.error('Error deleting event:', error);
+    },
+
+    // Playlists (Focus Mode)
+    async getPlaylists(userId) {
+        const client = getSupabase();
+        if (!client) return [];
+        const { data, error } = await client
+            .from('playlists')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+
+        if (error) { console.error('Error fetching playlists:', error); return []; }
+        return data || [];
+    },
+
+    async upsertPlaylist(userId, playlist) {
+        const client = getSupabase();
+        if (!client) return null;
+
+        const dbPlaylist = {
+            id: playlist.id || `playlist_${Date.now()}`,
+            user_id: userId,
+            name: playlist.name,
+            url: playlist.url
+        };
+
+        const { data, error } = await client
+            .from('playlists')
+            .upsert([dbPlaylist])
+            .select()
+            .single();
+
+        if (error) console.error('Error upserting playlist:', error);
+        return data;
+    },
+
+    async deletePlaylist(playlistId) {
+        const client = getSupabase();
+        if (!client) return;
+        const { error } = await client
+            .from('playlists')
+            .delete()
+            .eq('id', playlistId);
+
+        if (error) console.error('Error deleting playlist:', error);
     }
 };

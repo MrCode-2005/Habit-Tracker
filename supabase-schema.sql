@@ -145,12 +145,45 @@ CREATE POLICY "Users can delete own events"
     USING (auth.uid() = user_id);
 
 -- =============================================
+-- PLAYLISTS TABLE (Focus Mode YouTube Playlists)
+-- =============================================
+CREATE TABLE IF NOT EXISTS playlists (
+    id TEXT PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    name TEXT NOT NULL,
+    url TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable RLS
+ALTER TABLE playlists ENABLE ROW LEVEL SECURITY;
+
+-- Policies for playlists
+CREATE POLICY "Users can view own playlists"
+    ON playlists FOR SELECT
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own playlists"
+    ON playlists FOR INSERT
+    WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own playlists"
+    ON playlists FOR UPDATE
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own playlists"
+    ON playlists FOR DELETE
+    USING (auth.uid() = user_id);
+
+-- =============================================
 -- INDEXES FOR PERFORMANCE
 -- =============================================
 CREATE INDEX IF NOT EXISTS tasks_user_id_idx ON tasks(user_id);
 CREATE INDEX IF NOT EXISTS habits_user_id_idx ON habits(user_id);
 CREATE INDEX IF NOT EXISTS goals_user_id_idx ON goals(user_id);
 CREATE INDEX IF NOT EXISTS events_user_id_idx ON events(user_id);
+CREATE INDEX IF NOT EXISTS playlists_user_id_idx ON playlists(user_id);
 
 -- =============================================
 -- FUNCTIONS FOR AUTO-UPDATING updated_at
