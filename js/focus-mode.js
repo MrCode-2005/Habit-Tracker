@@ -539,6 +539,36 @@ const FocusMode = {
             case 'cozy':
                 this.animateCozy();
                 break;
+            case 'aurora':
+                this.animateAurora();
+                break;
+            case 'snow':
+                this.animateSnow();
+                break;
+            case 'sunset':
+                this.animateSunset();
+                break;
+            case 'cherry':
+                this.animateCherry();
+                break;
+            case 'underwater':
+                this.animateUnderwater();
+                break;
+            case 'candle':
+                this.animateCandle();
+                break;
+            case 'thunder':
+                this.animateThunder();
+                break;
+            case 'galaxy':
+                this.animateGalaxy();
+                break;
+            case 'zen':
+                this.animateZen();
+                break;
+            case 'meadow':
+                this.animateMeadow();
+                break;
             default:
                 this.animateStars();
         }
@@ -916,6 +946,639 @@ const FocusMode = {
             ctx.arc(lightX, lightY, 200, 0, Math.PI * 2);
             ctx.fillStyle = light;
             ctx.fill();
+
+            this.animationFrame = requestAnimationFrame(animate);
+        };
+
+        animate();
+    },
+
+    // Aurora Borealis animation
+    animateAurora() {
+        const ctx = this.animationCtx;
+        const canvas = this.animationCanvas;
+        if (!ctx || !canvas) return;
+
+        let time = 0;
+
+        const animate = () => {
+            if (this.animationPaused) {
+                this.animationFrame = requestAnimationFrame(animate);
+                return;
+            }
+
+            time += 0.01;
+
+            // Dark sky
+            ctx.fillStyle = '#0a0a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw aurora waves
+            for (let i = 0; i < 5; i++) {
+                ctx.beginPath();
+                const yBase = canvas.height * 0.3 + i * 40;
+
+                for (let x = 0; x <= canvas.width; x += 3) {
+                    const y = yBase + Math.sin((x * 0.01) + time + i) * 30 +
+                        Math.sin((x * 0.02) + time * 1.5) * 20;
+                    if (x === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+
+                ctx.lineTo(canvas.width, canvas.height);
+                ctx.lineTo(0, canvas.height);
+                ctx.closePath();
+
+                const gradient = ctx.createLinearGradient(0, yBase - 50, 0, yBase + 100);
+                const hue = 120 + i * 20 + Math.sin(time) * 20;
+                gradient.addColorStop(0, `hsla(${hue}, 100%, 60%, 0)`);
+                gradient.addColorStop(0.5, `hsla(${hue}, 100%, 50%, ${0.15 - i * 0.02})`);
+                gradient.addColorStop(1, `hsla(${hue}, 100%, 40%, 0)`);
+                ctx.fillStyle = gradient;
+                ctx.fill();
+            }
+
+            // Stars
+            for (let i = 0; i < 50; i++) {
+                const x = (i * 137.5) % canvas.width;
+                const y = (i * 73.3) % (canvas.height * 0.5);
+                const alpha = 0.3 + Math.sin(time * 2 + i) * 0.3;
+                ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                ctx.fillRect(x, y, 1.5, 1.5);
+            }
+
+            this.animationFrame = requestAnimationFrame(animate);
+        };
+
+        animate();
+    },
+
+    // Snowfall animation
+    animateSnow() {
+        const ctx = this.animationCtx;
+        const canvas = this.animationCanvas;
+        if (!ctx || !canvas) return;
+
+        const snowflakes = [];
+        for (let i = 0; i < 150; i++) {
+            snowflakes.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                radius: Math.random() * 3 + 1,
+                speed: Math.random() * 2 + 1,
+                wind: Math.random() * 0.5,
+                opacity: Math.random() * 0.5 + 0.5
+            });
+        }
+
+        const animate = () => {
+            if (this.animationPaused) {
+                this.animationFrame = requestAnimationFrame(animate);
+                return;
+            }
+
+            // Night sky gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#1a1a2e');
+            gradient.addColorStop(1, '#2d3a5f');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            snowflakes.forEach(flake => {
+                ctx.beginPath();
+                ctx.arc(flake.x, flake.y, flake.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${flake.opacity})`;
+                ctx.fill();
+
+                flake.y += flake.speed;
+                flake.x += flake.wind + Math.sin(flake.y * 0.01) * 0.5;
+
+                if (flake.y > canvas.height) {
+                    flake.y = -10;
+                    flake.x = Math.random() * canvas.width;
+                }
+                if (flake.x > canvas.width) flake.x = 0;
+                if (flake.x < 0) flake.x = canvas.width;
+            });
+
+            this.animationFrame = requestAnimationFrame(animate);
+        };
+
+        animate();
+    },
+
+    // Sunset animation
+    animateSunset() {
+        const ctx = this.animationCtx;
+        const canvas = this.animationCanvas;
+        if (!ctx || !canvas) return;
+
+        let time = 0;
+
+        const animate = () => {
+            if (this.animationPaused) {
+                this.animationFrame = requestAnimationFrame(animate);
+                return;
+            }
+
+            time += 0.005;
+
+            // Sky gradient
+            const skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            skyGradient.addColorStop(0, '#1a0a2e');
+            skyGradient.addColorStop(0.3, '#4a1a4e');
+            skyGradient.addColorStop(0.5, '#ff6b35');
+            skyGradient.addColorStop(0.7, '#f7c59f');
+            skyGradient.addColorStop(1, '#2a1a3e');
+            ctx.fillStyle = skyGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Sun
+            const sunY = canvas.height * 0.55 + Math.sin(time) * 5;
+            const sunGradient = ctx.createRadialGradient(
+                canvas.width * 0.5, sunY, 0,
+                canvas.width * 0.5, sunY, 80
+            );
+            sunGradient.addColorStop(0, '#fff5e6');
+            sunGradient.addColorStop(0.3, '#ffd93d');
+            sunGradient.addColorStop(1, 'rgba(255, 100, 50, 0)');
+            ctx.fillStyle = sunGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Clouds
+            for (let i = 0; i < 3; i++) {
+                const x = ((i * 300 + time * 20) % (canvas.width + 200)) - 100;
+                const y = canvas.height * 0.3 + i * 50;
+                ctx.fillStyle = `rgba(255, 150, 100, ${0.3 - i * 0.08})`;
+                ctx.beginPath();
+                ctx.ellipse(x, y, 80, 30, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            this.animationFrame = requestAnimationFrame(animate);
+        };
+
+        animate();
+    },
+
+    // Cherry Blossoms animation
+    animateCherry() {
+        const ctx = this.animationCtx;
+        const canvas = this.animationCanvas;
+        if (!ctx || !canvas) return;
+
+        const petals = [];
+        for (let i = 0; i < 50; i++) {
+            petals.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                size: Math.random() * 8 + 4,
+                speedY: Math.random() * 1 + 0.5,
+                speedX: Math.random() * 1 - 0.5,
+                rotation: Math.random() * Math.PI * 2,
+                rotSpeed: (Math.random() - 0.5) * 0.05,
+                opacity: Math.random() * 0.5 + 0.5
+            });
+        }
+
+        const animate = () => {
+            if (this.animationPaused) {
+                this.animationFrame = requestAnimationFrame(animate);
+                return;
+            }
+
+            // Soft pink gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#2d1f3d');
+            gradient.addColorStop(0.5, '#3d2f4d');
+            gradient.addColorStop(1, '#1d0f2d');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            petals.forEach(petal => {
+                ctx.save();
+                ctx.translate(petal.x, petal.y);
+                ctx.rotate(petal.rotation);
+
+                // Draw petal shape
+                ctx.beginPath();
+                ctx.fillStyle = `rgba(255, 182, 193, ${petal.opacity})`;
+                ctx.ellipse(0, 0, petal.size, petal.size * 0.5, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+
+                petal.y += petal.speedY;
+                petal.x += petal.speedX + Math.sin(petal.y * 0.02) * 0.5;
+                petal.rotation += petal.rotSpeed;
+
+                if (petal.y > canvas.height + 20) {
+                    petal.y = -20;
+                    petal.x = Math.random() * canvas.width;
+                }
+            });
+
+            this.animationFrame = requestAnimationFrame(animate);
+        };
+
+        animate();
+    },
+
+    // Underwater animation
+    animateUnderwater() {
+        const ctx = this.animationCtx;
+        const canvas = this.animationCanvas;
+        if (!ctx || !canvas) return;
+
+        const bubbles = [];
+        for (let i = 0; i < 30; i++) {
+            bubbles.push({
+                x: Math.random() * canvas.width,
+                y: canvas.height + Math.random() * canvas.height,
+                radius: Math.random() * 8 + 2,
+                speed: Math.random() * 2 + 1,
+                wobble: Math.random() * 2
+            });
+        }
+
+        let time = 0;
+
+        const animate = () => {
+            if (this.animationPaused) {
+                this.animationFrame = requestAnimationFrame(animate);
+                return;
+            }
+
+            time += 0.02;
+
+            // Deep blue gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#001f3f');
+            gradient.addColorStop(0.5, '#003366');
+            gradient.addColorStop(1, '#001a33');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Light rays
+            for (let i = 0; i < 5; i++) {
+                ctx.save();
+                const x = canvas.width * 0.2 + i * (canvas.width * 0.15);
+                ctx.globalAlpha = 0.05 + Math.sin(time + i) * 0.02;
+                ctx.fillStyle = '#4dd0e1';
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x - 50, canvas.height);
+                ctx.lineTo(x + 50, canvas.height);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // Bubbles
+            bubbles.forEach(bubble => {
+                ctx.beginPath();
+                ctx.strokeStyle = `rgba(255, 255, 255, 0.4)`;
+                ctx.lineWidth = 1;
+                ctx.arc(bubble.x + Math.sin(bubble.y * 0.02) * bubble.wobble, bubble.y, bubble.radius, 0, Math.PI * 2);
+                ctx.stroke();
+
+                bubble.y -= bubble.speed;
+                if (bubble.y < -20) {
+                    bubble.y = canvas.height + 20;
+                    bubble.x = Math.random() * canvas.width;
+                }
+            });
+
+            this.animationFrame = requestAnimationFrame(animate);
+        };
+
+        animate();
+    },
+
+    // Candlelight animation
+    animateCandle() {
+        const ctx = this.animationCtx;
+        const canvas = this.animationCanvas;
+        if (!ctx || !canvas) return;
+
+        let time = 0;
+
+        const animate = () => {
+            if (this.animationPaused) {
+                this.animationFrame = requestAnimationFrame(animate);
+                return;
+            }
+
+            time += 0.05;
+
+            // Dark room
+            ctx.fillStyle = '#0a0805';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Multiple candles
+            const candlePositions = [
+                { x: canvas.width * 0.3, y: canvas.height * 0.7 },
+                { x: canvas.width * 0.5, y: canvas.height * 0.65 },
+                { x: canvas.width * 0.7, y: canvas.height * 0.72 }
+            ];
+
+            candlePositions.forEach((pos, i) => {
+                const flicker = Math.sin(time * 3 + i) * 5 + Math.sin(time * 7 + i * 2) * 3;
+
+                // Glow
+                const glow = ctx.createRadialGradient(pos.x, pos.y - 20, 0, pos.x, pos.y - 20, 150);
+                glow.addColorStop(0, 'rgba(255, 150, 50, 0.3)');
+                glow.addColorStop(0.5, 'rgba(255, 100, 30, 0.1)');
+                glow.addColorStop(1, 'rgba(255, 50, 0, 0)');
+                ctx.fillStyle = glow;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Flame
+                ctx.beginPath();
+                ctx.moveTo(pos.x, pos.y);
+                ctx.quadraticCurveTo(pos.x - 10 + flicker * 0.5, pos.y - 30, pos.x, pos.y - 50 - Math.abs(flicker));
+                ctx.quadraticCurveTo(pos.x + 10 + flicker * 0.5, pos.y - 30, pos.x, pos.y);
+                const flameGradient = ctx.createLinearGradient(pos.x, pos.y, pos.x, pos.y - 50);
+                flameGradient.addColorStop(0, '#ff6600');
+                flameGradient.addColorStop(0.5, '#ffcc00');
+                flameGradient.addColorStop(1, '#ffffff');
+                ctx.fillStyle = flameGradient;
+                ctx.fill();
+            });
+
+            this.animationFrame = requestAnimationFrame(animate);
+        };
+
+        animate();
+    },
+
+    // Thunderstorm animation
+    animateThunder() {
+        const ctx = this.animationCtx;
+        const canvas = this.animationCanvas;
+        if (!ctx || !canvas) return;
+
+        const raindrops = [];
+        for (let i = 0; i < 200; i++) {
+            raindrops.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                length: Math.random() * 20 + 10,
+                speed: Math.random() * 15 + 10
+            });
+        }
+
+        let lightning = 0;
+        let nextLightning = Math.random() * 200 + 100;
+        let frame = 0;
+
+        const animate = () => {
+            if (this.animationPaused) {
+                this.animationFrame = requestAnimationFrame(animate);
+                return;
+            }
+
+            frame++;
+
+            // Dark stormy sky
+            ctx.fillStyle = lightning > 0 ? `rgba(200, 200, 255, ${lightning * 0.3})` : '#0a0a15';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Rain
+            ctx.strokeStyle = 'rgba(174, 194, 224, 0.5)';
+            ctx.lineWidth = 1;
+            raindrops.forEach(drop => {
+                ctx.beginPath();
+                ctx.moveTo(drop.x, drop.y);
+                ctx.lineTo(drop.x + 2, drop.y + drop.length);
+                ctx.stroke();
+
+                drop.y += drop.speed;
+                drop.x += 2;
+                if (drop.y > canvas.height) {
+                    drop.y = -drop.length;
+                    drop.x = Math.random() * canvas.width;
+                }
+            });
+
+            // Lightning
+            if (lightning > 0) lightning -= 0.1;
+            if (frame >= nextLightning) {
+                lightning = 1;
+                nextLightning = frame + Math.random() * 200 + 100;
+            }
+
+            this.animationFrame = requestAnimationFrame(animate);
+        };
+
+        animate();
+    },
+
+    // Galaxy animation
+    animateGalaxy() {
+        const ctx = this.animationCtx;
+        const canvas = this.animationCanvas;
+        if (!ctx || !canvas) return;
+
+        const stars = [];
+        for (let i = 0; i < 300; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = Math.random() * Math.min(canvas.width, canvas.height) * 0.4;
+            stars.push({
+                angle: angle,
+                dist: dist,
+                size: Math.random() * 2 + 0.5,
+                speed: 0.002 + (dist / 1000) * 0.001,
+                hue: Math.random() * 60 + 200
+            });
+        }
+
+        let time = 0;
+
+        const animate = () => {
+            if (this.animationPaused) {
+                this.animationFrame = requestAnimationFrame(animate);
+                return;
+            }
+
+            time += 0.01;
+
+            // Deep space
+            ctx.fillStyle = '#050510';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+
+            // Nebula glow
+            const nebulaGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 300);
+            nebulaGradient.addColorStop(0, 'rgba(100, 50, 150, 0.3)');
+            nebulaGradient.addColorStop(0.5, 'rgba(50, 100, 150, 0.1)');
+            nebulaGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = nebulaGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Spiral stars
+            stars.forEach(star => {
+                star.angle += star.speed;
+                const x = centerX + Math.cos(star.angle) * star.dist;
+                const y = centerY + Math.sin(star.angle) * star.dist * 0.4;
+
+                ctx.fillStyle = `hsla(${star.hue}, 80%, 70%, ${0.5 + Math.sin(time + star.angle) * 0.3})`;
+                ctx.beginPath();
+                ctx.arc(x, y, star.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            this.animationFrame = requestAnimationFrame(animate);
+        };
+
+        animate();
+    },
+
+    // Zen Garden animation
+    animateZen() {
+        const ctx = this.animationCtx;
+        const canvas = this.animationCanvas;
+        if (!ctx || !canvas) return;
+
+        let time = 0;
+
+        const animate = () => {
+            if (this.animationPaused) {
+                this.animationFrame = requestAnimationFrame(animate);
+                return;
+            }
+
+            time += 0.02;
+
+            // Calm gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#1a2f38');
+            gradient.addColorStop(1, '#0f1f28');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Water ripples
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+
+            for (let i = 0; i < 5; i++) {
+                const radius = ((time * 50 + i * 80) % 400);
+                const alpha = Math.max(0, 1 - radius / 400);
+
+                ctx.strokeStyle = `rgba(100, 150, 180, ${alpha * 0.3})`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            // Floating lotus
+            const lotusX = centerX + Math.sin(time * 0.5) * 30;
+            const lotusY = centerY + Math.cos(time * 0.3) * 10;
+
+            // Lotus petals
+            for (let i = 0; i < 8; i++) {
+                ctx.save();
+                ctx.translate(lotusX, lotusY);
+                ctx.rotate((i * Math.PI / 4) + Math.sin(time) * 0.05);
+                ctx.fillStyle = `rgba(255, 150, 200, ${0.6 + Math.sin(time + i) * 0.2})`;
+                ctx.beginPath();
+                ctx.ellipse(0, -15, 8, 20, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            this.animationFrame = requestAnimationFrame(animate);
+        };
+
+        animate();
+    },
+
+    // Meadow animation
+    animateMeadow() {
+        const ctx = this.animationCtx;
+        const canvas = this.animationCanvas;
+        if (!ctx || !canvas) return;
+
+        const grasses = [];
+        for (let i = 0; i < 100; i++) {
+            grasses.push({
+                x: Math.random() * canvas.width,
+                height: Math.random() * 40 + 20,
+                phase: Math.random() * Math.PI * 2
+            });
+        }
+
+        const butterflies = [];
+        for (let i = 0; i < 5; i++) {
+            butterflies.push({
+                x: Math.random() * canvas.width,
+                y: canvas.height * 0.5 + Math.random() * 100,
+                vx: (Math.random() - 0.5) * 2,
+                vy: (Math.random() - 0.5) * 1,
+                wingPhase: Math.random() * Math.PI * 2,
+                color: `hsl(${Math.random() * 60 + 280}, 70%, 60%)`
+            });
+        }
+
+        let time = 0;
+
+        const animate = () => {
+            if (this.animationPaused) {
+                this.animationFrame = requestAnimationFrame(animate);
+                return;
+            }
+
+            time += 0.03;
+
+            // Sky gradient (dusk)
+            const skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            skyGradient.addColorStop(0, '#2a1f4e');
+            skyGradient.addColorStop(0.4, '#4a3f6e');
+            skyGradient.addColorStop(0.7, '#3a4f3e');
+            skyGradient.addColorStop(1, '#1a2f1e');
+            ctx.fillStyle = skyGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Grass
+            grasses.forEach(grass => {
+                const sway = Math.sin(time + grass.phase) * 10;
+                ctx.strokeStyle = '#4a6f4a';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(grass.x, canvas.height);
+                ctx.quadraticCurveTo(
+                    grass.x + sway,
+                    canvas.height - grass.height / 2,
+                    grass.x + sway * 1.5,
+                    canvas.height - grass.height
+                );
+                ctx.stroke();
+            });
+
+            // Butterflies
+            butterflies.forEach(b => {
+                b.x += b.vx;
+                b.y += b.vy + Math.sin(time * 3) * 0.5;
+                b.wingPhase += 0.3;
+
+                // Bounce off edges
+                if (b.x < 0 || b.x > canvas.width) b.vx *= -1;
+                if (b.y < canvas.height * 0.3 || b.y > canvas.height * 0.8) b.vy *= -1;
+
+                const wingSpread = Math.sin(b.wingPhase) * 8;
+                ctx.fillStyle = b.color;
+
+                // Wings
+                ctx.beginPath();
+                ctx.ellipse(b.x - wingSpread, b.y, 6, 10, -0.3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(b.x + wingSpread, b.y, 6, 10, 0.3, 0, Math.PI * 2);
+                ctx.fill();
+            });
 
             this.animationFrame = requestAnimationFrame(animate);
         };
