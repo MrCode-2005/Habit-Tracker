@@ -173,6 +173,36 @@ const Calendar = {
         this.closeModal();
         this.render();
         this.renderUpcomingEvents();
+
+        // If event has time, also create countdown event in Events section
+        if (time && typeof State !== 'undefined') {
+            const dateTime = `${date}T${time}`;
+
+            // Check if event already exists (by calendarEventId)
+            const existingEvent = State.events?.find(e => e.calendarEventId === event.id);
+
+            if (existingEvent) {
+                // Update existing countdown event
+                State.updateEvent(existingEvent.id, { name, dateTime });
+            } else {
+                // Create new countdown event
+                const countdownEvent = State.addEvent({
+                    name,
+                    dateTime,
+                    calendarEventId: event.id  // Link to calendar event
+                });
+
+                // Sync to Supabase
+                if (countdownEvent && typeof State.syncEventToSupabase === 'function') {
+                    State.syncEventToSupabase(countdownEvent);
+                }
+            }
+
+            // Re-render Events list
+            if (typeof Events !== 'undefined') {
+                Events.render();
+            }
+        }
     },
 
     showEventDetails(event, dateStr) {
