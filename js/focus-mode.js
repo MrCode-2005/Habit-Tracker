@@ -34,6 +34,12 @@ const FocusMode = {
     currentTrackIndex: 0,
     isShuffleMode: false,
 
+    // Video Playlists
+    videoPlaylists: {},
+    currentVideoPlaylist: null,
+    currentVideoIndex: 0,
+    isVideoShuffleMode: false,
+
     // Animation canvas
     animationCanvas: null,
     animationCtx: null,
@@ -62,6 +68,7 @@ const FocusMode = {
         this.setupEventListeners();
         this.setupCanvas();
         this.loadPlaylists();
+        this.loadVideoPlaylists();
 
         // Restore focus mode if it was active before refresh
         this.restoreState();
@@ -243,6 +250,41 @@ const FocusMode = {
         // Clear Video Background
         document.getElementById('clearVideoBgBtn')?.addEventListener('click', () => {
             this.clearVideoBackground();
+        });
+
+        // ====== Video Playlist Event Listeners ======
+        document.getElementById('newVideoPlaylistBtn')?.addEventListener('click', () => {
+            this.createVideoPlaylist();
+        });
+
+        document.getElementById('addVideoToPlaylistBtn')?.addEventListener('click', () => {
+            const url = document.getElementById('videoPlaylistUrl')?.value;
+            if (url) {
+                this.addVideoToPlaylist(url);
+                document.getElementById('videoPlaylistUrl').value = '';
+            }
+        });
+
+        document.getElementById('playVideoPlaylistBtn')?.addEventListener('click', () => {
+            this.playVideoPlaylist();
+        });
+
+        document.getElementById('shuffleVideoPlaylistBtn')?.addEventListener('click', () => {
+            this.toggleVideoShuffle();
+        });
+
+        document.getElementById('videoPlaylistSelect')?.addEventListener('change', (e) => {
+            this.selectVideoPlaylist(e.target.value);
+        });
+
+        // Edit Playlist Name Button
+        document.getElementById('editVideoPlaylistNameBtn')?.addEventListener('click', () => {
+            this.renameVideoPlaylist();
+        });
+
+        // Edit Audio Playlist Name Button (in sound panel)
+        document.getElementById('editPlaylistNameBtn')?.addEventListener('click', () => {
+            this.renamePlaylist();
         });
 
         // Interval Alert Toggle
@@ -2244,7 +2286,7 @@ const FocusMode = {
                 <button class="playlist-track-btn play" onclick="FocusMode.playTrack(${index})">
                     <i class="fas fa-play"></i>
                 </button>
-                <span class="playlist-track-title">${track.title || 'Track ' + (index + 1)}</span>
+                <span class="playlist-track-title" onclick="FocusMode.renameTrack(${index})" style="cursor: pointer;" title="Click to rename">${track.name || track.title || 'Track ' + (index + 1)}</span>
                 <button class="playlist-track-btn delete" onclick="FocusMode.removeFromPlaylist('${playlistId}', ${index})">
                     <i class="fas fa-times"></i>
                 </button>
@@ -2372,6 +2414,219 @@ const FocusMode = {
                 this.audioPaused = true;
                 if (playPauseBtn) playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
             }
+        }
+    },
+
+    // ==============================
+    // Video Playlist Methods
+    // ==============================
+
+    loadVideoPlaylists() {
+        try {
+            const stored = localStorage.getItem('focusVideoPlaylists');
+            this.videoPlaylists = stored ? JSON.parse(stored) : {};
+            this.updateVideoPlaylistDropdown();
+        } catch (e) {
+            console.log('Error loading video playlists:', e);
+        }
+    },
+
+    saveVideoPlaylists() {
+        try {
+            localStorage.setItem('focusVideoPlaylists', JSON.stringify(this.videoPlaylists));
+        } catch (e) {
+            console.log('Error saving video playlists:', e);
+        }
+    },
+
+    createVideoPlaylist() {
+        const name = prompt('Enter video playlist name:');
+        if (!name || name.trim() === '') return;
+
+        const playlistId = 'vpl_' + Date.now();
+        this.videoPlaylists[playlistId] = {
+            name: name.trim(),
+            videos: []
+        };
+
+        this.saveVideoPlaylists();
+        this.updateVideoPlaylistDropdown();
+
+        // Select the new playlist
+        const selectEl = document.getElementById('videoPlaylistSelect');
+        if (selectEl) {
+            selectEl.value = playlistId;
+            this.selectVideoPlaylist(playlistId);
+        }
+    },
+
+    addVideoToPlaylist(url) {
+        const videoId = this.getYouTubeVideoId(url);
+        if (!videoId) {
+            alert('Invalid YouTube URL');
+            return;
+        }
+
+        let playlistId = document.getElementById('videoPlaylistSelect')?.value;
+
+        if (!playlistId) {
+            // Create default playlist
+            playlistId = 'vpl_default';
+            if (!this.videoPlaylists[playlistId]) {
+                this.videoPlaylists[playlistId] = {
+                    name: 'My Video Mix',
+                    videos: []
+                };
+                this.updateVideoPlaylistDropdown();
+            }
+            document.getElementById('videoPlaylistSelect').value = playlistId;
+            this.currentVideoPlaylist = playlistId;
+        }
+
+        // Add video with default name
+        const video = {
+            id: videoId,
+            url: url,
+            name: `Video ${this.videoPlaylists[playlistId].videos.length + 1}`
+        };
+
+        this.videoPlaylists[playlistId].videos.push(video);
+        this.saveVideoPlaylists();
+        this.renderVideoPlaylistTracks();
+    },
+
+    updateVideoPlaylistDropdown() {
+        const select = document.getElementById('videoPlaylistSelect');
+        if (!select) return;
+
+        select.innerHTML = '<option value="">-- Select Playlist --</option>';
+        Object.keys(this.videoPlaylists).forEach(id => {
+            const option = document.createElement('option');
+            option.value = id;
+            option.textContent = `${this.videoPlaylists[id].name} (${this.videoPlaylists[id].videos.length})`;
+            select.appendChild(option);
+        });
+    },
+
+    selectVideoPlaylist(playlistId) {
+        this.currentVideoPlaylist = playlistId;
+        this.currentVideoIndex = 0;
+        this.renderVideoPlaylistTracks();
+    },
+
+    renderVideoPlaylistTracks() {
+        const container = document.getElementById('videoPlaylistTracks');
+        if (!container) return;
+
+        if (!this.currentVideoPlaylist || !this.videoPlaylists[this.currentVideoPlaylist]) {
+            container.innerHTML = '<div class="playlist-empty">No videos yet</div>';
+            return;
+        }
+
+        const videos = this.videoPlaylists[this.currentVideoPlaylist].videos;
+        if (videos.length === 0) {
+            container.innerHTML = '<div class="playlist-empty">No videos yet</div>';
+            return;
+        }
+
+        container.innerHTML = videos.map((v, index) => `
+            <div class="video-track-item" data-index="${index}">
+                <i class="fas fa-play" onclick="FocusMode.playVideoAtIndex(${index})"></i>
+                <span class="track-name" onclick="FocusMode.renameVideoTrack(${index})">${v.name}</span>
+                <button onclick="FocusMode.removeVideoFromPlaylist(${index})" title="Remove"><i class="fas fa-times"></i></button>
+            </div>
+        `).join('');
+    },
+
+    playVideoPlaylist() {
+        if (!this.currentVideoPlaylist || !this.videoPlaylists[this.currentVideoPlaylist]) return;
+
+        const videos = this.videoPlaylists[this.currentVideoPlaylist].videos;
+        if (videos.length === 0) return;
+
+        this.currentVideoIndex = this.isVideoShuffleMode
+            ? Math.floor(Math.random() * videos.length)
+            : 0;
+
+        this.playVideoAtIndex(this.currentVideoIndex);
+    },
+
+    playVideoAtIndex(index) {
+        const videos = this.videoPlaylists[this.currentVideoPlaylist]?.videos;
+        if (!videos || !videos[index]) return;
+
+        this.currentVideoIndex = index;
+        this.setVideoBackground(videos[index].url);
+    },
+
+    toggleVideoShuffle() {
+        this.isVideoShuffleMode = !this.isVideoShuffleMode;
+        const btn = document.getElementById('shuffleVideoPlaylistBtn');
+        if (btn) {
+            btn.classList.toggle('active', this.isVideoShuffleMode);
+        }
+    },
+
+    removeVideoFromPlaylist(index) {
+        if (!this.currentVideoPlaylist) return;
+        this.videoPlaylists[this.currentVideoPlaylist].videos.splice(index, 1);
+        this.saveVideoPlaylists();
+        this.renderVideoPlaylistTracks();
+    },
+
+    renameVideoPlaylist() {
+        if (!this.currentVideoPlaylist) {
+            alert('Please select a playlist first');
+            return;
+        }
+        const playlist = this.videoPlaylists[this.currentVideoPlaylist];
+        const newName = prompt('Enter new playlist name:', playlist.name);
+        if (newName && newName.trim()) {
+            playlist.name = newName.trim();
+            this.saveVideoPlaylists();
+            this.updateVideoPlaylistDropdown();
+            document.getElementById('videoPlaylistSelect').value = this.currentVideoPlaylist;
+        }
+    },
+
+    renameVideoTrack(index) {
+        if (!this.currentVideoPlaylist) return;
+        const video = this.videoPlaylists[this.currentVideoPlaylist].videos[index];
+        const newName = prompt('Enter new name:', video.name);
+        if (newName && newName.trim()) {
+            video.name = newName.trim();
+            this.saveVideoPlaylists();
+            this.renderVideoPlaylistTracks();
+        }
+    },
+
+    // ==============================
+    // Audio Playlist Rename Methods
+    // ==============================
+
+    renamePlaylist() {
+        if (!this.currentPlaylist) {
+            alert('Please select a playlist first');
+            return;
+        }
+        const playlist = this.playlists[this.currentPlaylist];
+        const newName = prompt('Enter new playlist name:', playlist.name);
+        if (newName && newName.trim()) {
+            playlist.name = newName.trim();
+            this.savePlaylists();
+            this.updatePlaylistDropdown();
+            document.getElementById('playlistSelect').value = this.currentPlaylist;
+        }
+    },
+
+    renameTrack(index) {
+        if (!this.currentPlaylist) return;
+        const track = this.playlists[this.currentPlaylist].tracks[index];
+        const newName = prompt('Enter new name:', track.name);
+        if (newName && newName.trim()) {
+            track.name = newName.trim();
+            this.savePlaylists();
+            this.renderPlaylistTracks();
         }
     },
 
