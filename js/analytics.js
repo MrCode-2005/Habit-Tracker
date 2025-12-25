@@ -28,6 +28,9 @@ const Analytics = {
         const days = [];
         const completionRates = [];
         const totalTasks = State.tasks.length;
+        const completedTotal = State.tasks.filter(t => t.completed).length;
+        const overallRate = totalTasks > 0 ? Math.round((completedTotal / totalTasks) * 100) : 0;
+        const todayKey = new Date().toISOString().split('T')[0];
 
         for (let i = 6; i >= 0; i--) {
             const date = new Date();
@@ -36,26 +39,24 @@ const Analytics = {
 
             days.push(date.toLocaleDateString('en-US', { weekday: 'short' }));
 
-            // Count tasks that were completed by this date
-            const tasksCompletedByDate = State.tasks.filter(task => {
-                if (!task.completed) return false;
-                const completionDate = task.completedAt || task.createdAt;
-                if (!completionDate) return task.completed; // Count if marked complete without date
-
-                try {
-                    const taskDate = new Date(completionDate);
-                    if (isNaN(taskDate.getTime())) return task.completed;
-                    return taskDate.toISOString().split('T')[0] <= dateKey;
-                } catch (e) {
-                    return task.completed;
-                }
-            }).length;
-
-            // Show completion rate as percentage of total tasks
-            if (totalTasks === 0) {
-                completionRates.push(0);
+            if (dateKey === todayKey) {
+                // Today: show current overall completion rate
+                completionRates.push(overallRate);
             } else {
-                completionRates.push(Math.round((tasksCompletedByDate / totalTasks) * 100));
+                // Past days: only show tasks that have completedAt for that exact day
+                const tasksCompletedOnDay = State.tasks.filter(task => {
+                    if (!task.completed || !task.completedAt) return false;
+                    try {
+                        const taskDate = new Date(task.completedAt);
+                        if (isNaN(taskDate.getTime())) return false;
+                        return taskDate.toISOString().split('T')[0] === dateKey;
+                    } catch (e) {
+                        return false;
+                    }
+                }).length;
+
+                // Each task completed = 20% on the chart (scaled representation)
+                completionRates.push(Math.min(100, tasksCompletedOnDay * 20));
             }
         }
 
@@ -65,6 +66,9 @@ const Analytics = {
     getMonthlyData() {
         const weeks = [];
         const completionRates = [];
+        const totalTasks = State.tasks.length;
+        const completedTotal = State.tasks.filter(t => t.completed).length;
+        const overallRate = totalTasks > 0 ? Math.round((completedTotal / totalTasks) * 100) : 0;
 
         for (let i = 3; i >= 0; i--) {
             const endDate = new Date();
@@ -74,23 +78,24 @@ const Analytics = {
 
             weeks.push(`Week ${4 - i}`);
 
-            // Get tasks for this week - safely handle missing createdAt
-            const weekTasks = State.tasks.filter(task => {
-                if (!task.createdAt) return false;
-                try {
-                    const taskDate = new Date(task.createdAt);
-                    if (isNaN(taskDate.getTime())) return false;
-                    return taskDate >= startDate && taskDate <= endDate;
-                } catch (e) {
-                    return false;
-                }
-            });
-
-            if (weekTasks.length === 0) {
-                completionRates.push(0);
+            if (i === 0) {
+                // Current week: show overall completion rate
+                completionRates.push(overallRate);
             } else {
-                const completed = weekTasks.filter(t => t.completed).length;
-                completionRates.push(Math.round((completed / weekTasks.length) * 100));
+                // Past weeks: count tasks completed in that week
+                const tasksCompletedInWeek = State.tasks.filter(task => {
+                    if (!task.completed || !task.completedAt) return false;
+                    try {
+                        const taskDate = new Date(task.completedAt);
+                        if (isNaN(taskDate.getTime())) return false;
+                        return taskDate >= startDate && taskDate <= endDate;
+                    } catch (e) {
+                        return false;
+                    }
+                }).length;
+
+                // Each task = 20% on chart
+                completionRates.push(Math.min(100, tasksCompletedInWeek * 20));
             }
         }
 
