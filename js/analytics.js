@@ -21,7 +21,7 @@ const Analytics = {
         this.renderGoalsChart();
         this.renderHabitWeeklyChart();
         this.renderHabitMonthlyChart();
-        this.renderHabitCharts();
+        // Note: renderHabitCharts removed - using aggregate charts only
     },
 
     getWeeklyData() {
