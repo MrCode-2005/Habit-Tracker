@@ -258,6 +258,7 @@ const FocusMode = {
         document.getElementById('shuffleBtnMini')?.addEventListener('click', () => this.toggleShuffle());
         document.getElementById('playlistSelectMini')?.addEventListener('change', (e) => {
             this.selectPlaylist(e.target.value);
+            this.renderPlaylistTracksMini();
         });
 
         // Video Background - YouTube URL
@@ -437,6 +438,7 @@ const FocusMode = {
     updateTaskInfo() {
         const titleEl = document.getElementById('focusTaskTitle');
         const subtaskEl = document.getElementById('focusSubtaskTitle');
+        const progressEl = document.getElementById('focusTaskProgress');
 
         if (titleEl) {
             titleEl.textContent = this.currentTask?.title || 'Focus Session';
@@ -449,6 +451,25 @@ const FocusMode = {
             } else {
                 subtaskEl.style.display = 'none';
             }
+        }
+
+        // Show task progress if we have a task with subtasks
+        if (progressEl && this.currentTask && this.currentTask.subtasks && this.currentTask.subtasks.length > 0) {
+            const total = this.currentTask.subtasks.length;
+            const completed = this.currentTask.subtasks.filter(s => s.completed).length;
+            const currentIdx = this.currentSubtask
+                ? this.currentTask.subtasks.findIndex(s => s.id === this.currentSubtask.id) + 1
+                : 0;
+
+            progressEl.innerHTML = `
+                <div class="task-progress-bar">
+                    <div class="task-progress-fill" style="width: ${(completed / total) * 100}%"></div>
+                </div>
+                <span class="task-progress-text">${completed}/${total} completed${currentIdx > 0 ? ` • Working on #${currentIdx}` : ''}</span>
+            `;
+            progressEl.style.display = 'block';
+        } else if (progressEl) {
+            progressEl.style.display = 'none';
         }
     },
 
@@ -2357,6 +2378,34 @@ const FocusMode = {
                 selectMini.value = this.currentPlaylist;
             }
         }
+
+        // Also render tracks in mini panel
+        this.renderPlaylistTracksMini();
+    },
+
+    renderPlaylistTracksMini() {
+        const container = document.getElementById('playlistTracksMini');
+        if (!container) return;
+
+        const playlistId = this.currentPlaylist;
+        if (!playlistId || !this.playlists[playlistId]) {
+            container.innerHTML = '<div class="playlist-empty-mini">Select a playlist</div>';
+            return;
+        }
+
+        const tracks = this.playlists[playlistId].tracks;
+        if (tracks.length === 0) {
+            container.innerHTML = '<div class="playlist-empty-mini">No tracks yet</div>';
+            return;
+        }
+
+        container.innerHTML = tracks.map((track, index) => `
+            <div class="track-item-mini ${index === this.currentTrackIndex ? 'active' : ''}" data-index="${index}">
+                <i class="fas fa-play" onclick="FocusMode.playTrack(${index})"></i>
+                <span onclick="FocusMode.renameTrack(${index})">${track.name || track.title || 'Track ' + (index + 1)}</span>
+                <i class="fas fa-times" onclick="FocusMode.removeFromPlaylist('${playlistId}', ${index})"></i>
+            </div>
+        `).join('');
     },
 
     playTrack(index) {
