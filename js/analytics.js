@@ -35,10 +35,16 @@ const Analytics = {
 
             days.push(date.toLocaleDateString('en-US', { weekday: 'short' }));
 
-            // Get tasks for this day
+            // Get tasks for this day - safely handle missing createdAt
             const dayTasks = State.tasks.filter(task => {
-                const taskDate = new Date(task.createdAt);
-                return taskDate.toISOString().split('T')[0] === dateKey;
+                if (!task.createdAt) return false;
+                try {
+                    const taskDate = new Date(task.createdAt);
+                    if (isNaN(taskDate.getTime())) return false;
+                    return taskDate.toISOString().split('T')[0] === dateKey;
+                } catch (e) {
+                    return false;
+                }
             });
 
             if (dayTasks.length === 0) {
@@ -64,10 +70,16 @@ const Analytics = {
 
             weeks.push(`Week ${4 - i}`);
 
-            // Get tasks for this week
+            // Get tasks for this week - safely handle missing createdAt
             const weekTasks = State.tasks.filter(task => {
-                const taskDate = new Date(task.createdAt);
-                return taskDate >= startDate && taskDate <= endDate;
+                if (!task.createdAt) return false;
+                try {
+                    const taskDate = new Date(task.createdAt);
+                    if (isNaN(taskDate.getTime())) return false;
+                    return taskDate >= startDate && taskDate <= endDate;
+                } catch (e) {
+                    return false;
+                }
             });
 
             if (weekTasks.length === 0) {
