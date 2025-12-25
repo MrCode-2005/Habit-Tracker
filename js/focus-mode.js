@@ -176,11 +176,20 @@ const FocusMode = {
             }
         });
 
-        // Playback Speed Control
-        document.getElementById('focusSpeedSlider')?.addEventListener('input', (e) => {
-            const speed = e.target.value / 100;
-            this.setPlaybackSpeed(speed);
-            document.getElementById('speedValue').textContent = speed.toFixed(1) + 'x';
+        // Audio Skip Controls
+        document.getElementById('skipBack10')?.addEventListener('click', () => this.skipAudio(-10));
+        document.getElementById('skipBack5')?.addEventListener('click', () => this.skipAudio(-5));
+        document.getElementById('skipForward5')?.addEventListener('click', () => this.skipAudio(5));
+        document.getElementById('skipForward10')?.addEventListener('click', () => this.skipAudio(10));
+
+        // Audio Progress Bar Seek
+        document.getElementById('audioProgress')?.addEventListener('input', (e) => {
+            this.seekAudio(e.target.value);
+        });
+
+        // Skip to Next Track
+        document.getElementById('skipNextTrack')?.addEventListener('click', () => {
+            this.playNextTrack();
         });
 
         // Video Background - YouTube URL
@@ -1950,11 +1959,9 @@ const FocusMode = {
             events: {
                 'onReady': (event) => {
                     event.target.setVolume(this.volume * 100);
-                    // Apply playback speed if set
-                    if (this.playbackSpeed && this.playbackSpeed !== 1) {
-                        event.target.setPlaybackRate(this.playbackSpeed);
-                    }
                     event.target.playVideo();
+                    // Start timeline update
+                    this.startAudioTimelineUpdate();
                     if (statusEl) {
                         statusEl.textContent = '▶ Playing from YouTube';
                         statusEl.className = 'youtube-status playing';
@@ -2334,18 +2341,82 @@ const FocusMode = {
     },
 
     // ==============================
-    // Playback Speed Methods
+    // Audio Skip & Timeline Methods
     // ==============================
 
-    setPlaybackSpeed(speed) {
-        this.playbackSpeed = speed;
+    skipAudio(seconds) {
+        // Skip YouTube player
+        if (this.youtubePlayer && this.youtubePlayer.getCurrentTime) {
+            const currentTime = this.youtubePlayer.getCurrentTime();
+            const duration = this.youtubePlayer.getDuration();
+            const newTime = Math.max(0, Math.min(duration, currentTime + seconds));
+            this.youtubePlayer.seekTo(newTime, true);
+        }
+        // Skip native audio
         if (this.currentAudio) {
-            this.currentAudio.playbackRate = speed;
+            this.currentAudio.currentTime = Math.max(0, Math.min(this.currentAudio.duration, this.currentAudio.currentTime + seconds));
         }
-        // For YouTube, playback rate is limited
-        if (this.youtubePlayer && this.youtubePlayer.setPlaybackRate) {
-            this.youtubePlayer.setPlaybackRate(speed);
+    },
+
+    seekAudio(percentage) {
+        const percent = parseFloat(percentage) / 100;
+
+        // Seek YouTube player
+        if (this.youtubePlayer && this.youtubePlayer.getDuration) {
+            const duration = this.youtubePlayer.getDuration();
+            this.youtubePlayer.seekTo(duration * percent, true);
         }
+        // Seek native audio
+        if (this.currentAudio && this.currentAudio.duration) {
+            this.currentAudio.currentTime = this.currentAudio.duration * percent;
+        }
+    },
+
+    startAudioTimelineUpdate() {
+        // Clear existing interval
+        if (this.audioTimelineInterval) {
+            clearInterval(this.audioTimelineInterval);
+        }
+
+        this.audioTimelineInterval = setInterval(() => {
+            let currentTime = 0;
+            let duration = 0;
+
+            // Get from YouTube player
+            if (this.youtubePlayer && this.youtubePlayer.getCurrentTime) {
+                currentTime = this.youtubePlayer.getCurrentTime() || 0;
+                duration = this.youtubePlayer.getDuration() || 0;
+            }
+            // Get from native audio
+            else if (this.currentAudio) {
+                currentTime = this.currentAudio.currentTime || 0;
+                duration = this.currentAudio.duration || 0;
+            }
+
+            // Update progress bar
+            const progressBar = document.getElementById('audioProgress');
+            if (progressBar && duration > 0) {
+                progressBar.value = (currentTime / duration) * 100;
+            }
+
+            // Update time display
+            document.getElementById('audioCurrentTime').textContent = this.formatTime(currentTime);
+            document.getElementById('audioDuration').textContent = this.formatTime(duration);
+        }, 500);
+    },
+
+    stopAudioTimelineUpdate() {
+        if (this.audioTimelineInterval) {
+            clearInterval(this.audioTimelineInterval);
+            this.audioTimelineInterval = null;
+        }
+    },
+
+    formatTime(seconds) {
+        if (!seconds || isNaN(seconds)) return '0:00';
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
     },
 
     // ==============================

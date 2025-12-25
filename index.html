@@ -532,9 +532,27 @@
                 <label><i class="fas fa-volume-down"></i> Volume</label>
                 <input type="range" class="volume-slider" id="focusVolumeSlider" min="0" max="100" value="50">
             </div>
-            <div class="speed-control">
-                <label><i class="fas fa-tachometer-alt"></i> Speed: <span id="speedValue">1.0x</span></label>
-                <input type="range" class="speed-slider" id="focusSpeedSlider" min="25" max="200" value="100">
+
+            <!-- Audio Playback Controls -->
+            <div class="audio-playback-section">
+                <label class="section-label"><i class="fas fa-music"></i> Playback Controls</label>
+                <div class="audio-timeline">
+                    <span class="audio-time" id="audioCurrentTime">0:00</span>
+                    <input type="range" class="audio-progress" id="audioProgress" min="0" max="100" value="0">
+                    <span class="audio-time" id="audioDuration">0:00</span>
+                </div>
+                <div class="audio-skip-controls">
+                    <button class="skip-btn" id="skipBack10" title="Back 10s"><i class="fas fa-backward"></i>
+                        10</button>
+                    <button class="skip-btn" id="skipBack5" title="Back 5s"><i class="fas fa-backward"></i> 5</button>
+                    <button class="skip-btn" id="skipForward5" title="Forward 5s">5 <i
+                            class="fas fa-forward"></i></button>
+                    <button class="skip-btn" id="skipForward10" title="Forward 10s">10 <i
+                            class="fas fa-forward"></i></button>
+                </div>
+                <button class="skip-next-btn" id="skipNextTrack">
+                    <i class="fas fa-step-forward"></i> Skip to Next Track
+                </button>
             </div>
 
             <!-- Video Background Section -->
