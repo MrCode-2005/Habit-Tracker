@@ -195,7 +195,7 @@ const Tasks = {
             `;
         }
 
-        const totalTimeLabel = task.subtasks && task.subtasks.length > 0 ? '(Total from subtasks)' : '';
+        const totalTimeLabel = '';
 
         div.innerHTML = `
             <div class="task-header">
