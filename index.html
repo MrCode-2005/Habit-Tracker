@@ -50,6 +50,10 @@
                     <i class="fa-solid fa-calendar-days"></i>
                     <span>Events</span>
                 </button>
+                <button class="nav-btn" data-view="calendar">
+                    <i class="fa-solid fa-calendar"></i>
+                    <span>Calendar</span>
+                </button>
             </div>
             <div class="user-profile" id="userProfile" style="display: none;">
                 <i class="fa-solid fa-user-circle"></i>
@@ -193,14 +197,24 @@
             <div id="habitChartsContainer"></div>
         </section>
 
-        <!-- Events View -->
+        <!-- Events View (Original - Scheduled Events with Countdown) -->
         <section class="view" id="events">
             <div class="view-header">
-                <h1>Calendar & Events</h1>
+                <h1>Scheduled Events</h1>
                 <button class="btn btn-primary" id="addEventBtn">
                     <i class="fa-solid fa-plus"></i>
                     Add Event
                 </button>
+            </div>
+            <div class="events-list" id="eventsList">
+                <!-- Event cards will be inserted here -->
+            </div>
+        </section>
+
+        <!-- Calendar View (Separate Page) -->
+        <section class="view" id="calendar">
+            <div class="view-header">
+                <h1>Calendar</h1>
             </div>
 
             <!-- Calendar Container -->
@@ -230,10 +244,6 @@
                 <div class="upcoming-list" id="upcomingEventsList">
                     <!-- Upcoming events will be shown here -->
                 </div>
-            </div>
-
-            <div class="events-list" id="eventsList">
-                <!-- Event cards will be inserted here -->
             </div>
         </section>
 
