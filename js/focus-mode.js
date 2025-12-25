@@ -99,9 +99,22 @@ const FocusMode = {
         });
         document.getElementById('focusAnimationBtn')?.addEventListener('click', () => this.togglePanel('animation'));
 
-        // Hide audio panel button
+        // Toggle audio panel button (floating)
+        document.getElementById('toggleAudioPanelBtn')?.addEventListener('click', () => {
+            const panel = document.getElementById('focusAudioPanel');
+            const toggleBtn = document.getElementById('toggleAudioPanelBtn');
+            if (panel && toggleBtn) {
+                panel.classList.toggle('hidden');
+                toggleBtn.classList.toggle('active', !panel.classList.contains('hidden'));
+            }
+        });
+
+        // Hide audio panel button (in panel header)
         document.getElementById('hideAudioPanelBtn')?.addEventListener('click', () => {
-            document.getElementById('focusAudioPanel')?.classList.add('hidden');
+            const panel = document.getElementById('focusAudioPanel');
+            const toggleBtn = document.getElementById('toggleAudioPanelBtn');
+            if (panel) panel.classList.add('hidden');
+            if (toggleBtn) toggleBtn.classList.remove('active');
         });
 
         // Animation options
