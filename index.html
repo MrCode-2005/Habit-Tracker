@@ -435,6 +435,9 @@
             <canvas id="focusAnimationCanvas"></canvas>
         </div>
 
+        <!-- Hidden YouTube Player -->
+        <div class="youtube-iframe-container" id="youtubeContainer"></div>
+
         <!-- Header -->
         <header class="focus-header">
             <button class="focus-back-btn" id="focusBackBtn">
@@ -488,6 +491,16 @@
                     <input type="file" id="customSoundInput" accept="audio/*" style="display: none;">
                 </label>
                 <span class="custom-sound-name" id="customSoundName"></span>
+            </div>
+            <!-- YouTube URL Input -->
+            <div class="youtube-sound-input">
+                <label class="youtube-label"><i class="fab fa-youtube"></i> YouTube URL</label>
+                <div class="youtube-input-row">
+                    <input type="text" id="youtubeUrlInput" placeholder="Paste YouTube URL here..."
+                        class="youtube-url-field">
+                    <button id="youtubePlayBtn" class="youtube-play-btn"><i class="fas fa-play"></i></button>
+                </div>
+                <span class="youtube-status" id="youtubeStatus"></span>
             </div>
             <div class="volume-control">
                 <label><i class="fas fa-volume-down"></i> Volume</label>

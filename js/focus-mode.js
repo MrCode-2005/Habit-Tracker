@@ -102,6 +102,24 @@ const FocusMode = {
             }
         });
 
+        // YouTube URL play button
+        document.getElementById('youtubePlayBtn')?.addEventListener('click', () => {
+            const url = document.getElementById('youtubeUrlInput')?.value;
+            if (url) {
+                this.playYouTubeAudio(url);
+            }
+        });
+
+        // Also play on Enter key in YouTube input
+        document.getElementById('youtubeUrlInput')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const url = e.target.value;
+                if (url) {
+                    this.playYouTubeAudio(url);
+                }
+            }
+        });
+
         // Volume control
         document.getElementById('focusVolumeSlider')?.addEventListener('input', (e) => {
             this.setVolume(e.target.value / 100);
@@ -931,7 +949,85 @@ const FocusMode = {
         });
     },
 
+    // Extract YouTube video ID from various URL formats
+    getYouTubeVideoId(url) {
+        const patterns = [
+            /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/)([^#\&\?]*)/,
+            /^([a-zA-Z0-9_-]{11})$/ // Direct video ID
+        ];
+
+        for (const pattern of patterns) {
+            const match = url.match(pattern);
+            if (match && match[1]) {
+                return match[1];
+            }
+        }
+        return null;
+    },
+
+    playYouTubeAudio(url) {
+        const videoId = this.getYouTubeVideoId(url);
+        const statusEl = document.getElementById('youtubeStatus');
+
+        if (!videoId) {
+            if (statusEl) {
+                statusEl.textContent = 'Invalid YouTube URL';
+                statusEl.className = 'youtube-status error';
+            }
+            return;
+        }
+
+        // Stop any currently playing sound
+        this.stopSound();
+
+        // Update UI
+        document.querySelectorAll('.sound-option').forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        if (statusEl) {
+            statusEl.textContent = '▶ Playing from YouTube...';
+            statusEl.className = 'youtube-status playing';
+        }
+
+        // Create YouTube embed iframe
+        const container = document.getElementById('youtubeContainer');
+        if (container) {
+            // Use embed with autoplay and loop
+            container.innerHTML = `
+                <iframe 
+                    id="youtubePlayer"
+                    width="1" 
+                    height="1" 
+                    src="https://www.youtube.com/embed/${videoId}?autoplay=1&loop=1&playlist=${videoId}&controls=0"
+                    frameborder="0" 
+                    allow="autoplay; encrypted-media"
+                    allowfullscreen>
+                </iframe>
+            `;
+            this.youtubeActive = true;
+            this.currentSound = 'youtube';
+        }
+    },
+
+    stopYouTube() {
+        const container = document.getElementById('youtubeContainer');
+        if (container) {
+            container.innerHTML = '';
+        }
+        this.youtubeActive = false;
+
+        const statusEl = document.getElementById('youtubeStatus');
+        if (statusEl) {
+            statusEl.textContent = '';
+            statusEl.className = 'youtube-status';
+        }
+    },
+
     stopSound() {
+        // Stop YouTube
+        this.stopYouTube();
+
         // Stop generated noise
         if (this.noiseSource) {
             this.noiseSource.stop();
