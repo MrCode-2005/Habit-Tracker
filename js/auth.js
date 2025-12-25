@@ -351,19 +351,26 @@ const Auth = {
             // Sync calendar events - push local to cloud, then reload
             if (typeof Calendar !== 'undefined') {
                 const localCalendarEvents = localStorage.getItem('calendarEvents');
+                console.log('Calendar sync: Local events found:', localCalendarEvents ? 'yes' : 'no');
+
                 if (localCalendarEvents) {
                     const events = JSON.parse(localCalendarEvents);
+                    console.log('Calendar sync: Pushing', Object.keys(events).length, 'dates to cloud');
+
                     for (const [date, dateEvents] of Object.entries(events)) {
                         for (const event of dateEvents) {
+                            console.log('  Pushing event:', event.name, 'on', date);
                             await SupabaseDB.upsertCalendarEvent(userId, date, event);
                         }
                     }
+                    console.log('Calendar sync: Push complete');
                 }
 
                 // Reload calendar events from cloud
-                Calendar.loadEvents();
+                await Calendar.loadEvents();
                 Calendar.render();
                 Calendar.renderUpcomingEvents();
+                console.log('Calendar sync: Reload complete');
             }
 
             console.log('Data synced from Supabase for user:', userId);
