@@ -35,8 +35,25 @@ const Analytics = {
 
             days.push(date.toLocaleDateString('en-US', { weekday: 'short' }));
 
-            // Get tasks for this day - safely handle missing createdAt
-            const dayTasks = State.tasks.filter(task => {
+            // Count tasks completed on this day
+            const tasksCompletedOnDay = State.tasks.filter(task => {
+                if (!task.completed) return false;
+
+                // Use completedAt if available, otherwise use createdAt
+                const completionDate = task.completedAt || task.createdAt;
+                if (!completionDate) return false;
+
+                try {
+                    const taskDate = new Date(completionDate);
+                    if (isNaN(taskDate.getTime())) return false;
+                    return taskDate.toISOString().split('T')[0] === dateKey;
+                } catch (e) {
+                    return false;
+                }
+            });
+
+            // Calculate completion rate: completed tasks / total tasks for that day
+            const tasksCreatedOnDay = State.tasks.filter(task => {
                 if (!task.createdAt) return false;
                 try {
                     const taskDate = new Date(task.createdAt);
@@ -47,11 +64,12 @@ const Analytics = {
                 }
             });
 
-            if (dayTasks.length === 0) {
-                completionRates.push(0);
+            if (tasksCreatedOnDay.length === 0) {
+                // No tasks created on this day, show completion count instead
+                completionRates.push(tasksCompletedOnDay.length > 0 ? Math.min(100, tasksCompletedOnDay.length * 25) : 0);
             } else {
-                const completed = dayTasks.filter(t => t.completed).length;
-                completionRates.push(Math.round((completed / dayTasks.length) * 100));
+                const completed = tasksCreatedOnDay.filter(t => t.completed).length;
+                completionRates.push(Math.round((completed / tasksCreatedOnDay.length) * 100));
             }
         }
 

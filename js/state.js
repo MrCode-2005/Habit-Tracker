@@ -61,6 +61,8 @@ const State = {
         const task = this.tasks.find(t => String(t.id) === taskId);
         if (task) {
             task.completed = !task.completed;
+            // Track when task was completed for analytics
+            task.completedAt = task.completed ? new Date().toISOString() : null;
             this.saveTasks();
             return task;
         }
