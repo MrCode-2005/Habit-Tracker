@@ -994,19 +994,19 @@ body {
 /* Productivity Stats Cards */
 .productivity-stats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: var(--spacing-lg);
-    margin-bottom: var(--spacing-xl);
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
 }
 
 .stat-card {
     background: var(--bg-secondary);
-    border-radius: var(--radius-lg);
-    padding: var(--spacing-lg);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
     box-shadow: var(--shadow-sm);
     display: flex;
     align-items: center;
-    gap: var(--spacing-md);
+    gap: var(--spacing-sm);
     transition: all var(--transition-fast);
 }
 
@@ -1015,33 +1015,78 @@ body {
     transform: translateY(-2px);
 }
 
+.stat-card.stat-streak {
+    background: linear-gradient(135deg, #f97316 0%, #ef4444 100%);
+}
+
+.stat-card.stat-streak .stat-icon {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.stat-card.stat-streak .stat-label,
+.stat-card.stat-streak .stat-value {
+    color: white;
+}
+
 .stat-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: var(--radius-md);
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm);
     background: linear-gradient(135deg, var(--primary) 0%, var(--info) 100%);
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 1.25rem;
+    font-size: 1rem;
+    flex-shrink: 0;
 }
 
 .stat-content {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-xs);
+    gap: 2px;
+    min-width: 0;
 }
 
 .stat-label {
-    font-size: 0.813rem;
+    font-size: 0.75rem;
     color: var(--text-secondary);
+    white-space: nowrap;
 }
 
 .stat-value {
-    font-size: 1.25rem;
-    font-weight: 700;
+    font-size: 1rem;
+    font-weight: 600;
     color: var(--text-primary);
+}
+
+/* Compact Analytics Container */
+.analytics-compact {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
+}
+
+.chart-compact {
+    padding: var(--spacing-md);
+}
+
+.chart-compact h3 {
+    font-size: 0.875rem;
+    margin-bottom: var(--spacing-sm);
+}
+
+.chart-compact canvas {
+    max-height: 180px;
+}
+
+@media (max-width: 768px) {
+    .productivity-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .analytics-compact {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* ===================================

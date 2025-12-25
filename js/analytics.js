@@ -857,20 +857,68 @@ const Analytics = {
         return `Week ${weekCounts.indexOf(maxCount) + 1}`;
     },
 
+    getTaskStreak() {
+        // Get unique dates when tasks were completed
+        const completionDates = new Set();
+
+        State.tasks.filter(t => t.completed).forEach(task => {
+            const dateStr = task.completedAt || task.createdAt;
+            if (dateStr) {
+                try {
+                    const dateKey = new Date(dateStr).toISOString().split('T')[0];
+                    completionDates.add(dateKey);
+                } catch (e) { }
+            }
+        });
+
+        if (completionDates.size === 0) return 0;
+
+        // Sort dates descending
+        const sortedDates = Array.from(completionDates).sort().reverse();
+
+        // Check if streak is active (today or yesterday has completion)
+        const today = new Date();
+        const todayKey = today.toISOString().split('T')[0];
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayKey = yesterday.toISOString().split('T')[0];
+
+        if (!sortedDates.includes(todayKey) && !sortedDates.includes(yesterdayKey)) {
+            return 0; // Streak broken
+        }
+
+        // Count consecutive days
+        let streak = 0;
+        let checkDate = sortedDates.includes(todayKey) ? new Date(today) : new Date(yesterday);
+
+        while (true) {
+            const checkKey = checkDate.toISOString().split('T')[0];
+            if (completionDates.has(checkKey)) {
+                streak++;
+                checkDate.setDate(checkDate.getDate() - 1);
+            } else {
+                break;
+            }
+        }
+
+        return streak;
+    },
+
     renderProductivityStats() {
         const timeSlotData = this.getTimeSlotData();
         const mostProductiveSlot = timeSlotData.labels[timeSlotData.data.indexOf(Math.max(...timeSlotData.data))];
         const completedCount = State.tasks.filter(t => t.completed).length;
+        const streak = this.getTaskStreak();
 
         const timeEl = document.getElementById('mostProductiveTime');
         const dayEl = document.getElementById('mostProductiveDay');
-        const weekEl = document.getElementById('mostProductiveWeek');
         const totalEl = document.getElementById('totalCompleted');
+        const streakEl = document.getElementById('taskStreak');
 
         if (timeEl) timeEl.textContent = Math.max(...timeSlotData.data) > 0 ? mostProductiveSlot : '-';
         if (dayEl) dayEl.textContent = this.getMostProductiveDay();
-        if (weekEl) weekEl.textContent = this.getMostProductiveWeek();
         if (totalEl) totalEl.textContent = completedCount;
+        if (streakEl) streakEl.textContent = streak + (streak === 1 ? ' day' : ' days');
     },
 
     renderTimeSlotChart() {
