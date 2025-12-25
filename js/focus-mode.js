@@ -159,6 +159,23 @@ const FocusMode = {
             this.toggleShuffle();
         });
 
+        // Expand sound panel
+        document.getElementById('expandSoundPanel')?.addEventListener('click', () => {
+            const panel = document.getElementById('focusSoundPanel');
+            const btn = document.getElementById('expandSoundPanel');
+            if (panel && btn) {
+                panel.classList.toggle('expanded');
+                btn.classList.toggle('active');
+                // Toggle icon
+                const icon = btn.querySelector('i');
+                if (icon) {
+                    icon.className = panel.classList.contains('expanded')
+                        ? 'fas fa-compress-alt'
+                        : 'fas fa-expand-alt';
+                }
+            }
+        });
+
         // Close panels when clicking outside
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.focus-settings-panel') &&
@@ -987,31 +1004,123 @@ const FocusMode = {
     },
 
     playAudioFile(sound) {
-        // Use reliable public domain audio sources
-        // These are from SoundBible and other free audio CDNs
-        const soundUrls = {
-            'rain': 'https://soundbible.com/mp3/Rain-SoundBible.com-1655499074.mp3',
-            'fire': 'https://soundbible.com/mp3/Campfire-SoundBible.com-767541069.mp3',
-            'ocean': 'https://soundbible.com/mp3/Ocean_Waves-Mike_Koenig-980635527.mp3',
-            'forest': 'https://soundbible.com/mp3/bird-forest-ambient.mp3'
-        };
+        // Generate nature sounds using Web Audio API for reliability
+        // External URLs are unreliable, so we generate sounds locally
 
-        const url = soundUrls[sound];
-        if (!url) return;
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        this.gainNode = this.audioContext.createGain();
+        this.gainNode.gain.value = this.volume;
+        this.gainNode.connect(this.audioContext.destination);
 
-        this.currentAudio = new Audio(url);
-        this.currentAudio.crossOrigin = 'anonymous';
-        this.currentAudio.loop = true;
-        this.currentAudio.volume = this.volume;
-        this.currentAudio.play().catch(e => {
-            console.log('Audio playback failed:', e.message);
-            // Fallback: suggest using custom upload or YouTube
-            const statusEl = document.getElementById('youtubeStatus');
-            if (statusEl) {
-                statusEl.textContent = 'Audio failed - try YouTube or upload custom';
-                statusEl.className = 'youtube-status error';
+        if (sound === 'rain') {
+            // Rain: filtered white noise
+            const bufferSize = 2 * this.audioContext.sampleRate;
+            const noiseBuffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
+            const output = noiseBuffer.getChannelData(0);
+
+            for (let i = 0; i < bufferSize; i++) {
+                output[i] = Math.random() * 2 - 1;
             }
-        });
+
+            this.noiseSource = this.audioContext.createBufferSource();
+            this.noiseSource.buffer = noiseBuffer;
+            this.noiseSource.loop = true;
+
+            // Lowpass filter for rain
+            const filter = this.audioContext.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = 400;
+
+            this.noiseSource.connect(filter);
+            filter.connect(this.gainNode);
+            this.noiseSource.start();
+
+        } else if (sound === 'fire') {
+            // Fire: low frequency crackling noise
+            const bufferSize = 2 * this.audioContext.sampleRate;
+            const noiseBuffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
+            const output = noiseBuffer.getChannelData(0);
+
+            // Brown noise with random pops
+            let lastOut = 0;
+            for (let i = 0; i < bufferSize; i++) {
+                const white = Math.random() * 2 - 1;
+                output[i] = (lastOut + (0.01 * white)) / 1.01;
+                lastOut = output[i];
+                // Add occasional crackles
+                if (Math.random() < 0.0005) {
+                    output[i] += (Math.random() - 0.5) * 0.5;
+                }
+            }
+
+            this.noiseSource = this.audioContext.createBufferSource();
+            this.noiseSource.buffer = noiseBuffer;
+            this.noiseSource.loop = true;
+
+            const filter = this.audioContext.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = 200;
+
+            this.noiseSource.connect(filter);
+            filter.connect(this.gainNode);
+            this.noiseSource.start();
+
+        } else if (sound === 'ocean') {
+            // Ocean: slow modulated white noise
+            const bufferSize = 4 * this.audioContext.sampleRate;
+            const noiseBuffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
+            const output = noiseBuffer.getChannelData(0);
+
+            for (let i = 0; i < bufferSize; i++) {
+                // Create wave-like pattern
+                const wave = Math.sin(i / this.audioContext.sampleRate * 0.1) * 0.5 + 0.5;
+                output[i] = (Math.random() * 2 - 1) * wave * 0.8;
+            }
+
+            this.noiseSource = this.audioContext.createBufferSource();
+            this.noiseSource.buffer = noiseBuffer;
+            this.noiseSource.loop = true;
+
+            const filter = this.audioContext.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = 600;
+
+            this.noiseSource.connect(filter);
+            filter.connect(this.gainNode);
+            this.noiseSource.start();
+
+        } else if (sound === 'forest') {
+            // Forest: gentle rustling with occasional bird-like chirps
+            const bufferSize = 3 * this.audioContext.sampleRate;
+            const noiseBuffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
+            const output = noiseBuffer.getChannelData(0);
+
+            for (let i = 0; i < bufferSize; i++) {
+                // Gentle rustling
+                output[i] = (Math.random() * 2 - 1) * 0.15;
+                // Occasional chirps
+                if (Math.random() < 0.00003) {
+                    for (let j = 0; j < 2000 && i + j < bufferSize; j++) {
+                        const chirpFreq = 2000 + Math.random() * 3000;
+                        output[i + j] += Math.sin(j * chirpFreq / this.audioContext.sampleRate) *
+                            Math.exp(-j / 500) * 0.3;
+                    }
+                }
+            }
+
+            this.noiseSource = this.audioContext.createBufferSource();
+            this.noiseSource.buffer = noiseBuffer;
+            this.noiseSource.loop = true;
+
+            const filter = this.audioContext.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.value = 3000;
+            filter.Q.value = 0.5;
+
+            this.noiseSource.connect(filter);
+            filter.connect(this.gainNode);
+            this.noiseSource.start();
+        }
     },
 
     loadCustomSound(file) {

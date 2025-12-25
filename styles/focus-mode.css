@@ -321,21 +321,28 @@
     position: fixed;
     top: 80px;
     right: 1.5rem;
-    width: 280px;
+    width: 300px;
     max-height: calc(100vh - 120px);
     overflow-y: auto;
-    background: rgba(20, 20, 35, 0.95);
+    background: rgba(20, 20, 35, 0.98);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 16px;
-    padding: 1.25rem;
+    padding: 1rem;
     z-index: 100;
     display: none;
     animation: slideIn 0.3s ease;
+    transition: width 0.3s ease, max-height 0.3s ease;
 }
 
 .focus-settings-panel.active {
     display: block;
+}
+
+/* Expanded panel state */
+.focus-settings-panel.expanded {
+    width: 400px;
+    max-height: calc(100vh - 100px);
 }
 
 @keyframes slideIn {
@@ -350,14 +357,41 @@
     }
 }
 
+.panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+}
+
 .focus-panel-title {
     font-size: 1rem;
     font-weight: 600;
     color: white;
-    margin-bottom: 1rem;
+    margin: 0;
     display: flex;
     align-items: center;
     gap: 0.5rem;
+}
+
+.panel-expand-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.6);
+    padding: 0.4rem 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.panel-expand-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.panel-expand-btn.active {
+    background: var(--primary);
+    color: white;
 }
 
 /* Animation Options */
