@@ -513,7 +513,10 @@ const FocusMode = {
             const total = this.currentTask.subtasks.length;
             const completed = this.currentTask.subtasks.filter(s => s.completed).length;
             const currentIdx = this.currentSubtask
-                ? this.currentTask.subtasks.findIndex(s => s.id === this.currentSubtask.id) + 1
+                ? this.currentTask.subtasks.findIndex(s =>
+                    (s.id && s.id === this.currentSubtask.id) ||
+                    (s.title && s.title === this.currentSubtask.title)
+                ) + 1
                 : 0;
 
             progressEl.innerHTML = `
