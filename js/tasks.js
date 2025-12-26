@@ -193,8 +193,10 @@ const Tasks = {
                         <div class="subtask-item ${subtask.completed ? 'completed' : ''}" onclick="event.stopPropagation(); Tasks.toggleSubtask('${task.id}', ${index})">
                             <input type="checkbox" class="subtask-checkbox" ${subtask.completed ? 'checked' : ''} onclick="event.stopPropagation(); Tasks.toggleSubtask('${task.id}', ${index})">
                             <span class="subtask-title">${subtask.title}</span>
+                            ${subtask.link ? `<a href="${subtask.link}" target="_blank" class="subtask-link-btn" onclick="event.stopPropagation();" title="${subtask.link}"><i class="fa-solid fa-link"></i></a>` : ''}
+                            ${subtask.comment ? `<span class="subtask-comment-icon" title="${subtask.comment}"><i class="fa-solid fa-comment"></i></span>` : ''}
                             <span class="task-time"><i class="fa-solid fa-clock"></i> ${subtask.duration}m</span>
-                            <button class="task-action-btn" onclick="event.stopPropagation(); FocusMode.open(${JSON.stringify(task).replace(/"/g, '&quot;')}, { title: '${subtask.title.replace(/'/g, "\\'")}', hours: 0, minutes: ${subtask.duration} })">
+                            <button class="task-action-btn" onclick="event.stopPropagation(); FocusMode.open(${JSON.stringify(task).replace(/"/g, '&quot;')}, { title: '${subtask.title.replace(/'/g, "\\'")}', hours: 0, minutes: ${subtask.duration}, link: '${(subtask.link || '').replace(/'/g, "\\'")}', comment: '${(subtask.comment || '').replace(/'/g, "\\'")}' })">
                                 <i class="fa-solid fa-play"></i>
                             </button>
                         </div>
