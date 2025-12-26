@@ -55,7 +55,7 @@ const Tasks = {
             const subtasksList = document.getElementById('subtasksList');
             subtasksList.innerHTML = '';
             task.subtasks?.forEach(subtask => {
-                this.addSubtaskEntry(subtask.title, subtask.duration);
+                this.addSubtaskEntry(subtask.title, subtask.duration, subtask.comment || '', subtask.link || '');
             });
         } else {
             // Add mode
@@ -67,16 +67,22 @@ const Tasks = {
         modal.classList.add('active');
     },
 
-    addSubtaskEntry(title = '', duration = 15) {
+    addSubtaskEntry(title = '', duration = 15, comment = '', link = '') {
         const subtasksList = document.getElementById('subtasksList');
         const entry = document.createElement('div');
         entry.className = 'subtask-entry';
         entry.innerHTML = `
-            <input type="text" placeholder="Subtask title" value="${title}" required>
-            <input type="number" placeholder="Minutes" value="${duration}" min="1" style="width: 100px;" required>
-            <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">
-                <i class="fa-solid fa-trash"></i>
-            </button>
+            <div class="subtask-entry-row">
+                <input type="text" class="subtask-title-input" placeholder="Subtask title" value="${title}" required>
+                <input type="number" class="subtask-duration-input" placeholder="Minutes" value="${duration}" min="1" style="width: 100px;" required>
+                <button type="button" class="btn btn-danger" onclick="this.parentElement.parentElement.remove()">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </div>
+            <div class="subtask-extra-row">
+                <input type="url" class="subtask-link-input" placeholder="Link (optional)" value="${link}" style="flex: 1;">
+                <input type="text" class="subtask-comment-input" placeholder="Comment (optional)" value="${comment}" style="flex: 2;">
+            </div>
         `;
         subtasksList.appendChild(entry);
     },
@@ -102,8 +108,10 @@ const Tasks = {
         // Get subtasks
         const subtaskEntries = document.querySelectorAll('#subtasksList .subtask-entry');
         const subtasks = Array.from(subtaskEntries).map(entry => ({
-            title: entry.querySelector('input[type="text"]').value,
-            duration: parseInt(entry.querySelector('input[type="number"]').value),
+            title: entry.querySelector('.subtask-title-input').value,
+            duration: parseInt(entry.querySelector('.subtask-duration-input').value),
+            comment: entry.querySelector('.subtask-comment-input')?.value || '',
+            link: entry.querySelector('.subtask-link-input')?.value || '',
             completed: false
         }));
 

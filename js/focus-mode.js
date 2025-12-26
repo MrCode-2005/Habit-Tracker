@@ -13,6 +13,7 @@ const FocusMode = {
     totalSeconds: 0,
     remainingSeconds: 0,
     timerInterval: null,
+    subtaskTimerStates: {}, // Store remaining seconds per subtask (keyed by title)
 
     // Break settings
     breakDuration: 5 * 60, // 5 minutes default
@@ -381,6 +382,11 @@ const FocusMode = {
 
     // Open focus mode with a task
     open(task, subtask = null) {
+        // Clear saved timer states when switching to a different task
+        if (!this.currentTask || this.currentTask.id !== task.id) {
+            this.subtaskTimerStates = {};
+        }
+
         this.currentTask = task;
         this.currentSubtask = subtask;
 
@@ -460,6 +466,9 @@ const FocusMode = {
         const titleEl = document.getElementById('focusTaskTitle');
         const subtaskEl = document.getElementById('focusSubtaskTitle');
         const progressEl = document.getElementById('focusTaskProgress');
+        const detailsEl = document.getElementById('focusSubtaskDetails');
+        const commentEl = document.getElementById('focusSubtaskComment');
+        const linkEl = document.getElementById('focusSubtaskLink');
 
         if (titleEl) {
             titleEl.textContent = this.currentTask?.title || 'Focus Session';
@@ -472,6 +481,30 @@ const FocusMode = {
             } else {
                 subtaskEl.style.display = 'none';
             }
+        }
+
+        // Show subtask comment and link
+        if (detailsEl && commentEl && linkEl) {
+            const hasComment = this.currentSubtask?.comment && this.currentSubtask.comment.trim();
+            const hasLink = this.currentSubtask?.link && this.currentSubtask.link.trim();
+
+            if (hasComment) {
+                commentEl.textContent = this.currentSubtask.comment;
+                commentEl.style.display = 'block';
+            } else {
+                commentEl.style.display = 'none';
+            }
+
+            if (hasLink) {
+                linkEl.href = this.currentSubtask.link;
+                linkEl.textContent = this.currentSubtask.link;
+                linkEl.style.display = 'inline-block';
+            } else {
+                linkEl.style.display = 'none';
+            }
+
+            // Show/hide the container based on whether there's any content
+            detailsEl.style.display = (hasComment || hasLink) ? 'block' : 'none';
         }
 
         // Show task progress if we have a task with subtasks
@@ -511,6 +544,15 @@ const FocusMode = {
             );
         }
 
+        // Save the current subtask's remaining time before switching
+        if (this.currentSubtask && this.currentSubtask.title) {
+            const key = `${this.currentTask.id}_${this.currentSubtask.title}`;
+            this.subtaskTimerStates[key] = this.remainingSeconds;
+        }
+
+        // Pause the timer before switching
+        this.pauseTimer();
+
         let newIdx;
         if (direction === 'prev') {
             newIdx = currentIdx > 0 ? currentIdx - 1 : subtasks.length - 1;
@@ -532,14 +574,23 @@ const FocusMode = {
 
         this.currentSubtask = newSubtask;
 
-        // Update timer with new subtask's duration (default to 25 min if not set)
+        // Check if we have saved timer state for this subtask
+        const newKey = `${this.currentTask.id}_${newSubtask.title}`;
+        const savedRemainingSeconds = this.subtaskTimerStates[newKey];
+
+        // Calculate default total time
         const durationMinutes = newSubtask.duration || 25;
         this.totalSeconds = durationMinutes * 60;
-        this.remainingSeconds = this.totalSeconds;
 
-        this.pauseTimer();
+        // Restore saved remaining time or use default
+        if (savedRemainingSeconds !== undefined && savedRemainingSeconds > 0) {
+            this.remainingSeconds = savedRemainingSeconds;
+        } else {
+            this.remainingSeconds = this.totalSeconds;
+        }
+
         this.updateTimerDisplay();
-        this.updateProgress(1);
+        this.updateProgress(this.remainingSeconds / this.totalSeconds);
         this.updateTaskInfo();
     },
 

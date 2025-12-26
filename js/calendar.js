@@ -29,11 +29,8 @@ const Calendar = {
             e.preventDefault();
             this.saveEvent();
         });
-
-        // Open modal on Add Event button
-        document.getElementById('addEventBtn')?.addEventListener('click', () => {
-            this.openModal();
-        });
+        // Note: Calendar events are added by clicking on calendar days, not via addEventBtn
+        // The addEventBtn is for the Events section (countdown events)
     },
 
     async loadEvents() {

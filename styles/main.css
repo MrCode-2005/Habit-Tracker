@@ -849,17 +849,46 @@ body {
 
 .subtask-entry {
     display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-md);
+    padding: var(--spacing-sm);
+    background: var(--bg-primary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+}
+
+.subtask-entry-row {
+    display: flex;
     gap: var(--spacing-sm);
-    margin-bottom: var(--spacing-sm);
     align-items: center;
 }
 
-.subtask-entry input {
+.subtask-entry-row input[type="text"] {
     flex: 1;
 }
 
-.subtask-entry .btn {
+.subtask-entry-row .btn {
     padding: var(--spacing-sm);
+}
+
+.subtask-extra-row {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: center;
+}
+
+.subtask-extra-row input {
+    font-size: 0.875rem;
+    padding: var(--spacing-xs) var(--spacing-sm);
+}
+
+.subtask-link-input {
+    flex: 1 !important;
+}
+
+.subtask-comment-input {
+    flex: 2 !important;
 }
 
 /* ===================================
