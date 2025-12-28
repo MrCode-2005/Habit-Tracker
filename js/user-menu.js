@@ -158,10 +158,47 @@ const UserMenu = {
     async switchAccount(account) {
         // Close dropdown
         document.getElementById('userDropdown')?.classList.remove('active');
+        document.getElementById('userMenuBtn')?.classList.remove('active');
 
-        // For now, just show the login modal
-        // In a real implementation, this would use Supabase to switch sessions
-        alert(`To switch to ${account.email}, please logout and login with that account.`);
+        // Show switching indicator
+        const switchingEmail = account.email;
+
+        // Log out current user first
+        if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
+            // Perform silent logout (don't clear saved accounts)
+            const client = getSupabase();
+            if (client) {
+                try {
+                    await client.auth.signOut();
+                } catch (error) {
+                    console.log('Logout during switch:', error);
+                }
+            }
+            Auth.currentUser = null;
+        }
+
+        // Show login modal with the email pre-filled
+        const loginModal = document.getElementById('loginModal');
+        const loginEmail = document.getElementById('loginEmail');
+        const loginPassword = document.getElementById('loginPassword');
+
+        if (loginModal) {
+            loginModal.classList.add('active');
+
+            // Pre-fill the email
+            if (loginEmail) {
+                loginEmail.value = switchingEmail;
+                // Focus on password field since email is already filled
+                if (loginPassword) {
+                    loginPassword.value = '';
+                    setTimeout(() => loginPassword.focus(), 100);
+                }
+            }
+        }
+
+        // Hide user menu
+        const userMenu = document.getElementById('userMenu');
+        if (userMenu) userMenu.style.display = 'none';
     },
 
     // Update user display
