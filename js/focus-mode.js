@@ -2314,10 +2314,17 @@ const FocusMode = {
                     }
                 },
                 'onStateChange': (event) => {
+                    const playPauseBtn = document.getElementById('audioPlayPause');
+                    const playPauseMiniBtn = document.getElementById('playPauseMini');
+
                     // State 1 = playing - NOW duration is available
                     if (event.data === 1) {
                         // Start timeline update when video actually starts playing
                         this.startAudioTimelineUpdate();
+                        this.audioPaused = false;
+                        // Update button icons to show pause
+                        if (playPauseBtn) playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                        if (playPauseMiniBtn) playPauseMiniBtn.innerHTML = '<i class="fas fa-pause"></i>';
                         if (statusEl) {
                             statusEl.textContent = '▶ Playing from YouTube';
                             statusEl.className = 'youtube-status playing';
@@ -2325,6 +2332,10 @@ const FocusMode = {
                     }
                     // State 2 = paused
                     if (event.data === 2) {
+                        this.audioPaused = true;
+                        // Update button icons to show play
+                        if (playPauseBtn) playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+                        if (playPauseMiniBtn) playPauseMiniBtn.innerHTML = '<i class="fas fa-play"></i>';
                         if (statusEl) {
                             statusEl.textContent = '⏸ Paused';
                         }
@@ -2739,6 +2750,14 @@ const FocusMode = {
 
     toggleAudioPause() {
         const playPauseBtn = document.getElementById('audioPlayPause');
+        const playPauseMiniBtn = document.getElementById('playPauseMini');
+
+        // Helper to update both buttons
+        const updateButtons = (isPaused) => {
+            const icon = isPaused ? '<i class="fas fa-play"></i>' : '<i class="fas fa-pause"></i>';
+            if (playPauseBtn) playPauseBtn.innerHTML = icon;
+            if (playPauseMiniBtn) playPauseMiniBtn.innerHTML = icon;
+        };
 
         // Toggle YouTube player
         if (this.youtubePlayer) {
@@ -2746,11 +2765,11 @@ const FocusMode = {
             if (state === 1) { // Playing
                 this.youtubePlayer.pauseVideo();
                 this.audioPaused = true;
-                if (playPauseBtn) playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+                updateButtons(true);
             } else {
                 this.youtubePlayer.playVideo();
                 this.audioPaused = false;
-                if (playPauseBtn) playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                updateButtons(false);
             }
         }
 
@@ -2759,11 +2778,11 @@ const FocusMode = {
             if (this.currentAudio.paused) {
                 this.currentAudio.play();
                 this.audioPaused = false;
-                if (playPauseBtn) playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                updateButtons(false);
             } else {
                 this.currentAudio.pause();
                 this.audioPaused = true;
-                if (playPauseBtn) playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+                updateButtons(true);
             }
         }
     },
