@@ -49,6 +49,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 function setupNavigation() {
     const navButtons = document.querySelectorAll('.nav-btn');
     const views = document.querySelectorAll('.view');
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const navLinks = document.getElementById('navLinks');
+
+    // Mobile menu toggle
+    if (mobileMenuBtn && navLinks) {
+        mobileMenuBtn.addEventListener('click', () => {
+            mobileMenuBtn.classList.toggle('active');
+            navLinks.classList.toggle('active');
+        });
+    }
 
     // Restore last viewed section
     const savedView = localStorage.getItem('currentView');
@@ -84,6 +94,12 @@ function setupNavigation() {
 
             // Save current view to localStorage
             localStorage.setItem('currentView', viewId);
+
+            // Close mobile menu after navigation
+            if (mobileMenuBtn && navLinks) {
+                mobileMenuBtn.classList.remove('active');
+                navLinks.classList.remove('active');
+            }
 
             // Refresh analytics charts when switching to analytics view
             if (viewId === 'analytics') {
