@@ -6,12 +6,33 @@ const Calendar = {
     currentDate: new Date(),
     events: {},
     selectedEventId: null,
+    upcomingFilterDays: 30, // Default filter: 1 month
 
     init() {
         this.loadEvents();
         this.render();
         this.setupEventListeners();
+        this.setupUpcomingFilter();
         this.renderUpcomingEvents();
+    },
+
+    // Setup upcoming events filter
+    setupUpcomingFilter() {
+        const filterSelect = document.getElementById('upcomingFilter');
+        if (filterSelect) {
+            // Set initial value from stored preference if available
+            const stored = localStorage.getItem('upcomingFilterDays');
+            if (stored) {
+                this.upcomingFilterDays = parseInt(stored);
+                filterSelect.value = stored;
+            }
+
+            filterSelect.addEventListener('change', (e) => {
+                this.upcomingFilterDays = parseInt(e.target.value);
+                localStorage.setItem('upcomingFilterDays', e.target.value);
+                this.renderUpcomingEvents();
+            });
+        }
     },
 
     setupEventListeners() {
@@ -561,14 +582,19 @@ const Calendar = {
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
+
+        // Calculate the max date based on filter
+        const maxDate = new Date(today);
+        maxDate.setDate(maxDate.getDate() + this.upcomingFilterDays);
+
         const upcoming = [];
 
-        // Get ALL future events from the events object
+        // Get future events within the filter range
         for (const [dateStr, events] of Object.entries(this.events)) {
             const eventDate = new Date(dateStr + 'T00:00:00');
 
-            // Only include events from today onwards
-            if (eventDate >= today) {
+            // Only include events from today onwards AND within filter range
+            if (eventDate >= today && eventDate <= maxDate) {
                 const diffTime = eventDate - today;
                 const daysFromNow = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
@@ -586,13 +612,17 @@ const Calendar = {
         // Sort by date (closest first)
         upcoming.sort((a, b) => a.eventDate - b.eventDate);
 
-        // Limit to first 10 events for display
-        const displayEvents = upcoming.slice(0, 10);
+        // Limit to first 15 events for display
+        const displayEvents = upcoming.slice(0, 15);
+
+        // Get filter label for empty state
+        const filterLabels = { 7: '1 week', 10: '10 days', 30: '1 month', 180: '6 months' };
+        const filterLabel = filterLabels[this.upcomingFilterDays] || `${this.upcomingFilterDays} days`;
 
         if (displayEvents.length === 0) {
             container.innerHTML = `
                 <div class="no-events">
-                    <span>No upcoming events</span>
+                    <span>No upcoming events in the next ${filterLabel}</span>
                     <span style="font-size: 0.813rem; opacity: 0.7; margin-top: 0.25rem;">Click on a calendar day to add an event</span>
                 </div>`;
             return;

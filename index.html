@@ -327,7 +327,18 @@
 
             <!-- Upcoming Events Reminder -->
             <div class="upcoming-events">
-                <h3><i class="fas fa-bell"></i> Upcoming Events</h3>
+                <div class="upcoming-header">
+                    <h3><i class="fas fa-bell"></i> Upcoming Events</h3>
+                    <div class="upcoming-filter">
+                        <select id="upcomingFilter" class="upcoming-filter-select"
+                            aria-label="Filter events by time range">
+                            <option value="7">1 Week</option>
+                            <option value="10">10 Days</option>
+                            <option value="30" selected>1 Month</option>
+                            <option value="180">6 Months</option>
+                        </select>
+                    </div>
+                </div>
                 <div class="upcoming-list" id="upcomingEventsList" role="list">
                     <!-- Upcoming events will be shown here -->
                 </div>
