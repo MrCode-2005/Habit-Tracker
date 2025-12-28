@@ -204,7 +204,11 @@ const Calendar = {
 
         // If event has time, also create countdown event in Events section
         if (time && typeof State !== 'undefined') {
-            const dateTime = `${date}T${time}`;
+            // Parse date and time components separately to avoid timezone issues
+            const [year, month, day] = date.split('-').map(Number);
+            const [hours, minutes] = time.split(':').map(Number);
+            const eventDate = new Date(year, month - 1, day, hours, minutes, 0, 0);
+            const dateTime = eventDate.toISOString();
 
             // Check if event already exists (by calendarEventId)
             const existingEvent = State.events?.find(e => e.calendarEventId === event.id);

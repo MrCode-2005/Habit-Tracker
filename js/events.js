@@ -69,7 +69,15 @@ const Events = {
 
     async saveEvent() {
         const name = document.getElementById('eventName').value;
-        const dateTime = document.getElementById('eventDateTime').value;
+        const dateTimeInput = document.getElementById('eventDateTime').value;
+
+        // Parse datetime-local value and create proper Date object
+        // datetime-local format: YYYY-MM-DDTHH:MM
+        const [datePart, timePart] = dateTimeInput.split('T');
+        const [year, month, day] = datePart.split('-').map(Number);
+        const [hours, minutes] = timePart.split(':').map(Number);
+        const dateObj = new Date(year, month - 1, day, hours, minutes, 0, 0);
+        const dateTime = dateObj.toISOString();
 
         let event;
         if (this.currentEditId) {
