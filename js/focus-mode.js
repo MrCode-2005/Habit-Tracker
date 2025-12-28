@@ -447,7 +447,10 @@ const FocusMode = {
         }, 500);
     },
 
-    close() {
+    close(clearSession = false) {
+        // Save audio/video playback position before stopping
+        this.savePlaybackPosition();
+
         this.pauseTimer();
         this.stopAnimation();
         this.stopQuoteRotation();
@@ -458,8 +461,57 @@ const FocusMode = {
         this.isActive = false;
         this.closePanels();
 
-        // Clear saved state
-        this.clearState();
+        if (clearSession) {
+            // Only clear if explicitly requested (timer completed or user cancelled)
+            this.clearState();
+        } else {
+            // Save state so user can return to where they left off
+            this.saveState();
+        }
+    },
+
+    // Save current audio/video playback position
+    savePlaybackPosition() {
+        const playbackState = {
+            // YouTube player position
+            youtubePosition: 0,
+            // Custom audio position
+            audioPosition: 0
+        };
+
+        if (this.youtubePlayer && this.youtubePlayer.getCurrentTime) {
+            try {
+                playbackState.youtubePosition = this.youtubePlayer.getCurrentTime();
+            } catch (e) { }
+        }
+
+        if (this.currentAudio) {
+            playbackState.audioPosition = this.currentAudio.currentTime;
+        }
+
+        localStorage.setItem('focusPlaybackPosition', JSON.stringify(playbackState));
+    },
+
+    // Resume audio/video from saved position
+    resumePlaybackPosition() {
+        try {
+            const saved = localStorage.getItem('focusPlaybackPosition');
+            if (!saved) return;
+
+            const playbackState = JSON.parse(saved);
+
+            // Wait a bit for player to initialize, then seek
+            setTimeout(() => {
+                if (this.youtubePlayer && this.youtubePlayer.seekTo && playbackState.youtubePosition > 0) {
+                    this.youtubePlayer.seekTo(playbackState.youtubePosition, true);
+                }
+                if (this.currentAudio && playbackState.audioPosition > 0) {
+                    this.currentAudio.currentTime = playbackState.audioPosition;
+                }
+            }, 1500);
+        } catch (e) {
+            console.log('Could not restore playback position:', e);
+        }
     },
 
     updateTaskInfo() {
@@ -3138,6 +3190,14 @@ const FocusMode = {
                 if (selectMini) selectMini.value = state.currentPlaylist;
                 this.renderPlaylistTracks(state.currentPlaylist);
                 this.renderPlaylistTracksMini();
+
+                // Auto-resume the audio if there was a track playing
+                if (state.currentTrackIndex >= 0) {
+                    // Play the track
+                    this.playTrack(state.currentTrackIndex);
+                    // Then seek to saved position
+                    this.resumePlaybackPosition();
+                }
             }
 
             this.showRandomQuote();
@@ -3192,9 +3252,14 @@ const FocusMode = {
             let duration = 0;
 
             // Get from YouTube player
-            if (this.youtubePlayer && this.youtubePlayer.getCurrentTime) {
-                currentTime = this.youtubePlayer.getCurrentTime() || 0;
-                duration = this.youtubePlayer.getDuration() || 0;
+            if (this.youtubePlayer && typeof this.youtubePlayer.getCurrentTime === 'function') {
+                try {
+                    currentTime = this.youtubePlayer.getCurrentTime() || 0;
+                    duration = this.youtubePlayer.getDuration() || 0;
+                } catch (e) {
+                    // Player may not be ready
+                    console.log('Waiting for YouTube player...');
+                }
             }
             // Get from native audio
             else if (this.currentAudio) {
@@ -3202,15 +3267,28 @@ const FocusMode = {
                 duration = this.currentAudio.duration || 0;
             }
 
-            // Update progress bar
-            const progressBar = document.getElementById('audioProgress');
-            if (progressBar && duration > 0) {
-                progressBar.value = (currentTime / duration) * 100;
-            }
+            // Only update if we have valid duration
+            if (duration > 0) {
+                // Update progress bar
+                const progressBar = document.getElementById('audioProgress');
+                if (progressBar) {
+                    progressBar.value = (currentTime / duration) * 100;
+                }
 
-            // Update time display
-            document.getElementById('audioCurrentTime').textContent = this.formatTime(currentTime);
-            document.getElementById('audioDuration').textContent = this.formatTime(duration);
+                // Update time display in floating panel
+                const currentTimeEl = document.getElementById('audioCurrentTime');
+                const durationEl = document.getElementById('audioDuration');
+                if (currentTimeEl) currentTimeEl.textContent = this.formatTime(currentTime);
+                if (durationEl) durationEl.textContent = this.formatTime(duration);
+
+                // Also update mini panel timeline if exists
+                const miniCurrentEl = document.querySelector('.mini-audio-current-time');
+                const miniDurationEl = document.querySelector('.mini-audio-duration');
+                const miniProgress = document.getElementById('miniAudioProgress');
+                if (miniCurrentEl) miniCurrentEl.textContent = this.formatTime(currentTime);
+                if (miniDurationEl) miniDurationEl.textContent = this.formatTime(duration);
+                if (miniProgress) miniProgress.value = (currentTime / duration) * 100;
+            }
         }, 500);
     },
 

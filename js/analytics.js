@@ -130,6 +130,28 @@ const Analytics = {
         return false;
     },
 
+    // Get habit completion count from history for a given date (includes deleted habits)
+    getHabitCompletionsFromHistory(dateKey) {
+        const history = State.habitCompletionHistory || [];
+        const activeHabitIds = new Set(State.habits.map(h => h.id));
+
+        // Count completions from deleted habits only (active habits are counted separately)
+        return history.filter(h => {
+            return h.dateKey === dateKey && !activeHabitIds.has(h.habitId);
+        }).length;
+    },
+
+    // Get goal completion count from history for a given date (includes deleted goals)
+    getGoalCompletionsFromHistory(dateKey) {
+        const history = State.goalCompletionHistory || [];
+        const activeGoalIds = new Set(State.goals.map(g => g.id));
+
+        // Count completions from deleted goals only
+        return history.filter(g => {
+            return g.dateKey === dateKey && !activeGoalIds.has(g.goalId);
+        }).length;
+    },
+
     // Get weekly completion data for a specific habit
     getHabitWeeklyData(habit) {
         const days = [];
@@ -958,7 +980,20 @@ const Analytics = {
         const activeCompletedCount = State.tasks.filter(t => t.completed).length;
         const activeTaskIds = new Set(State.tasks.map(t => t.id));
         const deletedCompletedCount = completionHistory.filter(h => !activeTaskIds.has(h.taskId)).length;
-        const completedCount = activeCompletedCount + deletedCompletedCount;
+        const completedTaskCount = activeCompletedCount + deletedCompletedCount;
+
+        // Count habits completed today (including history)
+        const today = new Date().toISOString().split('T')[0];
+        const activeHabitsCompletedToday = State.habits.filter(h => h.completions && h.completions[today]).length;
+        const deletedHabitsCompletedToday = this.getHabitCompletionsFromHistory(today);
+        const totalHabitCompletionsToday = activeHabitsCompletedToday + deletedHabitsCompletedToday;
+
+        // Count goals completed (including history)
+        const activeGoalsCompleted = State.goals.filter(g => g.completed).length;
+        const goalHistory = State.goalCompletionHistory || [];
+        const activeGoalIds = new Set(State.goals.map(g => g.id));
+        const deletedGoalsCompleted = goalHistory.filter(h => !activeGoalIds.has(h.goalId)).length;
+        const totalGoalsCompleted = activeGoalsCompleted + deletedGoalsCompleted;
 
         const streak = this.getTaskStreak();
 
@@ -969,8 +1004,14 @@ const Analytics = {
 
         if (timeEl) timeEl.textContent = Math.max(...timeSlotData.data) > 0 ? mostProductiveSlot : '-';
         if (dayEl) dayEl.textContent = this.getMostProductiveDay();
-        if (totalEl) totalEl.textContent = completedCount;
+        if (totalEl) totalEl.textContent = completedTaskCount;
         if (streakEl) streakEl.textContent = streak + (streak === 1 ? ' day' : ' days');
+
+        // Update habit/goal stats if elements exist
+        const habitsTodayEl = document.getElementById('habitsCompletedToday');
+        const goalsCompletedEl = document.getElementById('goalsCompleted');
+        if (habitsTodayEl) habitsTodayEl.textContent = totalHabitCompletionsToday;
+        if (goalsCompletedEl) goalsCompletedEl.textContent = totalGoalsCompleted;
     },
 
     renderTimeSlotChart() {
