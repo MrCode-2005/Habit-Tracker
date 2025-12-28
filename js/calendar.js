@@ -572,9 +572,12 @@ const Calendar = {
         document.getElementById('eventDetailsPopup').classList.add('active');
     },
 
-    closeDetails() {
+    closeDetails(preserveSelection = false) {
         document.getElementById('eventDetailsPopup').classList.remove('active');
-        this.selectedEventId = null;
+        if (!preserveSelection) {
+            this.selectedEventId = null;
+            this.selectedEventDate = null;
+        }
     },
 
     async deleteEvent() {
@@ -621,8 +624,8 @@ const Calendar = {
 
         if (!event) return;
 
-        // Close details popup
-        this.closeDetails();
+        // Close details popup but PRESERVE selection for editing
+        this.closeDetails(true);
 
         // Open modal in edit mode
         const modal = document.getElementById('calendarEventModal');
@@ -634,10 +637,6 @@ const Calendar = {
         document.getElementById('calEventTime').value = event.time || '';
         document.getElementById('calEventLink').value = event.link || '';
         document.getElementById('calEventComments').value = event.comments || '';
-
-        // Store that we're editing
-        this.selectedEventId = event.id;
-        this.selectedEventDate = this.selectedEventDate;
 
         modal.classList.add('active');
     },
