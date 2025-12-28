@@ -455,7 +455,10 @@ const Calendar = {
             );
         }
 
+        // Clear selection state for new event
         this.selectedEventId = null;
+        this.selectedEventDate = null;
+
         modal.classList.add('active');
     },
 
@@ -478,6 +481,17 @@ const Calendar = {
             comments
         };
 
+        // If editing and date changed, remove from old date
+        if (this.selectedEventId && this.selectedEventDate && this.selectedEventDate !== date) {
+            const oldDateEvents = this.events[this.selectedEventDate];
+            if (oldDateEvents) {
+                this.events[this.selectedEventDate] = oldDateEvents.filter(e => e.id !== this.selectedEventId);
+                if (this.events[this.selectedEventDate].length === 0) {
+                    delete this.events[this.selectedEventDate];
+                }
+            }
+        }
+
         if (!this.events[date]) {
             this.events[date] = [];
         }
@@ -492,10 +506,15 @@ const Calendar = {
 
         this.saveEvents();
         this.closeModal();
+
+        // Clear selection state
+        this.selectedEventId = null;
+        this.selectedEventDate = null;
+
         this.render();
         this.renderUpcomingEvents();
 
-        // If event has time, also create countdown event in Events section
+        // If event has time, also create/update countdown event in Events section
         if (time && typeof State !== 'undefined') {
             // Parse date and time components separately to avoid timezone issues
             const [year, month, day] = date.split('-').map(Number);
@@ -508,7 +527,10 @@ const Calendar = {
 
             if (existingEvent) {
                 // Update existing countdown event
-                State.updateEvent(existingEvent.id, { name, dateTime });
+                const updated = State.updateEvent(existingEvent.id, { name, dateTime });
+                if (updated && typeof State.syncEventToSupabase === 'function') {
+                    State.syncEventToSupabase(updated);
+                }
             } else {
                 // Create new countdown event
                 const countdownEvent = State.addEvent({
@@ -564,6 +586,15 @@ const Calendar = {
                     await SupabaseDB.deleteCalendarEvent(this.selectedEventId);
                 }
 
+                // Also delete linked countdown event if exists
+                if (typeof State !== 'undefined') {
+                    const linkedEvent = State.events?.find(e => e.calendarEventId === this.selectedEventId);
+                    if (linkedEvent) {
+                        State.deleteEvent(linkedEvent.id);
+                        State.deleteEventFromSupabase(linkedEvent.id);
+                    }
+                }
+
                 this.events[this.selectedEventDate] = events.filter(e => e.id !== this.selectedEventId);
                 if (this.events[this.selectedEventDate].length === 0) {
                     delete this.events[this.selectedEventDate];
@@ -572,8 +603,43 @@ const Calendar = {
                 this.closeDetails();
                 this.render();
                 this.renderUpcomingEvents();
+
+                // Re-render Events section if available
+                if (typeof Events !== 'undefined') {
+                    Events.render();
+                }
             }
         }
+    },
+
+    // Edit event - opens modal with pre-filled data
+    editEvent() {
+        if (!this.selectedEventId || !this.selectedEventDate) return;
+
+        const events = this.events[this.selectedEventDate];
+        const event = events?.find(e => e.id === this.selectedEventId);
+
+        if (!event) return;
+
+        // Close details popup
+        this.closeDetails();
+
+        // Open modal in edit mode
+        const modal = document.getElementById('calendarEventModal');
+        document.getElementById('calendarEventModalTitle').textContent = 'Edit Event';
+
+        // Pre-fill form with existing data
+        document.getElementById('calEventName').value = event.name || '';
+        document.getElementById('calEventDate').value = this.selectedEventDate;
+        document.getElementById('calEventTime').value = event.time || '';
+        document.getElementById('calEventLink').value = event.link || '';
+        document.getElementById('calEventComments').value = event.comments || '';
+
+        // Store that we're editing
+        this.selectedEventId = event.id;
+        this.selectedEventDate = this.selectedEventDate;
+
+        modal.classList.add('active');
     },
 
     renderUpcomingEvents() {
