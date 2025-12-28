@@ -8,6 +8,8 @@ const State = {
     events: [],
     goals: [],
     taskCompletionHistory: [], // Persists even after task deletion
+    habitCompletionHistory: [], // Persists habit completions after deletion
+    goalCompletionHistory: [], // Persists goal completions after deletion
     currentFilter: 'all',
 
     init() {
@@ -17,6 +19,8 @@ const State = {
         this.events = Storage.get('events') || [];
         this.goals = Storage.get('goals') || [];
         this.taskCompletionHistory = Storage.get('taskCompletionHistory') || [];
+        this.habitCompletionHistory = Storage.get('habitCompletionHistory') || [];
+        this.goalCompletionHistory = Storage.get('goalCompletionHistory') || [];
 
         // Clean up old data (tasks older than 7 days)
         this.cleanupOldTasks();
@@ -205,6 +209,8 @@ const State = {
 
     deleteHabit(habitId) {
         habitId = String(habitId); // Ensure string comparison
+        // Note: Habit completion history is already recorded on each toggle
+        // So deleting the habit still preserves the completion history
         this.habits = this.habits.filter(h => String(h.id) !== habitId);
         this.saveHabits();
     },
@@ -216,13 +222,53 @@ const State = {
             const today = this.getTodayKey();
             if (habit.completions[today]) {
                 delete habit.completions[today];
+                // Remove from history
+                this.removeHabitCompletion(habitId, today);
             } else {
                 habit.completions[today] = true;
+                // Record in history
+                this.recordHabitCompletion(habit, today);
             }
             this.saveHabits();
             return habit;
         }
         return null;
+    },
+
+    // Record habit completion in persistent history
+    recordHabitCompletion(habit, dateKey) {
+        const existingIndex = this.habitCompletionHistory.findIndex(
+            h => h.habitId === habit.id && h.dateKey === dateKey
+        );
+
+        if (existingIndex === -1) {
+            this.habitCompletionHistory.push({
+                habitId: habit.id,
+                name: habit.name,
+                dateKey: dateKey,
+                completedAt: new Date().toISOString()
+            });
+            this.saveHabitCompletionHistory();
+        }
+    },
+
+    // Remove habit completion from history
+    removeHabitCompletion(habitId, dateKey) {
+        habitId = String(habitId);
+        this.habitCompletionHistory = this.habitCompletionHistory.filter(
+            h => !(String(h.habitId) === habitId && h.dateKey === dateKey)
+        );
+        this.saveHabitCompletionHistory();
+    },
+
+    // Save habit completion history
+    saveHabitCompletionHistory() {
+        Storage.set('habitCompletionHistory', this.habitCompletionHistory);
+    },
+
+    // Get habit completion history
+    getHabitCompletionHistory() {
+        return this.habitCompletionHistory;
     },
 
     saveHabits() {
@@ -331,6 +377,8 @@ const State = {
 
     deleteGoal(goalId) {
         goalId = String(goalId);
+        // Note: Goal completion history is already recorded on toggle
+        // So deleting the goal still preserves the completion history
         this.goals = this.goals.filter(g => String(g.id) !== goalId);
         this.saveGoals();
     },
@@ -340,11 +388,57 @@ const State = {
         const goal = this.goals.find(g => String(g.id) === goalId);
         if (goal) {
             goal.completed = !goal.completed;
-            goal.completedAt = goal.completed ? new Date().toISOString() : null;
+            const completedAt = goal.completed ? new Date().toISOString() : null;
+            goal.completedAt = completedAt;
+
+            // Record/remove from history
+            if (goal.completed) {
+                this.recordGoalCompletion(goal, completedAt);
+            } else {
+                this.removeGoalCompletion(goalId);
+            }
+
             this.saveGoals();
             return goal;
         }
         return null;
+    },
+
+    // Record goal completion in persistent history
+    recordGoalCompletion(goal, completedAt) {
+        const dateKey = completedAt.split('T')[0];
+        const existingIndex = this.goalCompletionHistory.findIndex(
+            h => h.goalId === goal.id
+        );
+
+        if (existingIndex === -1) {
+            this.goalCompletionHistory.push({
+                goalId: goal.id,
+                title: goal.title,
+                dateKey: dateKey,
+                completedAt: completedAt
+            });
+            this.saveGoalCompletionHistory();
+        }
+    },
+
+    // Remove goal completion from history
+    removeGoalCompletion(goalId) {
+        goalId = String(goalId);
+        this.goalCompletionHistory = this.goalCompletionHistory.filter(
+            h => String(h.goalId) !== goalId
+        );
+        this.saveGoalCompletionHistory();
+    },
+
+    // Save goal completion history
+    saveGoalCompletionHistory() {
+        Storage.set('goalCompletionHistory', this.goalCompletionHistory);
+    },
+
+    // Get goal completion history
+    getGoalCompletionHistory() {
+        return this.goalCompletionHistory;
     },
 
     cleanupExpiredGoals() {

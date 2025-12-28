@@ -79,13 +79,8 @@ const Auth = {
             });
         }
 
-        // Logout button
-        const logoutBtn = document.getElementById('logoutBtn');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', async () => {
-                await this.logout();
-            });
-        }
+        // Logout button is now handled by user-menu.js with confirmation
+        // Just set up the confirm button to call this.logout()
 
         // Show signup/login modals
         const showSignupBtn = document.getElementById('showSignupBtn');
@@ -231,9 +226,9 @@ const Auth = {
         const loginModal = document.getElementById('loginModal');
         if (loginModal) loginModal.classList.add('active');
 
-        // Hide user profile
-        const userProfile = document.getElementById('userProfile');
-        if (userProfile) userProfile.style.display = 'none';
+        // Hide user menu
+        const userMenu = document.getElementById('userMenu');
+        if (userMenu) userMenu.style.display = 'none';
     },
 
     showAuthenticatedUI() {
@@ -243,12 +238,20 @@ const Auth = {
         if (loginModal) loginModal.classList.remove('active');
         if (signupModal) signupModal.classList.remove('active');
 
-        // Show user profile
-        const userProfile = document.getElementById('userProfile');
+        // Show user menu
+        const userMenu = document.getElementById('userMenu');
         const userEmail = document.getElementById('userEmail');
-        if (userProfile && this.currentUser) {
-            userProfile.style.display = 'flex';
+        const dropdownEmail = document.getElementById('dropdownEmail');
+
+        if (userMenu && this.currentUser) {
+            userMenu.style.display = 'flex';
             if (userEmail) userEmail.textContent = this.currentUser.email;
+            if (dropdownEmail) dropdownEmail.textContent = this.currentUser.email;
+
+            // Update UserMenu if available
+            if (typeof UserMenu !== 'undefined') {
+                UserMenu.updateUserDisplay(this.currentUser.email);
+            }
         }
     },
 
