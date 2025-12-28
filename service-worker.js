@@ -1,5 +1,5 @@
 // Service Worker for Habit Tracker PWA
-const CACHE_NAME = 'habit-tracker-v59';
+const CACHE_NAME = 'habit-tracker-v60';
 const OFFLINE_URL = '/offline.html';
 
 // Assets to cache on install
@@ -7,30 +7,25 @@ const PRECACHE_ASSETS = [
     '/',
     '/index.html',
     '/offline.html',
-    '/styles/main.css',
-    '/styles/focus-mode.css',
-    '/js/app.js',
-    '/js/state.js',
-    '/js/storage.js',
-    '/js/theme.js',
-    '/js/timer.js',
-    '/js/tasks.js',
-    '/js/habits.js',
-    '/js/events.js',
-    '/js/goals.js',
-    '/js/quotes.js',
-    '/js/analytics.js',
-    '/js/focus-mode.js',
-    '/js/supabase.js',
-    '/js/auth.js',
     '/manifest.json',
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
     'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'
 ];
 
+// JS and CSS files - use network-first strategy
+const NETWORK_FIRST_ASSETS = [
+    '/js/',
+    '/styles/'
+];
+
+// Check if URL should use network-first strategy
+function shouldUseNetworkFirst(url) {
+    return NETWORK_FIRST_ASSETS.some(path => url.includes(path));
+}
+
 // Install event - cache assets
 self.addEventListener('install', (event) => {
-    console.log('[Service Worker] Installing...');
+    console.log('[Service Worker] Installing v60...');
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => {
@@ -43,7 +38,7 @@ self.addEventListener('install', (event) => {
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-    console.log('[Service Worker] Activating...');
+    console.log('[Service Worker] Activating v60...');
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
@@ -58,7 +53,7 @@ self.addEventListener('activate', (event) => {
     );
 });
 
-// Fetch event - serve from cache, fallback to network
+// Fetch event - network-first for JS/CSS, cache-first for others
 self.addEventListener('fetch', (event) => {
     // IMPORTANT: Never cache Supabase API calls - they must always go to network
     if (event.request.url.includes('supabase.co')) {
@@ -73,24 +68,43 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
+    // Use network-first for JS and CSS files (always get latest code)
+    if (shouldUseNetworkFirst(event.request.url)) {
+        event.respondWith(
+            fetch(event.request)
+                .then((response) => {
+                    // Cache the fresh response
+                    if (response && response.status === 200) {
+                        const responseToCache = response.clone();
+                        caches.open(CACHE_NAME).then((cache) => {
+                            cache.put(event.request, responseToCache);
+                        });
+                    }
+                    return response;
+                })
+                .catch(() => {
+                    // Fallback to cache if network fails
+                    return caches.match(event.request);
+                })
+        );
+        return;
+    }
+
+    // Cache-first for other assets
     event.respondWith(
         caches.match(event.request)
             .then((cachedResponse) => {
                 if (cachedResponse) {
-                    // Return cached version
                     return cachedResponse;
                 }
 
-                // Clone the request
                 const fetchRequest = event.request.clone();
 
                 return fetch(fetchRequest).then((response) => {
-                    // Check if valid response
                     if (!response || response.status !== 200 || response.type !== 'basic') {
                         return response;
                     }
 
-                    // Clone the response
                     const responseToCache = response.clone();
 
                     caches.open(CACHE_NAME).then((cache) => {
@@ -99,7 +113,6 @@ self.addEventListener('fetch', (event) => {
 
                     return response;
                 }).catch(() => {
-                    // If both cache and network fail, show offline page
                     if (event.request.mode === 'navigate') {
                         return caches.match(OFFLINE_URL);
                     }
