@@ -160,12 +160,10 @@ const UserMenu = {
         document.getElementById('userDropdown')?.classList.remove('active');
         document.getElementById('userMenuBtn')?.classList.remove('active');
 
-        // Show switching indicator
         const switchingEmail = account.email;
 
         // Log out current user first
         if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
-            // Perform silent logout (don't clear saved accounts)
             const client = getSupabase();
             if (client) {
                 try {
@@ -177,28 +175,51 @@ const UserMenu = {
             Auth.currentUser = null;
         }
 
-        // Show login modal with the email pre-filled
+        // Hide user menu
+        const userMenu = document.getElementById('userMenu');
+        if (userMenu) userMenu.style.display = 'none';
+
+        // Check if this is a Google account (Gmail address)
+        const isGoogleAccount = switchingEmail.includes('@gmail.com') || account.provider === 'google';
+
+        if (isGoogleAccount) {
+            // Use Google OAuth with login_hint for seamless switch
+            const client = getSupabase();
+            if (client) {
+                try {
+                    await client.auth.signInWithOAuth({
+                        provider: 'google',
+                        options: {
+                            redirectTo: window.location.origin,
+                            queryParams: {
+                                login_hint: switchingEmail,  // Pre-select this account in Google
+                                prompt: 'select_account'     // Show account chooser
+                            }
+                        }
+                    });
+                    // User will be redirected to Google, then back
+                    return;
+                } catch (error) {
+                    console.error('Google switch error:', error);
+                }
+            }
+        }
+
+        // For non-Google accounts, show login modal with email pre-filled
         const loginModal = document.getElementById('loginModal');
         const loginEmail = document.getElementById('loginEmail');
         const loginPassword = document.getElementById('loginPassword');
 
         if (loginModal) {
             loginModal.classList.add('active');
-
-            // Pre-fill the email
             if (loginEmail) {
                 loginEmail.value = switchingEmail;
-                // Focus on password field since email is already filled
                 if (loginPassword) {
                     loginPassword.value = '';
                     setTimeout(() => loginPassword.focus(), 100);
                 }
             }
         }
-
-        // Hide user menu
-        const userMenu = document.getElementById('userMenu');
-        if (userMenu) userMenu.style.display = 'none';
     },
 
     // Update user display
