@@ -560,32 +560,60 @@ const Calendar = {
         if (!container) return;
 
         const today = new Date();
+        today.setHours(0, 0, 0, 0);
         const upcoming = [];
 
-        // Get events for next 7 days
-        for (let i = 0; i < 7; i++) {
-            const date = new Date(today);
-            date.setDate(date.getDate() + i);
-            const dateStr = this.formatDate(date.getFullYear(), date.getMonth(), date.getDate());
-            const events = this.events[dateStr] || [];
-            events.forEach(e => {
-                upcoming.push({ ...e, date: dateStr, daysFromNow: i });
-            });
+        // Get ALL future events from the events object
+        for (const [dateStr, events] of Object.entries(this.events)) {
+            const eventDate = new Date(dateStr + 'T00:00:00');
+
+            // Only include events from today onwards
+            if (eventDate >= today) {
+                const diffTime = eventDate - today;
+                const daysFromNow = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                events.forEach(e => {
+                    upcoming.push({
+                        ...e,
+                        date: dateStr,
+                        daysFromNow: daysFromNow,
+                        eventDate: eventDate
+                    });
+                });
+            }
         }
 
-        if (upcoming.length === 0) {
+        // Sort by date (closest first)
+        upcoming.sort((a, b) => a.eventDate - b.eventDate);
+
+        // Limit to first 10 events for display
+        const displayEvents = upcoming.slice(0, 10);
+
+        if (displayEvents.length === 0) {
             container.innerHTML = `
                 <div class="no-events">
-                    <span>No upcoming events in the next 7 days</span>
+                    <span>No upcoming events</span>
                     <span style="font-size: 0.813rem; opacity: 0.7; margin-top: 0.25rem;">Click on a calendar day to add an event</span>
                 </div>`;
             return;
         }
 
-        container.innerHTML = upcoming.map(e => {
-            const dayLabel = e.daysFromNow === 0 ? 'Today' :
-                e.daysFromNow === 1 ? 'Tomorrow' :
-                    `In ${e.daysFromNow} days`;
+        container.innerHTML = displayEvents.map(e => {
+            let dayLabel;
+            if (e.daysFromNow === 0) {
+                dayLabel = 'Today';
+            } else if (e.daysFromNow === 1) {
+                dayLabel = 'Tomorrow';
+            } else if (e.daysFromNow <= 7) {
+                dayLabel = `In ${e.daysFromNow} days`;
+            } else if (e.daysFromNow <= 30) {
+                dayLabel = `In ${Math.ceil(e.daysFromNow / 7)} weeks`;
+            } else {
+                // Show actual date for events more than 30 days away
+                const eventDate = new Date(e.date + 'T00:00:00');
+                dayLabel = eventDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            }
+
             return `
                 <div class="upcoming-event-item" 
                      role="listitem"
