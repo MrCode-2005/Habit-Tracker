@@ -277,28 +277,37 @@
             <!-- Calendar Container -->
             <div class="calendar-container">
                 <div class="calendar-header">
-                    <button class="calendar-nav-btn" id="prevMonth"><i class="fas fa-chevron-left"></i></button>
-                    <h2 id="calendarMonthYear"></h2>
-                    <button class="calendar-nav-btn" id="nextMonth"><i class="fas fa-chevron-right"></i></button>
+                    <div class="calendar-nav">
+                        <button class="calendar-nav-btn" id="prevMonth" aria-label="Previous month">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <button class="calendar-today-btn" id="todayBtn" aria-label="Go to today">
+                            Today
+                        </button>
+                        <button class="calendar-nav-btn" id="nextMonth" aria-label="Next month">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    <h2 id="calendarMonthYear" aria-live="polite"></h2>
                 </div>
-                <div class="calendar-weekdays">
-                    <div>Sun</div>
-                    <div>Mon</div>
-                    <div>Tue</div>
-                    <div>Wed</div>
-                    <div>Thu</div>
-                    <div>Fri</div>
-                    <div>Sat</div>
+                <div class="calendar-weekdays" role="row">
+                    <div role="columnheader" aria-label="Sunday">Sun</div>
+                    <div role="columnheader" aria-label="Monday">Mon</div>
+                    <div role="columnheader" aria-label="Tuesday">Tue</div>
+                    <div role="columnheader" aria-label="Wednesday">Wed</div>
+                    <div role="columnheader" aria-label="Thursday">Thu</div>
+                    <div role="columnheader" aria-label="Friday">Fri</div>
+                    <div role="columnheader" aria-label="Saturday">Sat</div>
                 </div>
-                <div class="calendar-days" id="calendarDays">
+                <div class="calendar-days" id="calendarDays" role="grid" aria-label="Calendar days">
                     <!-- Calendar days will be rendered here -->
                 </div>
             </div>
 
             <!-- Upcoming Events Reminder -->
             <div class="upcoming-events">
-                <h3><i class="fas fa-bell"></i> Upcoming Reminders</h3>
-                <div class="upcoming-list" id="upcomingEventsList">
+                <h3><i class="fas fa-bell"></i> Upcoming Events</h3>
+                <div class="upcoming-list" id="upcomingEventsList" role="list">
                     <!-- Upcoming events will be shown here -->
                 </div>
             </div>

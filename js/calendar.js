@@ -15,14 +15,19 @@ const Calendar = {
     },
 
     setupEventListeners() {
+        // Previous month button with animation
         document.getElementById('prevMonth')?.addEventListener('click', () => {
-            this.currentDate.setMonth(this.currentDate.getMonth() - 1);
-            this.render();
+            this.navigateMonth(-1);
         });
 
+        // Next month button with animation
         document.getElementById('nextMonth')?.addEventListener('click', () => {
-            this.currentDate.setMonth(this.currentDate.getMonth() + 1);
-            this.render();
+            this.navigateMonth(1);
+        });
+
+        // Today button - jump to current date
+        document.getElementById('todayBtn')?.addEventListener('click', () => {
+            this.goToToday();
         });
 
         document.getElementById('calendarEventForm')?.addEventListener('submit', (e) => {
@@ -33,7 +38,7 @@ const Calendar = {
         // Keyboard navigation for months
         document.addEventListener('keydown', (e) => {
             // Only respond to arrow keys when calendar view is active
-            const calendarView = document.getElementById('calendar-view');
+            const calendarView = document.getElementById('calendar');
             const isCalendarActive = calendarView?.classList.contains('active');
 
             // Don't navigate if a modal is open or user is typing in an input
@@ -45,17 +50,50 @@ const Calendar = {
 
             if (e.key === 'ArrowLeft') {
                 e.preventDefault();
-                this.currentDate.setMonth(this.currentDate.getMonth() - 1);
-                this.render();
+                this.navigateMonth(-1);
             } else if (e.key === 'ArrowRight') {
                 e.preventDefault();
-                this.currentDate.setMonth(this.currentDate.getMonth() + 1);
-                this.render();
+                this.navigateMonth(1);
             }
         });
 
         // Note: Calendar events are added by clicking on calendar days, not via addEventBtn
         // The addEventBtn is for the Events section (countdown events)
+    },
+
+    // Navigate months with animation
+    navigateMonth(direction) {
+        const container = document.getElementById('calendarDays');
+        const animationClass = direction > 0 ? 'slide-left' : 'slide-right';
+
+        container?.classList.add(animationClass);
+
+        this.currentDate.setMonth(this.currentDate.getMonth() + direction);
+
+        // Remove animation class after animation completes
+        setTimeout(() => {
+            container?.classList.remove(animationClass);
+        }, 300);
+
+        this.render();
+    },
+
+    // Go to today's date
+    goToToday() {
+        const today = new Date();
+        const container = document.getElementById('calendarDays');
+
+        // Only animate if we're actually changing months
+        if (this.currentDate.getMonth() !== today.getMonth() ||
+            this.currentDate.getFullYear() !== today.getFullYear()) {
+            container?.classList.add('slide-left');
+            setTimeout(() => {
+                container?.classList.remove('slide-left');
+            }, 300);
+        }
+
+        this.currentDate = new Date();
+        this.render();
     },
 
     async loadEvents() {
@@ -113,6 +151,7 @@ const Calendar = {
 
         // Get today for highlighting
         const today = new Date();
+        today.setHours(0, 0, 0, 0);
         const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
 
         // Build calendar grid
@@ -123,6 +162,7 @@ const Calendar = {
         for (let i = 0; i < firstDay; i++) {
             const emptyCell = document.createElement('div');
             emptyCell.className = 'calendar-day empty';
+            emptyCell.setAttribute('aria-hidden', 'true');
             container.appendChild(emptyCell);
         }
 
@@ -131,6 +171,15 @@ const Calendar = {
             const dateStr = this.formatDate(year, month, day);
             const dayCell = document.createElement('div');
             dayCell.className = 'calendar-day';
+
+            // Create date object for this day
+            const thisDate = new Date(year, month, day);
+            thisDate.setHours(0, 0, 0, 0);
+
+            // Check if day is in the past
+            if (thisDate < today) {
+                dayCell.classList.add('past');
+            }
 
             // Highlight today
             if (isCurrentMonth && day === today.getDate()) {
@@ -143,14 +192,37 @@ const Calendar = {
                 dayCell.classList.add('has-events');
             }
 
+            // Build event dots HTML with overflow indicator
+            let eventDotsHtml = '';
+            if (dayEvents.length > 0) {
+                const visibleDots = dayEvents.slice(0, 3).map(e =>
+                    `<span class="event-dot" title="${e.name}"></span>`
+                ).join('');
+                const moreIndicator = dayEvents.length > 3 ?
+                    `<span class="event-more">+${dayEvents.length - 3}</span>` : '';
+                eventDotsHtml = `<div class="event-dots">${visibleDots}${moreIndicator}</div>`;
+            }
+
             dayCell.innerHTML = `
                 <span class="day-number">${day}</span>
-                ${dayEvents.length > 0 ? `<div class="event-dots">${dayEvents.slice(0, 3).map(e =>
-                `<span class="event-dot" title="${e.name}"></span>`
-            ).join('')}</div>` : ''}
+                ${eventDotsHtml}
             `;
 
+            // Accessibility attributes
+            dayCell.setAttribute('role', 'gridcell');
+            dayCell.setAttribute('tabindex', '0');
+            dayCell.setAttribute('aria-label', `${monthNames[month]} ${day}, ${year}${dayEvents.length > 0 ? `, ${dayEvents.length} event${dayEvents.length > 1 ? 's' : ''}` : ''}`);
+
             dayCell.onclick = () => this.onDayClick(dateStr, dayEvents);
+
+            // Keyboard support for day cells
+            dayCell.onkeydown = (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    this.onDayClick(dateStr, dayEvents);
+                }
+            };
+
             container.appendChild(dayCell);
         }
     },
@@ -327,7 +399,11 @@ const Calendar = {
         }
 
         if (upcoming.length === 0) {
-            container.innerHTML = '<p class="no-events">No upcoming events in the next 7 days</p>';
+            container.innerHTML = `
+                <div class="no-events">
+                    <span>No upcoming events in the next 7 days</span>
+                    <span style="font-size: 0.813rem; opacity: 0.7; margin-top: 0.25rem;">Click on a calendar day to add an event</span>
+                </div>`;
             return;
         }
 
@@ -336,7 +412,11 @@ const Calendar = {
                 e.daysFromNow === 1 ? 'Tomorrow' :
                     `In ${e.daysFromNow} days`;
             return `
-                <div class="upcoming-event-item" onclick="Calendar.showEventDetails(${JSON.stringify(e).replace(/"/g, '&quot;')}, '${e.date}')">
+                <div class="upcoming-event-item" 
+                     role="listitem"
+                     tabindex="0"
+                     onclick="Calendar.showEventDetails(${JSON.stringify(e).replace(/"/g, '&quot;')}, '${e.date}')"
+                     onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();Calendar.showEventDetails(${JSON.stringify(e).replace(/"/g, '&quot;')}, '${e.date}');}">
                     <span class="upcoming-day">${dayLabel}</span>
                     <span class="upcoming-name">${e.name}</span>
                     <span class="upcoming-time">${e.time || 'All day'}</span>
