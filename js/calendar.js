@@ -35,18 +35,52 @@ const Calendar = {
             this.saveEvent();
         });
 
+        // Month selector dropdown
+        document.getElementById('monthSelector')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleMonthDropdown();
+        });
+
+        // Year selector dropdown
+        document.getElementById('yearSelector')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleYearDropdown();
+        });
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', (e) => {
+            const monthDropdown = document.getElementById('monthDropdown');
+            const yearDropdown = document.getElementById('yearDropdown');
+            const monthBtn = document.getElementById('monthSelector');
+            const yearBtn = document.getElementById('yearSelector');
+
+            if (!e.target.closest('.calendar-date-selector')) {
+                monthDropdown?.classList.remove('active');
+                yearDropdown?.classList.remove('active');
+                monthBtn?.classList.remove('active');
+                yearBtn?.classList.remove('active');
+            }
+        });
+
         // Keyboard navigation for months
         document.addEventListener('keydown', (e) => {
+            // Close dropdowns on Escape
+            if (e.key === 'Escape') {
+                this.closeAllDropdowns();
+                return;
+            }
+
             // Only respond to arrow keys when calendar view is active
             const calendarView = document.getElementById('calendar');
             const isCalendarActive = calendarView?.classList.contains('active');
 
-            // Don't navigate if a modal is open or user is typing in an input
+            // Don't navigate if a modal is open, dropdown is open, or user is typing
             const activeModal = document.querySelector('.modal.active');
+            const activeDropdown = document.querySelector('.calendar-dropdown.active');
             const isTyping = document.activeElement?.tagName === 'INPUT' ||
                 document.activeElement?.tagName === 'TEXTAREA';
 
-            if (!isCalendarActive || activeModal || isTyping) return;
+            if (!isCalendarActive || activeModal || activeDropdown || isTyping) return;
 
             if (e.key === 'ArrowLeft') {
                 e.preventDefault();
@@ -96,6 +130,142 @@ const Calendar = {
         this.render();
     },
 
+    // Toggle month dropdown
+    toggleMonthDropdown() {
+        const monthDropdown = document.getElementById('monthDropdown');
+        const yearDropdown = document.getElementById('yearDropdown');
+        const monthBtn = document.getElementById('monthSelector');
+        const yearBtn = document.getElementById('yearSelector');
+
+        // Close year dropdown if open
+        yearDropdown?.classList.remove('active');
+        yearBtn?.classList.remove('active');
+
+        // Toggle month dropdown
+        const isActive = monthDropdown?.classList.toggle('active');
+        monthBtn?.classList.toggle('active', isActive);
+
+        if (isActive) {
+            this.populateMonthDropdown();
+        }
+    },
+
+    // Toggle year dropdown
+    toggleYearDropdown() {
+        const monthDropdown = document.getElementById('monthDropdown');
+        const yearDropdown = document.getElementById('yearDropdown');
+        const monthBtn = document.getElementById('monthSelector');
+        const yearBtn = document.getElementById('yearSelector');
+
+        // Close month dropdown if open
+        monthDropdown?.classList.remove('active');
+        monthBtn?.classList.remove('active');
+
+        // Toggle year dropdown
+        const isActive = yearDropdown?.classList.toggle('active');
+        yearBtn?.classList.toggle('active', isActive);
+
+        if (isActive) {
+            this.populateYearDropdown();
+        }
+    },
+
+    // Close all dropdowns
+    closeAllDropdowns() {
+        const monthDropdown = document.getElementById('monthDropdown');
+        const yearDropdown = document.getElementById('yearDropdown');
+        const monthBtn = document.getElementById('monthSelector');
+        const yearBtn = document.getElementById('yearSelector');
+
+        monthDropdown?.classList.remove('active');
+        yearDropdown?.classList.remove('active');
+        monthBtn?.classList.remove('active');
+        yearBtn?.classList.remove('active');
+    },
+
+    // Populate month dropdown
+    populateMonthDropdown() {
+        const container = document.getElementById('monthOptions');
+        if (!container) return;
+
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+            'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const currentMonth = this.currentDate.getMonth();
+
+        container.innerHTML = monthNames.map((name, index) => `
+            <button class="dropdown-option ${index === currentMonth ? 'current' : ''}" 
+                    data-month="${index}"
+                    onclick="Calendar.selectMonth(${index})">
+                ${name}
+            </button>
+        `).join('');
+    },
+
+    // Populate year dropdown
+    populateYearDropdown() {
+        const container = document.getElementById('yearOptions');
+        if (!container) return;
+
+        const currentYear = this.currentDate.getFullYear();
+        const startYear = currentYear - 10;
+        const endYear = currentYear + 10;
+        const years = [];
+
+        for (let year = startYear; year <= endYear; year++) {
+            years.push(year);
+        }
+
+        container.innerHTML = years.map(year => `
+            <button class="dropdown-option ${year === currentYear ? 'current' : ''}" 
+                    data-year="${year}"
+                    onclick="Calendar.selectYear(${year})">
+                ${year}
+            </button>
+        `).join('');
+
+        // Scroll to current year
+        const currentBtn = container.querySelector('.current');
+        if (currentBtn) {
+            currentBtn.scrollIntoView({ block: 'center', behavior: 'instant' });
+        }
+    },
+
+    // Select month from dropdown
+    selectMonth(monthIndex) {
+        const container = document.getElementById('calendarDays');
+        const currentMonth = this.currentDate.getMonth();
+
+        if (monthIndex !== currentMonth) {
+            const animationClass = monthIndex > currentMonth ? 'slide-left' : 'slide-right';
+            container?.classList.add(animationClass);
+            setTimeout(() => {
+                container?.classList.remove(animationClass);
+            }, 300);
+        }
+
+        this.currentDate.setMonth(monthIndex);
+        this.closeAllDropdowns();
+        this.render();
+    },
+
+    // Select year from dropdown
+    selectYear(year) {
+        const container = document.getElementById('calendarDays');
+        const currentYear = this.currentDate.getFullYear();
+
+        if (year !== currentYear) {
+            const animationClass = year > currentYear ? 'slide-left' : 'slide-right';
+            container?.classList.add(animationClass);
+            setTimeout(() => {
+                container?.classList.remove(animationClass);
+            }, 300);
+        }
+
+        this.currentDate.setFullYear(year);
+        this.closeAllDropdowns();
+        this.render();
+    },
+
     async loadEvents() {
         // Load from localStorage first
         const stored = localStorage.getItem('calendarEvents');
@@ -140,10 +310,15 @@ const Calendar = {
         const year = this.currentDate.getFullYear();
         const month = this.currentDate.getMonth();
 
-        // Update header
+        // Update header - separate month and year elements
         const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
             'July', 'August', 'September', 'October', 'November', 'December'];
-        document.getElementById('calendarMonthYear').textContent = `${monthNames[month]} ${year}`;
+
+        const monthEl = document.getElementById('calendarMonth');
+        const yearEl = document.getElementById('calendarYear');
+
+        if (monthEl) monthEl.textContent = monthNames[month];
+        if (yearEl) yearEl.textContent = year;
 
         // Get first day and total days of month
         const firstDay = new Date(year, month, 1).getDay();
