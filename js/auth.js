@@ -318,62 +318,82 @@ const Auth = {
             if (typeof Analytics !== 'undefined') Analytics.refresh();
 
             // Sync playlists - push local to cloud, then load cloud
+            // Wrapped in try-catch to prevent sync errors from crashing the app
             if (typeof FocusMode !== 'undefined') {
-                // First, push any existing local playlists to cloud
-                const localPlaylists = localStorage.getItem('focusPlaylists');
-                if (localPlaylists) {
-                    const playlists = JSON.parse(localPlaylists);
-                    for (const [playlistId, playlist] of Object.entries(playlists)) {
-                        await SupabaseDB.upsertPlaylist(userId, {
-                            id: playlistId,
-                            name: playlist.name,
-                            url: playlist.url || '',
-                            tracks: playlist.tracks || []
-                        });
+                try {
+                    // First, push any existing local playlists to cloud
+                    const localPlaylists = localStorage.getItem('focusPlaylists');
+                    if (localPlaylists) {
+                        const playlists = JSON.parse(localPlaylists);
+                        for (const [playlistId, playlist] of Object.entries(playlists)) {
+                            try {
+                                await SupabaseDB.upsertPlaylist(userId, {
+                                    id: playlistId,
+                                    name: playlist.name,
+                                    url: playlist.url || '',
+                                    tracks: playlist.tracks || []
+                                });
+                            } catch (playlistError) {
+                                console.warn('Skipping playlist sync (RLS error):', playlistId, playlistError.message);
+                            }
+                        }
                     }
-                }
 
-                // Push local video playlists to cloud
-                const localVideoPlaylists = localStorage.getItem('focusVideoPlaylists');
-                if (localVideoPlaylists) {
-                    const videoPlaylists = JSON.parse(localVideoPlaylists);
-                    for (const [playlistId, playlist] of Object.entries(videoPlaylists)) {
-                        await SupabaseDB.upsertVideoPlaylist(userId, {
-                            id: playlistId,
-                            name: playlist.name,
-                            videos: playlist.videos || []
-                        });
+                    // Push local video playlists to cloud
+                    const localVideoPlaylists = localStorage.getItem('focusVideoPlaylists');
+                    if (localVideoPlaylists) {
+                        const videoPlaylists = JSON.parse(localVideoPlaylists);
+                        for (const [playlistId, playlist] of Object.entries(videoPlaylists)) {
+                            try {
+                                await SupabaseDB.upsertVideoPlaylist(userId, {
+                                    id: playlistId,
+                                    name: playlist.name,
+                                    videos: playlist.videos || []
+                                });
+                            } catch (videoPlaylistError) {
+                                console.warn('Skipping video playlist sync (RLS error):', playlistId, videoPlaylistError.message);
+                            }
+                        }
                     }
-                }
 
-                // Now reload playlists (will merge cloud with local)
-                FocusMode.loadPlaylists();
-                FocusMode.loadVideoPlaylists();
+                    // Now reload playlists (will merge cloud with local)
+                    FocusMode.loadPlaylists();
+                    FocusMode.loadVideoPlaylists();
+                } catch (focusModeError) {
+                    console.warn('Focus mode sync skipped:', focusModeError.message);
+                }
             }
 
             // Sync calendar events - push local to cloud, then reload
             if (typeof Calendar !== 'undefined') {
-                const localCalendarEvents = localStorage.getItem('calendarEvents');
-                console.log('Calendar sync: Local events found:', localCalendarEvents ? 'yes' : 'no');
+                try {
+                    const localCalendarEvents = localStorage.getItem('calendarEvents');
+                    console.log('Calendar sync: Local events found:', localCalendarEvents ? 'yes' : 'no');
 
-                if (localCalendarEvents) {
-                    const events = JSON.parse(localCalendarEvents);
-                    console.log('Calendar sync: Pushing', Object.keys(events).length, 'dates to cloud');
+                    if (localCalendarEvents) {
+                        const events = JSON.parse(localCalendarEvents);
+                        console.log('Calendar sync: Pushing', Object.keys(events).length, 'dates to cloud');
 
-                    for (const [date, dateEvents] of Object.entries(events)) {
-                        for (const event of dateEvents) {
-                            console.log('  Pushing event:', event.name, 'on', date);
-                            await SupabaseDB.upsertCalendarEvent(userId, date, event);
+                        for (const [date, dateEvents] of Object.entries(events)) {
+                            for (const event of dateEvents) {
+                                try {
+                                    await SupabaseDB.upsertCalendarEvent(userId, date, event);
+                                } catch (eventError) {
+                                    console.warn('Skipping calendar event sync (RLS error):', event.name, eventError.message);
+                                }
+                            }
                         }
+                        console.log('Calendar sync: Push complete');
                     }
-                    console.log('Calendar sync: Push complete');
-                }
 
-                // Reload calendar events from cloud
-                await Calendar.loadEvents();
-                Calendar.render();
-                Calendar.renderUpcomingEvents();
-                console.log('Calendar sync: Reload complete');
+                    // Reload calendar events from cloud
+                    await Calendar.loadEvents();
+                    Calendar.render();
+                    Calendar.renderUpcomingEvents();
+                    console.log('Calendar sync: Reload complete');
+                } catch (calendarError) {
+                    console.warn('Calendar sync skipped:', calendarError.message);
+                }
             }
 
             console.log('Data synced from Supabase for user:', userId);
