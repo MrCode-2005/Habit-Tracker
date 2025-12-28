@@ -186,10 +186,12 @@ const Events = {
     },
 
     async deleteEvent(eventId) {
-        if (confirm('Are you sure you want to delete this event?')) {
+        const confirmed = await Toast.confirm('Are you sure you want to delete this event?', 'Delete Event');
+        if (confirmed) {
             State.deleteEvent(eventId);
             // Delete from Supabase
             await State.deleteEventFromSupabase(eventId);
+            Toast.success('Event deleted');
             this.render();
         }
     }

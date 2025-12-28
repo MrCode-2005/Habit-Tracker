@@ -5,6 +5,7 @@
 const Goals = {
     currentEditId: null,
     countdownIntervals: {},
+    currentFilter: 'all',
 
     init() {
         // Setup add goal button
@@ -44,6 +45,28 @@ const Goals = {
         } else {
             customDaysGroup.style.display = 'none';
         }
+    },
+
+    // Filter functionality
+    setFilter(filter) {
+        this.currentFilter = filter;
+
+        // Update tab UI
+        document.querySelectorAll('.goals-filter-tabs .filter-tab').forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.filter === filter);
+        });
+
+        this.render();
+    },
+
+    getFilteredGoals() {
+        const allGoals = State.getActiveGoals();
+
+        if (this.currentFilter === 'all') {
+            return allGoals;
+        }
+
+        return allGoals.filter(goal => goal.type === this.currentFilter);
     },
 
     showGoalModal(goalId = null) {
@@ -107,8 +130,10 @@ const Goals = {
         let goal;
         if (this.currentEditId) {
             goal = State.updateGoal(this.currentEditId, goalData);
+            Toast.success('Goal updated successfully!');
         } else {
             goal = State.addGoal(goalData);
+            Toast.success('New goal created!');
         }
 
         // Sync to Supabase
@@ -122,17 +147,20 @@ const Goals = {
 
     render() {
         const container = document.getElementById('goalsList');
-        const goals = State.getActiveGoals();
+        const goals = this.getFilteredGoals();
 
         // Clear existing intervals
         Object.values(this.countdownIntervals).forEach(interval => clearInterval(interval));
         this.countdownIntervals = {};
 
         if (goals.length === 0) {
+            const filterMsg = this.currentFilter === 'all'
+                ? 'No goals yet. Create your first goal to get started!'
+                : `No ${this.currentFilter} goals. Create one to get started!`;
             container.innerHTML = `
                 <div class="empty-state">
                     <i class="fa-solid fa-bullseye"></i>
-                    <p>No goals yet. Create your first goal to get started!</p>
+                    <p>${filterMsg}</p>
                 </div>
             `;
             return;
@@ -152,7 +180,7 @@ const Goals = {
         const typeLabels = {
             weekly: 'Weekly Goal',
             monthly: 'Monthly Goal',
-            custom: `${goal.customDays}-Day Goal`
+            custom: `${goal.duration}-Day Goal`
         };
 
         return `
@@ -265,15 +293,22 @@ const Goals = {
         if (goal) {
             // Sync to Supabase
             await State.syncGoalToSupabase(goal);
+
+            if (goal.completed) {
+                Toast.success('Goal marked as complete! 🎉');
+            }
+
             this.render();
         }
     },
 
     async deleteGoal(goalId) {
-        if (confirm('Are you sure you want to delete this goal?')) {
+        const confirmed = await Toast.confirm('Are you sure you want to delete this goal?', 'Delete Goal');
+        if (confirmed) {
             State.deleteGoal(goalId);
             // Delete from Supabase
             await State.deleteGoalFromSupabase(goalId);
+            Toast.success('Goal deleted');
             this.render();
         }
     },

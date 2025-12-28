@@ -258,10 +258,12 @@ const Tasks = {
     },
 
     async deleteTask(taskId) {
-        if (confirm('Are you sure you want to delete this task?')) {
+        const confirmed = await Toast.confirm('Are you sure you want to delete this task?', 'Delete Task');
+        if (confirmed) {
             State.deleteTask(taskId);
             // Delete from Supabase
             await State.deleteTaskFromSupabase(taskId);
+            Toast.success('Task deleted');
             this.render();
         }
     }

@@ -120,10 +120,12 @@ const Habits = {
     },
 
     async deleteHabit(habitId) {
-        if (confirm('Are you sure you want to delete this habit?')) {
+        const confirmed = await Toast.confirm('Are you sure you want to delete this habit?', 'Delete Habit');
+        if (confirmed) {
             State.deleteHabit(habitId);
             // Delete from Supabase
             await State.deleteHabitFromSupabase(habitId);
+            Toast.success('Habit deleted');
             this.render();
         }
     }

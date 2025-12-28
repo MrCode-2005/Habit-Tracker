@@ -25,6 +25,21 @@
     <link rel="stylesheet" href="styles/calendar.css">
     <link rel="stylesheet" href="styles/dashboard.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Apply theme immediately to prevent flash on load -->
+    <script>
+        (function () {
+            try {
+                var theme = localStorage.getItem('theme');
+                if (theme) {
+                    theme = JSON.parse(theme);
+                }
+                document.documentElement.setAttribute('data-theme', theme || 'dark');
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        })();
+    </script>
 </head>
 
 <body>
@@ -464,6 +479,23 @@
                     Add Goal
                 </button>
             </div>
+
+            <!-- Goals Filter Tabs -->
+            <div class="goals-filter-tabs">
+                <button class="filter-tab active" data-filter="all" onclick="Goals.setFilter('all')">
+                    <i class="fa-solid fa-list"></i> All
+                </button>
+                <button class="filter-tab" data-filter="weekly" onclick="Goals.setFilter('weekly')">
+                    <i class="fa-solid fa-calendar-week"></i> Weekly
+                </button>
+                <button class="filter-tab" data-filter="monthly" onclick="Goals.setFilter('monthly')">
+                    <i class="fa-solid fa-calendar"></i> Monthly
+                </button>
+                <button class="filter-tab" data-filter="custom" onclick="Goals.setFilter('custom')">
+                    <i class="fa-solid fa-sliders"></i> Custom
+                </button>
+            </div>
+
             <div class="goals-list" id="goalsList">
                 <!-- Goal cards will be inserted here -->
             </div>
@@ -1296,6 +1328,7 @@
 
     <!-- App Scripts -->
     <script src="js/storage.js"></script>
+    <script src="js/toast.js"></script>
     <script src="js/theme.js"></script>
     <script src="js/state.js"></script>
     <script src="js/timer.js"></script>

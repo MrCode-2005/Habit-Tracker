@@ -120,12 +120,12 @@ const Timer = {
 
         // Show notification
         if (this.isBreak) {
-            alert('Break time is over! Time to get back to work.');
+            Toast.info('Break time is over! Time to get back to work. 💪');
         } else {
             if (this.currentSubtask) {
-                alert(`Subtask "${this.currentSubtask.title}" completed! Great job!`);
+                Toast.success(`Subtask "${this.currentSubtask.title}" completed! Great job! 🎉`);
             } else {
-                alert('Task completed! Great job!');
+                Toast.success('Task completed! Great job! 🎉');
             }
         }
     },

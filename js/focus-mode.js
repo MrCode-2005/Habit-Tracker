@@ -2169,7 +2169,7 @@ const FocusMode = {
         this.currentAudio.volume = this.volume;
         this.currentAudio.play().catch(e => {
             console.log('Audio playback failed:', e.message);
-            alert('Could not play the audio file. Please try a different format.');
+            Toast.error('Could not play the audio file. Please try a different format.');
         });
     },
 
@@ -2443,7 +2443,7 @@ const FocusMode = {
     addToPlaylist(url) {
         const videoId = this.getYouTubeVideoId(url);
         if (!videoId) {
-            alert('Invalid YouTube URL');
+            Toast.warning('Invalid YouTube URL');
             return;
         }
 
@@ -2615,13 +2615,13 @@ const FocusMode = {
 
     playPlaylist() {
         if (!this.currentPlaylist || !this.playlists[this.currentPlaylist]) {
-            alert('Please select a playlist first');
+            Toast.warning('Please select a playlist first');
             return;
         }
 
         const tracks = this.playlists[this.currentPlaylist].tracks;
         if (tracks.length === 0) {
-            alert('Playlist is empty. Add some tracks first.');
+            Toast.warning('Playlist is empty. Add some tracks first.');
             return;
         }
 
@@ -2783,7 +2783,7 @@ const FocusMode = {
     addVideoToPlaylist(url) {
         const videoId = this.getYouTubeVideoId(url);
         if (!videoId) {
-            alert('Invalid YouTube URL');
+            Toast.warning('Invalid YouTube URL');
             return;
         }
 
@@ -2896,7 +2896,7 @@ const FocusMode = {
 
     renameVideoPlaylist() {
         if (!this.currentVideoPlaylist) {
-            alert('Please select a playlist first');
+            Toast.warning('Please select a playlist first');
             return;
         }
         const playlist = this.videoPlaylists[this.currentVideoPlaylist];
@@ -3012,7 +3012,7 @@ const FocusMode = {
 
     renamePlaylist() {
         if (!this.currentPlaylist) {
-            alert('Please select a playlist first');
+            Toast.warning('Please select a playlist first');
             return;
         }
         const playlist = this.playlists[this.currentPlaylist];
@@ -3235,7 +3235,7 @@ const FocusMode = {
     setVideoBackground(url) {
         const videoId = this.getYouTubeVideoId(url);
         if (!videoId) {
-            alert('Please enter a valid YouTube URL');
+            Toast.warning('Please enter a valid YouTube URL');
             return;
         }
 
@@ -3273,7 +3273,7 @@ const FocusMode = {
 
     uploadVideoBackground(file) {
         if (!file.type.startsWith('video/')) {
-            alert('Please upload a video file');
+            Toast.warning('Please upload a video file');
             return;
         }
 

@@ -120,7 +120,7 @@ const Auth = {
     async signInWithGoogle() {
         const client = getSupabase();
         if (!client) {
-            alert('Authentication service unavailable');
+            Toast.error('Authentication service unavailable');
             return;
         }
 
@@ -134,12 +134,12 @@ const Auth = {
 
             if (error) {
                 console.error('Google sign-in error:', error);
-                alert('Google sign-in failed: ' + error.message);
+                Toast.error('Google sign-in failed: ' + error.message);
             }
             // User will be redirected to Google, then back to the app
         } catch (error) {
             console.error('Google sign-in error:', error);
-            alert('An error occurred during Google sign-in');
+            Toast.error('An error occurred during Google sign-in');
         }
     },
 
@@ -415,7 +415,17 @@ const Auth = {
     },
 
     showMessage(message, type = 'info') {
-        alert(message);
+        if (typeof Toast !== 'undefined') {
+            if (type === 'error') {
+                Toast.error(message);
+            } else if (type === 'success') {
+                Toast.success(message);
+            } else {
+                Toast.info(message);
+            }
+        } else {
+            console.log(`[${type}] ${message}`);
+        }
     },
 
     isAuthenticated() {

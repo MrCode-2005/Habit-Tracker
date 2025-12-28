@@ -331,11 +331,11 @@ const ClearHistory = {
         if (textEl) textEl.textContent = `From ${cutoffDate.toLocaleDateString()} to today`;
     },
 
-    clearData() {
+    async clearData() {
         const days = this.getDaysFromRange();
 
         if (!days || days <= 0) {
-            alert('Please enter a valid number of days');
+            Toast.warning('Please enter a valid number of days');
             return;
         }
 
@@ -343,7 +343,12 @@ const ClearHistory = {
         cutoffDate.setDate(cutoffDate.getDate() - days);
         const cutoffKey = cutoffDate.toISOString().split('T')[0];
 
-        if (!confirm(`Are you sure you want to clear all ${this.currentType} data from the last ${days} days? This cannot be undone.`)) {
+        const confirmed = await Toast.confirm(
+            `Are you sure you want to clear all ${this.currentType} data from the last ${days} days? This cannot be undone.`,
+            'Clear History'
+        );
+
+        if (!confirmed) {
             return;
         }
 
@@ -367,7 +372,7 @@ const ClearHistory = {
             Analytics.refresh();
         }
 
-        alert(`${this.currentType.charAt(0).toUpperCase() + this.currentType.slice(1)} history cleared successfully!`);
+        Toast.success(`${this.currentType.charAt(0).toUpperCase() + this.currentType.slice(1)} history cleared successfully!`);
     },
 
     clearTaskHistory(cutoffKey) {
