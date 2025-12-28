@@ -7,6 +7,7 @@ const State = {
     habits: [],
     events: [],
     goals: [],
+    taskCompletionHistory: [], // Persists even after task deletion
     currentFilter: 'all',
 
     init() {
@@ -15,6 +16,7 @@ const State = {
         this.habits = Storage.get('habits') || [];
         this.events = Storage.get('events') || [];
         this.goals = Storage.get('goals') || [];
+        this.taskCompletionHistory = Storage.get('taskCompletionHistory') || [];
 
         // Clean up old data (tasks older than 7 days)
         this.cleanupOldTasks();
@@ -62,11 +64,60 @@ const State = {
         if (task) {
             task.completed = !task.completed;
             // Track when task was completed for analytics
-            task.completedAt = task.completed ? new Date().toISOString() : null;
+            const completedAt = task.completed ? new Date().toISOString() : null;
+            task.completedAt = completedAt;
+
+            // Record completion in history (persists after deletion)
+            if (task.completed) {
+                this.recordTaskCompletion(task, completedAt);
+            } else {
+                // Remove from history if uncompleted
+                this.removeTaskCompletion(taskId);
+            }
+
             this.saveTasks();
             return task;
         }
         return null;
+    },
+
+    // Record task completion in persistent history
+    recordTaskCompletion(task, completedAt) {
+        // Check if already recorded
+        const existingIndex = this.taskCompletionHistory.findIndex(
+            h => h.taskId === task.id && h.completedAt === completedAt
+        );
+
+        if (existingIndex === -1) {
+            this.taskCompletionHistory.push({
+                taskId: task.id,
+                title: task.title,
+                block: task.block,
+                priority: task.priority,
+                completedAt: completedAt,
+                dateKey: completedAt.split('T')[0]
+            });
+            this.saveCompletionHistory();
+        }
+    },
+
+    // Remove task completion from history (when uncompleted)
+    removeTaskCompletion(taskId) {
+        taskId = String(taskId);
+        this.taskCompletionHistory = this.taskCompletionHistory.filter(
+            h => String(h.taskId) !== taskId
+        );
+        this.saveCompletionHistory();
+    },
+
+    // Save completion history to localStorage
+    saveCompletionHistory() {
+        Storage.set('taskCompletionHistory', this.taskCompletionHistory);
+    },
+
+    // Get completion history (for analytics)
+    getCompletionHistory() {
+        return this.taskCompletionHistory;
     },
 
     toggleSubtaskComplete(taskId, subtaskIndex) {
@@ -80,11 +131,16 @@ const State = {
                 const allSubtasksComplete = task.subtasks.every(s => s.completed);
                 if (allSubtasksComplete && !task.completed) {
                     task.completed = true;
-                    task.completedAt = new Date().toISOString();
+                    const completedAt = new Date().toISOString();
+                    task.completedAt = completedAt;
+                    // Record in history
+                    this.recordTaskCompletion(task, completedAt);
                 } else if (!allSubtasksComplete && task.completed) {
                     // Uncheck parent if a subtask is unchecked
                     task.completed = false;
                     task.completedAt = null;
+                    // Remove from history
+                    this.removeTaskCompletion(taskId);
                 }
             }
 

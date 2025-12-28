@@ -36,6 +36,9 @@ const Analytics = {
         const overallRate = totalTasks > 0 ? Math.round((completedTotal / totalTasks) * 100) : 0;
         const todayKey = new Date().toISOString().split('T')[0];
 
+        // Get completion history for past days
+        const completionHistory = State.getCompletionHistory ? State.getCompletionHistory() : [];
+
         for (let i = 6; i >= 0; i--) {
             const date = new Date();
             date.setDate(date.getDate() - i);
@@ -47,8 +50,11 @@ const Analytics = {
                 // Today: show current overall completion rate
                 completionRates.push(overallRate);
             } else {
-                // Past days: only show tasks that have completedAt for that exact day
-                const tasksCompletedOnDay = State.tasks.filter(task => {
+                // Past days: use completion history (persists even after task deletion)
+                const completionsOnDay = completionHistory.filter(h => h.dateKey === dateKey).length;
+
+                // Also check active tasks with completedAt for that day (backwards compatibility)
+                const activeTasksCompletedOnDay = State.tasks.filter(task => {
                     if (!task.completed || !task.completedAt) return false;
                     try {
                         const taskDate = new Date(task.completedAt);
@@ -59,8 +65,11 @@ const Analytics = {
                     }
                 }).length;
 
+                // Use the higher of history or active tasks (to avoid double counting)
+                const totalCompletions = Math.max(completionsOnDay, activeTasksCompletedOnDay);
+
                 // Each task completed = 20% on the chart (scaled representation)
-                completionRates.push(Math.min(100, tasksCompletedOnDay * 20));
+                completionRates.push(Math.min(100, totalCompletions * 20));
             }
         }
 
@@ -74,11 +83,17 @@ const Analytics = {
         const completedTotal = State.tasks.filter(t => t.completed).length;
         const overallRate = totalTasks > 0 ? Math.round((completedTotal / totalTasks) * 100) : 0;
 
+        // Get completion history
+        const completionHistory = State.getCompletionHistory ? State.getCompletionHistory() : [];
+
         for (let i = 3; i >= 0; i--) {
             const endDate = new Date();
             endDate.setDate(endDate.getDate() - (i * 7));
             const startDate = new Date(endDate);
             startDate.setDate(startDate.getDate() - 6);
+
+            const startKey = startDate.toISOString().split('T')[0];
+            const endKey = endDate.toISOString().split('T')[0];
 
             weeks.push(`Week ${4 - i}`);
 
@@ -86,8 +101,13 @@ const Analytics = {
                 // Current week: show overall completion rate
                 completionRates.push(overallRate);
             } else {
-                // Past weeks: count tasks completed in that week
-                const tasksCompletedInWeek = State.tasks.filter(task => {
+                // Past weeks: use completion history
+                const completionsInWeek = completionHistory.filter(h => {
+                    return h.dateKey >= startKey && h.dateKey <= endKey;
+                }).length;
+
+                // Also check active tasks (backwards compatibility)
+                const activeTasksInWeek = State.tasks.filter(task => {
                     if (!task.completed || !task.completedAt) return false;
                     try {
                         const taskDate = new Date(task.completedAt);
@@ -98,8 +118,10 @@ const Analytics = {
                     }
                 }).length;
 
+                const totalCompletions = Math.max(completionsInWeek, activeTasksInWeek);
+
                 // Each task = 20% on chart
-                completionRates.push(Math.min(100, tasksCompletedInWeek * 20));
+                completionRates.push(Math.min(100, totalCompletions * 20));
             }
         }
 
@@ -775,6 +797,10 @@ const Analytics = {
             'Night': { count: 0, hours: [22, 23, 0, 1, 2, 3, 4, 5] }
         };
 
+        // Get completion history
+        const completionHistory = State.getCompletionHistory ? State.getCompletionHistory() : [];
+
+        // Count from active tasks
         State.tasks.filter(t => t.completed && t.completedAt).forEach(task => {
             try {
                 const hour = new Date(task.completedAt).getHours();
@@ -794,6 +820,14 @@ const Analytics = {
             else if (task.block === 'night') slots['Night'].count++;
         });
 
+        // Also count from history (for deleted tasks)
+        const activeTaskIds = new Set(State.tasks.map(t => t.id));
+        completionHistory.filter(h => !activeTaskIds.has(h.taskId)).forEach(h => {
+            if (h.block === 'morning') slots['Morning'].count++;
+            else if (h.block === 'evening') slots['Evening'].count++;
+            else if (h.block === 'night') slots['Night'].count++;
+        });
+
         return {
             labels: Object.keys(slots),
             data: Object.values(slots).map(s => s.count)
@@ -803,10 +837,22 @@ const Analytics = {
     getBlockData() {
         const blocks = { 'Morning': 0, 'Evening': 0, 'Night': 0 };
 
+        // Get completion history
+        const completionHistory = State.getCompletionHistory ? State.getCompletionHistory() : [];
+
+        // Count from active tasks
         State.tasks.filter(t => t.completed).forEach(task => {
             if (task.block === 'morning') blocks['Morning']++;
             else if (task.block === 'evening') blocks['Evening']++;
             else if (task.block === 'night') blocks['Night']++;
+        });
+
+        // Also count from history (for deleted tasks)
+        const activeTaskIds = new Set(State.tasks.map(t => t.id));
+        completionHistory.filter(h => !activeTaskIds.has(h.taskId)).forEach(h => {
+            if (h.block === 'morning') blocks['Morning']++;
+            else if (h.block === 'evening') blocks['Evening']++;
+            else if (h.block === 'night') blocks['Night']++;
         });
 
         return {
@@ -859,6 +905,10 @@ const Analytics = {
         // Get unique dates when tasks were completed
         const completionDates = new Set();
 
+        // Get completion history
+        const completionHistory = State.getCompletionHistory ? State.getCompletionHistory() : [];
+
+        // Add dates from active tasks
         State.tasks.filter(t => t.completed).forEach(task => {
             const dateStr = task.completedAt || task.createdAt;
             if (dateStr) {
@@ -866,6 +916,13 @@ const Analytics = {
                     const dateKey = new Date(dateStr).toISOString().split('T')[0];
                     completionDates.add(dateKey);
                 } catch (e) { }
+            }
+        });
+
+        // Add dates from completion history (for deleted tasks)
+        completionHistory.forEach(h => {
+            if (h.dateKey) {
+                completionDates.add(h.dateKey);
             }
         });
 
@@ -905,7 +962,14 @@ const Analytics = {
     renderProductivityStats() {
         const timeSlotData = this.getTimeSlotData();
         const mostProductiveSlot = timeSlotData.labels[timeSlotData.data.indexOf(Math.max(...timeSlotData.data))];
-        const completedCount = State.tasks.filter(t => t.completed).length;
+
+        // Count from both active tasks and history
+        const completionHistory = State.getCompletionHistory ? State.getCompletionHistory() : [];
+        const activeCompletedCount = State.tasks.filter(t => t.completed).length;
+        const activeTaskIds = new Set(State.tasks.map(t => t.id));
+        const deletedCompletedCount = completionHistory.filter(h => !activeTaskIds.has(h.taskId)).length;
+        const completedCount = activeCompletedCount + deletedCompletedCount;
+
         const streak = this.getTaskStreak();
 
         const timeEl = document.getElementById('mostProductiveTime');
