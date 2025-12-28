@@ -3284,22 +3284,22 @@ const FocusMode = {
             const durationEl = document.getElementById('audioDuration');
             const progressBar = document.getElementById('audioProgress');
 
-            // Also update mini panel elements
-            const miniCurrentEl = document.querySelector('.mini-audio-current-time');
-            const miniDurationEl = document.querySelector('.mini-audio-duration');
-            const miniProgress = document.getElementById('miniAudioProgress');
+            // Mini panel elements (floating Audio Controls panel) - use correct IDs
+            const miniCurrentEl = document.getElementById('audioTimeMini');
+            const miniDurationEl = document.getElementById('audioDurationMini');
+            const miniProgress = document.getElementById('audioProgressMini');
 
             if (duration > 0) {
-                // Update progress bar
+                // Update progress bar (main panel)
                 if (progressBar) {
                     progressBar.value = (currentTime / duration) * 100;
                 }
 
-                // Update time display in floating panel
+                // Update time display in main panel
                 if (currentTimeEl) currentTimeEl.textContent = this.formatTime(currentTime);
                 if (durationEl) durationEl.textContent = this.formatTime(duration);
 
-                // Also update mini panel timeline
+                // Update floating mini panel timeline
                 if (miniCurrentEl) miniCurrentEl.textContent = this.formatTime(currentTime);
                 if (miniDurationEl) miniDurationEl.textContent = this.formatTime(duration);
                 if (miniProgress) miniProgress.value = (currentTime / duration) * 100;
