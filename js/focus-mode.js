@@ -2308,14 +2308,27 @@ const FocusMode = {
                 'onReady': (event) => {
                     event.target.setVolume(this.volume * 100);
                     event.target.playVideo();
-                    // Start timeline update
-                    this.startAudioTimelineUpdate();
                     if (statusEl) {
-                        statusEl.textContent = '▶ Playing from YouTube';
+                        statusEl.textContent = '▶ Loading...';
                         statusEl.className = 'youtube-status playing';
                     }
                 },
                 'onStateChange': (event) => {
+                    // State 1 = playing - NOW duration is available
+                    if (event.data === 1) {
+                        // Start timeline update when video actually starts playing
+                        this.startAudioTimelineUpdate();
+                        if (statusEl) {
+                            statusEl.textContent = '▶ Playing from YouTube';
+                            statusEl.className = 'youtube-status playing';
+                        }
+                    }
+                    // State 2 = paused
+                    if (event.data === 2) {
+                        if (statusEl) {
+                            statusEl.textContent = '⏸ Paused';
+                        }
+                    }
                     // State 0 = ended
                     if (event.data === 0 && this.currentPlaylist) {
                         this.playNextTrack();
@@ -3258,7 +3271,6 @@ const FocusMode = {
                     duration = this.youtubePlayer.getDuration() || 0;
                 } catch (e) {
                     // Player may not be ready
-                    console.log('Waiting for YouTube player...');
                 }
             }
             // Get from native audio
@@ -3267,27 +3279,34 @@ const FocusMode = {
                 duration = this.currentAudio.duration || 0;
             }
 
-            // Only update if we have valid duration
+            // Update time displays
+            const currentTimeEl = document.getElementById('audioCurrentTime');
+            const durationEl = document.getElementById('audioDuration');
+            const progressBar = document.getElementById('audioProgress');
+
+            // Also update mini panel elements
+            const miniCurrentEl = document.querySelector('.mini-audio-current-time');
+            const miniDurationEl = document.querySelector('.mini-audio-duration');
+            const miniProgress = document.getElementById('miniAudioProgress');
+
             if (duration > 0) {
                 // Update progress bar
-                const progressBar = document.getElementById('audioProgress');
                 if (progressBar) {
                     progressBar.value = (currentTime / duration) * 100;
                 }
 
                 // Update time display in floating panel
-                const currentTimeEl = document.getElementById('audioCurrentTime');
-                const durationEl = document.getElementById('audioDuration');
                 if (currentTimeEl) currentTimeEl.textContent = this.formatTime(currentTime);
                 if (durationEl) durationEl.textContent = this.formatTime(duration);
 
-                // Also update mini panel timeline if exists
-                const miniCurrentEl = document.querySelector('.mini-audio-current-time');
-                const miniDurationEl = document.querySelector('.mini-audio-duration');
-                const miniProgress = document.getElementById('miniAudioProgress');
+                // Also update mini panel timeline
                 if (miniCurrentEl) miniCurrentEl.textContent = this.formatTime(currentTime);
                 if (miniDurationEl) miniDurationEl.textContent = this.formatTime(duration);
                 if (miniProgress) miniProgress.value = (currentTime / duration) * 100;
+            } else {
+                // Show loading state if duration not yet available
+                if (durationEl) durationEl.textContent = '--:--';
+                if (miniDurationEl) miniDurationEl.textContent = '--:--';
             }
         }, 500);
     },
