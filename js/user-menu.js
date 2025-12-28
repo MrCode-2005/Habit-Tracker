@@ -192,8 +192,7 @@ const UserMenu = {
                         options: {
                             redirectTo: window.location.origin,
                             queryParams: {
-                                login_hint: switchingEmail,  // Pre-select this account in Google
-                                prompt: 'select_account'     // Show account chooser
+                                login_hint: switchingEmail  // Auto-select this account in Google
                             }
                         }
                     });
