@@ -151,13 +151,20 @@ CREATE TABLE IF NOT EXISTS playlists (
     id TEXT PRIMARY KEY,
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
     name TEXT NOT NULL,
-    url TEXT NOT NULL,
+    url TEXT DEFAULT '',
+    tracks JSONB DEFAULT '[]',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Enable RLS
 ALTER TABLE playlists ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if they exist (to prevent conflicts)
+DROP POLICY IF EXISTS "Users can view own playlists" ON playlists;
+DROP POLICY IF EXISTS "Users can insert own playlists" ON playlists;
+DROP POLICY IF EXISTS "Users can update own playlists" ON playlists;
+DROP POLICY IF EXISTS "Users can delete own playlists" ON playlists;
 
 -- Policies for playlists
 CREATE POLICY "Users can view own playlists"
