@@ -31,13 +31,11 @@ const Analytics = {
     getWeeklyData() {
         const days = [];
         const completionRates = [];
-        const totalTasks = State.tasks.length;
-        const completedTotal = State.tasks.filter(t => t.completed).length;
-        const overallRate = totalTasks > 0 ? Math.round((completedTotal / totalTasks) * 100) : 0;
-        const todayKey = new Date().toISOString().split('T')[0];
 
-        // Get completion history for past days
+        // Get completion history
         const completionHistory = State.getCompletionHistory ? State.getCompletionHistory() : [];
+        // Get IDs of active tasks to avoid double counting
+        const activeTaskIds = new Set(State.tasks.map(t => t.id));
 
         for (let i = 6; i >= 0; i--) {
             const date = new Date();
@@ -46,31 +44,28 @@ const Analytics = {
 
             days.push(date.toLocaleDateString('en-US', { weekday: 'short' }));
 
-            if (dateKey === todayKey) {
-                // Today: show current overall completion rate
-                completionRates.push(overallRate);
-            } else {
-                // Past days: use completion history (persists even after task deletion)
-                const completionsOnDay = completionHistory.filter(h => h.dateKey === dateKey).length;
+            // Count completions from active tasks on this day
+            const activeCompletionsOnDay = State.tasks.filter(task => {
+                if (!task.completed || !task.completedAt) return false;
+                try {
+                    const taskDate = new Date(task.completedAt);
+                    if (isNaN(taskDate.getTime())) return false;
+                    return taskDate.toISOString().split('T')[0] === dateKey;
+                } catch (e) {
+                    return false;
+                }
+            }).length;
 
-                // Also check active tasks with completedAt for that day (backwards compatibility)
-                const activeTasksCompletedOnDay = State.tasks.filter(task => {
-                    if (!task.completed || !task.completedAt) return false;
-                    try {
-                        const taskDate = new Date(task.completedAt);
-                        if (isNaN(taskDate.getTime())) return false;
-                        return taskDate.toISOString().split('T')[0] === dateKey;
-                    } catch (e) {
-                        return false;
-                    }
-                }).length;
+            // Count completions from history (for DELETED tasks only)
+            const deletedCompletionsOnDay = completionHistory.filter(h => {
+                return h.dateKey === dateKey && !activeTaskIds.has(h.taskId);
+            }).length;
 
-                // Use the higher of history or active tasks (to avoid double counting)
-                const totalCompletions = Math.max(completionsOnDay, activeTasksCompletedOnDay);
+            // Total = active + deleted
+            const totalCompletions = activeCompletionsOnDay + deletedCompletionsOnDay;
 
-                // Each task completed = 20% on the chart (scaled representation)
-                completionRates.push(Math.min(100, totalCompletions * 20));
-            }
+            // Each task completed = 20% on the chart (scaled representation)
+            completionRates.push(Math.min(100, totalCompletions * 20));
         }
 
         return { days, completionRates };
@@ -79,12 +74,11 @@ const Analytics = {
     getMonthlyData() {
         const weeks = [];
         const completionRates = [];
-        const totalTasks = State.tasks.length;
-        const completedTotal = State.tasks.filter(t => t.completed).length;
-        const overallRate = totalTasks > 0 ? Math.round((completedTotal / totalTasks) * 100) : 0;
 
         // Get completion history
         const completionHistory = State.getCompletionHistory ? State.getCompletionHistory() : [];
+        // Get IDs of active tasks to avoid double counting
+        const activeTaskIds = new Set(State.tasks.map(t => t.id));
 
         for (let i = 3; i >= 0; i--) {
             const endDate = new Date();
@@ -97,32 +91,28 @@ const Analytics = {
 
             weeks.push(`Week ${4 - i}`);
 
-            if (i === 0) {
-                // Current week: show overall completion rate
-                completionRates.push(overallRate);
-            } else {
-                // Past weeks: use completion history
-                const completionsInWeek = completionHistory.filter(h => {
-                    return h.dateKey >= startKey && h.dateKey <= endKey;
-                }).length;
+            // Count completions from active tasks in this week
+            const activeCompletionsInWeek = State.tasks.filter(task => {
+                if (!task.completed || !task.completedAt) return false;
+                try {
+                    const taskDate = new Date(task.completedAt);
+                    if (isNaN(taskDate.getTime())) return false;
+                    return taskDate >= startDate && taskDate <= endDate;
+                } catch (e) {
+                    return false;
+                }
+            }).length;
 
-                // Also check active tasks (backwards compatibility)
-                const activeTasksInWeek = State.tasks.filter(task => {
-                    if (!task.completed || !task.completedAt) return false;
-                    try {
-                        const taskDate = new Date(task.completedAt);
-                        if (isNaN(taskDate.getTime())) return false;
-                        return taskDate >= startDate && taskDate <= endDate;
-                    } catch (e) {
-                        return false;
-                    }
-                }).length;
+            // Count completions from history (for DELETED tasks only)
+            const deletedCompletionsInWeek = completionHistory.filter(h => {
+                return h.dateKey >= startKey && h.dateKey <= endKey && !activeTaskIds.has(h.taskId);
+            }).length;
 
-                const totalCompletions = Math.max(completionsInWeek, activeTasksInWeek);
+            // Total = active + deleted
+            const totalCompletions = activeCompletionsInWeek + deletedCompletionsInWeek;
 
-                // Each task = 20% on chart
-                completionRates.push(Math.min(100, totalCompletions * 20));
-            }
+            // Each task = 20% on chart
+            completionRates.push(Math.min(100, totalCompletions * 20));
         }
 
         return { weeks, completionRates };
