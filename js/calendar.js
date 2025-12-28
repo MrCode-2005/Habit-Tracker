@@ -29,6 +29,31 @@ const Calendar = {
             e.preventDefault();
             this.saveEvent();
         });
+
+        // Keyboard navigation for months
+        document.addEventListener('keydown', (e) => {
+            // Only respond to arrow keys when calendar view is active
+            const calendarView = document.getElementById('calendar-view');
+            const isCalendarActive = calendarView?.classList.contains('active');
+
+            // Don't navigate if a modal is open or user is typing in an input
+            const activeModal = document.querySelector('.modal.active');
+            const isTyping = document.activeElement?.tagName === 'INPUT' ||
+                document.activeElement?.tagName === 'TEXTAREA';
+
+            if (!isCalendarActive || activeModal || isTyping) return;
+
+            if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                this.currentDate.setMonth(this.currentDate.getMonth() - 1);
+                this.render();
+            } else if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                this.currentDate.setMonth(this.currentDate.getMonth() + 1);
+                this.render();
+            }
+        });
+
         // Note: Calendar events are added by clicking on calendar days, not via addEventBtn
         // The addEventBtn is for the Events section (countdown events)
     },
