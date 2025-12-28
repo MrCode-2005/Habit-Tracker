@@ -333,6 +333,7 @@ const Analytics = {
         let failed = 0;
         let active = 0;
 
+        // Count from active goals
         goals.forEach(goal => {
             const endDate = new Date(goal.endDate);
 
@@ -345,7 +346,13 @@ const Analytics = {
             }
         });
 
-        const total = goals.length;
+        // Add completed goals from history (deleted goals)
+        const goalHistory = State.goalCompletionHistory || [];
+        const activeGoalIds = new Set(goals.map(g => g.id));
+        const deletedCompleted = goalHistory.filter(g => !activeGoalIds.has(g.goalId)).length;
+        completed += deletedCompleted;
+
+        const total = goals.length + deletedCompleted;
         const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
 
         return {
@@ -449,11 +456,15 @@ const Analytics = {
         });
     },
 
-    // Get aggregate weekly habit completion rate
+    // Get aggregate weekly habit completion rate (includes deleted habits from history)
     getAggregateHabitWeeklyData() {
         const habits = State.getHabits();
         const days = [];
         const completionRates = [];
+
+        // Get habit history for deleted habits
+        const habitHistory = State.habitCompletionHistory || [];
+        const activeHabitIds = new Set(habits.map(h => h.id));
 
         for (let i = 6; i >= 0; i--) {
             const date = new Date();
@@ -462,27 +473,42 @@ const Analytics = {
 
             days.push(date.toLocaleDateString('en-US', { weekday: 'short' }));
 
-            if (habits.length === 0) {
+            // Count active habit completions
+            let activeCompleted = 0;
+            habits.forEach(habit => {
+                if (this.isHabitCompletedOnDate(habit, dateKey)) {
+                    activeCompleted++;
+                }
+            });
+
+            // Count deleted habit completions from history
+            const deletedCompleted = habitHistory.filter(h => {
+                return h.dateKey === dateKey && !activeHabitIds.has(h.habitId);
+            }).length;
+
+            const totalCompleted = activeCompleted + deletedCompleted;
+            const totalHabits = habits.length + deletedCompleted; // approximate total
+
+            if (totalHabits === 0) {
                 completionRates.push(0);
             } else {
-                let completed = 0;
-                habits.forEach(habit => {
-                    if (this.isHabitCompletedOnDate(habit, dateKey)) {
-                        completed++;
-                    }
-                });
-                completionRates.push(Math.round((completed / habits.length) * 100));
+                // Scale: each completion = 20%
+                completionRates.push(Math.min(100, totalCompleted * 20));
             }
         }
 
         return { days, completionRates };
     },
 
-    // Get aggregate monthly habit completion rate
+    // Get aggregate monthly habit completion rate (includes deleted habits from history)
     getAggregateHabitMonthlyData() {
         const habits = State.getHabits();
         const weeks = [];
         const completionRates = [];
+
+        // Get habit history for deleted habits
+        const habitHistory = State.habitCompletionHistory || [];
+        const activeHabitIds = new Set(habits.map(h => h.id));
 
         for (let i = 3; i >= 0; i--) {
             const endDate = new Date();
@@ -492,24 +518,30 @@ const Analytics = {
 
             weeks.push(`Week ${4 - i}`);
 
-            if (habits.length === 0) {
-                completionRates.push(0);
-            } else {
-                let totalCompletions = 0;
-                let totalPossible = 0;
+            let totalCompletions = 0;
+            let totalPossible = 0;
 
-                for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-                    const dateKey = d.toISOString().split('T')[0];
-                    habits.forEach(habit => {
-                        totalPossible++;
-                        if (this.isHabitCompletedOnDate(habit, dateKey)) {
-                            totalCompletions++;
-                        }
-                    });
-                }
+            for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                const dateKey = d.toISOString().split('T')[0];
 
-                completionRates.push(totalPossible > 0 ? Math.round((totalCompletions / totalPossible) * 100) : 0);
+                // Count active habit completions
+                habits.forEach(habit => {
+                    totalPossible++;
+                    if (this.isHabitCompletedOnDate(habit, dateKey)) {
+                        totalCompletions++;
+                    }
+                });
+
+                // Count deleted habit completions from history
+                const deletedOnDay = habitHistory.filter(h => {
+                    return h.dateKey === dateKey && !activeHabitIds.has(h.habitId);
+                }).length;
+
+                totalCompletions += deletedOnDay;
+                totalPossible += deletedOnDay; // They were completed so add to possible
             }
+
+            completionRates.push(totalPossible > 0 ? Math.round((totalCompletions / totalPossible) * 100) : 0);
         }
 
         return { weeks, completionRates };
