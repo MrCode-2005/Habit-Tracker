@@ -465,6 +465,9 @@ const FocusMode = {
         this.showRandomQuote();
         this.startQuoteRotation();
 
+        // Restore audio playlist if there was one playing before
+        this.restoreAudioFromState();
+
         // Save state for refresh persistence
         this.saveState();
 
@@ -472,6 +475,29 @@ const FocusMode = {
         setTimeout(() => {
             this.startTimer();
         }, 500);
+    },
+
+    // Restore audio from saved sessionStorage state (for when returning to focus mode)
+    restoreAudioFromState() {
+        try {
+            const saved = sessionStorage.getItem('focusModeState');
+            if (!saved) return;
+
+            const state = JSON.parse(saved);
+
+            // Check if there was a playlist playing
+            if (state.currentPlaylist && this.playlists[state.currentPlaylist]) {
+                const playlistId = state.currentPlaylist;
+                const trackIndex = state.currentTrackIndex || 0;
+
+                // Restore the audio playback (will show overlay)
+                setTimeout(() => {
+                    this.restoreAudioPlayback(playlistId, trackIndex);
+                }, 300);
+            }
+        } catch (e) {
+            console.log('Could not restore audio from state:', e);
+        }
     },
 
     close(clearSession = false) {
