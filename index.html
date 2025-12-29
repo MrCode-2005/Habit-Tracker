@@ -35,6 +35,20 @@
                     theme = JSON.parse(theme);
                 }
                 document.documentElement.setAttribute('data-theme', theme || 'dark');
+
+                // Check if focus mode was active before refresh
+                // Hide navbar and main content immediately to prevent flash
+                var focusState = sessionStorage.getItem('focusModeState');
+                if (focusState) {
+                    var state = JSON.parse(focusState);
+                    if (state && state.isActive) {
+                        // Add a style tag to hide navbar and main content before they render
+                        var style = document.createElement('style');
+                        style.id = 'focus-mode-preload';
+                        style.textContent = '.navbar, .main-container, .side-panel { display: none !important; } #focusMode { display: flex !important; }';
+                        document.head.appendChild(style);
+                    }
+                }
             } catch (e) {
                 document.documentElement.setAttribute('data-theme', 'dark');
             }

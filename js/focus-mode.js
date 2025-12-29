@@ -513,6 +513,12 @@ const FocusMode = {
         this.isActive = false;
         this.closePanels();
 
+        // Remove the preload style if it exists (from refresh during focus mode)
+        const preloadStyle = document.getElementById('focus-mode-preload');
+        if (preloadStyle) {
+            preloadStyle.remove();
+        }
+
         if (clearSession) {
             // Only clear if explicitly requested (timer completed or user cancelled)
             this.clearState();
@@ -3362,9 +3368,20 @@ const FocusMode = {
             this.showRandomQuote();
             this.startQuoteRotation();
 
+            // Remove the preload style that was hiding navbar/main content
+            const preloadStyle = document.getElementById('focus-mode-preload');
+            if (preloadStyle) {
+                preloadStyle.remove();
+            }
+
             console.log('Focus mode restored after refresh');
         } catch (e) {
             console.log('Error restoring focus state:', e);
+            // Remove preload style on error so content is visible
+            const preloadStyle = document.getElementById('focus-mode-preload');
+            if (preloadStyle) {
+                preloadStyle.remove();
+            }
         }
     },
 
