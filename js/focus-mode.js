@@ -58,6 +58,15 @@ const FocusMode = {
     witherInterval: null, // Interval for checking wither status
     isWithering: false, // True if tree is currently withering
 
+    // Image Background
+    imagePlaylists: {}, // Stored image collections
+    currentImagePlaylist: null, // Currently selected playlist ID
+    currentImageIndex: 0, // Current image index in playlist
+    currentImageUrl: null, // Currently displayed image URL
+    imageBgActive: false, // Whether image background is active
+    slideshowInterval: null, // Slideshow timer
+    slideshowEnabled: false, // Whether slideshow is active
+
     // Focus quotes
     focusQuotes: [
         { text: "The secret of getting ahead is getting started.", author: "Mark Twain" },
@@ -82,6 +91,7 @@ const FocusMode = {
         this.setupCanvas();
         this.loadPlaylists();
         this.loadVideoPlaylists();
+        this.loadImagePlaylists();
 
         // Restore focus mode if it was active before refresh
         this.restoreState();
@@ -123,6 +133,15 @@ const FocusMode = {
             document.getElementById('focusAudioPanel')?.classList.add('hidden');
         });
         document.getElementById('focusAnimationBtn')?.addEventListener('click', () => this.togglePanel('animation'));
+        document.getElementById('focusImageBtn')?.addEventListener('click', () => this.togglePanel('image'));
+
+        // Close image panel button
+        document.getElementById('closeImagePanel')?.addEventListener('click', () => {
+            document.getElementById('focusImagePanel')?.classList.remove('active');
+        });
+
+        // Setup image background event listeners
+        this.setupImageBgListeners();
 
         // Toggle audio panel button (floating)
         document.getElementById('toggleAudioPanelBtn')?.addEventListener('click', () => {
@@ -1047,13 +1066,20 @@ const FocusMode = {
     togglePanel(panel) {
         const soundPanel = document.getElementById('focusSoundPanel');
         const animationPanel = document.getElementById('focusAnimationPanel');
+        const imagePanel = document.getElementById('focusImagePanel');
 
         if (panel === 'sound') {
             animationPanel?.classList.remove('active');
+            imagePanel?.classList.remove('active');
             soundPanel?.classList.toggle('active');
         } else if (panel === 'animation') {
             soundPanel?.classList.remove('active');
+            imagePanel?.classList.remove('active');
             animationPanel?.classList.toggle('active');
+        } else if (panel === 'image') {
+            soundPanel?.classList.remove('active');
+            animationPanel?.classList.remove('active');
+            imagePanel?.classList.toggle('active');
         }
     },
 
@@ -3324,6 +3350,11 @@ const FocusMode = {
             currentAnimation: this.currentAnimation,
             videoBgActive: this.videoBgActive,
             currentVideoBgUrl: this.currentVideoBgUrl || '',
+            // Image background state
+            imageBgActive: this.imageBgActive,
+            currentImageUrl: this.currentImageUrl || '',
+            currentImagePlaylist: this.currentImagePlaylist,
+            currentImageIndex: this.currentImageIndex,
             // Audio state
             currentPlaylist: this.currentPlaylist,
             currentTrackIndex: this.currentTrackIndex,
@@ -3448,8 +3479,15 @@ const FocusMode = {
                 document.querySelector('.break-duration-selector')?.classList.add('active');
             }
 
-            // Restore video background or start animation
-            if (state.videoBgActive && state.currentVideoBgUrl) {
+            // Restore video background, image background, or start animation
+            if (state.imageBgActive && state.currentImageUrl) {
+                // Restore image background
+                this.setImageBackground(state.currentImageUrl);
+                if (state.currentImagePlaylist) {
+                    this.currentImagePlaylist = state.currentImagePlaylist;
+                    this.currentImageIndex = state.currentImageIndex || 0;
+                }
+            } else if (state.videoBgActive && state.currentVideoBgUrl) {
                 this.setVideoBackground(state.currentVideoBgUrl);
             } else {
                 // Update animation option buttons
@@ -4149,6 +4187,490 @@ const FocusMode = {
         } else if (this.witherLevel > 0) {
             if (treeLabel) treeLabel.textContent = 'PAUSED';
             if (treeProgressText) treeProgressText.textContent = `Resume soon to save tree!`;
+        }
+    },
+
+    // ==============================
+    // Image Background Methods
+    // ==============================
+
+    setupImageBgListeners() {
+        // URL input
+        document.getElementById('setImageUrlBtn')?.addEventListener('click', () => {
+            const url = document.getElementById('imageUrlInput')?.value?.trim();
+            if (url) {
+                this.setImageBackground(url);
+                document.getElementById('imageUrlInput').value = '';
+            }
+        });
+
+        // Enter key for URL input
+        document.getElementById('imageUrlInput')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const url = e.target.value?.trim();
+                if (url) {
+                    this.setImageBackground(url);
+                    e.target.value = '';
+                }
+            }
+        });
+
+        // File upload
+        document.getElementById('imageFileInput')?.addEventListener('change', (e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+                this.handleImageFile(file);
+            }
+        });
+
+        // Drag & drop zone
+        const dropzone = document.getElementById('imageDropzone');
+        if (dropzone) {
+            dropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropzone.classList.add('dragover');
+            });
+
+            dropzone.addEventListener('dragleave', () => {
+                dropzone.classList.remove('dragover');
+            });
+
+            dropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('dragover');
+                const file = e.dataTransfer.files?.[0];
+                if (file && file.type.startsWith('image/')) {
+                    this.handleImageFile(file);
+                }
+            });
+
+            // Click to upload
+            dropzone.addEventListener('click', () => {
+                document.getElementById('imageFileInput')?.click();
+            });
+        }
+
+        // Paste from clipboard
+        document.addEventListener('paste', (e) => {
+            if (!this.isActive) return;
+            const items = e.clipboardData?.items;
+            if (items) {
+                for (let item of items) {
+                    if (item.type.startsWith('image/')) {
+                        const file = item.getAsFile();
+                        if (file) {
+                            this.handleImageFile(file);
+                        }
+                        break;
+                    }
+                }
+            }
+        });
+
+        // Remove background
+        document.getElementById('removeImageBgBtn')?.addEventListener('click', () => {
+            this.clearImageBackground();
+        });
+
+        // Playlist controls
+        document.getElementById('createImagePlaylistBtn')?.addEventListener('click', () => {
+            this.createImagePlaylist();
+        });
+
+        document.getElementById('imagePlaylistSelect')?.addEventListener('change', (e) => {
+            this.selectImagePlaylist(e.target.value);
+        });
+
+        document.getElementById('editImagePlaylistBtn')?.addEventListener('click', () => {
+            this.editImagePlaylist();
+        });
+
+        document.getElementById('deleteImagePlaylistBtn')?.addEventListener('click', () => {
+            this.deleteImagePlaylist();
+        });
+
+        document.getElementById('addToImagePlaylistBtn')?.addEventListener('click', () => {
+            this.addCurrentImageToPlaylist();
+        });
+
+        document.getElementById('shuffleImageBtn')?.addEventListener('click', () => {
+            this.shuffleImagePlaylist();
+        });
+
+        document.getElementById('prevImageBtn')?.addEventListener('click', () => {
+            this.navigateImagePlaylist('prev');
+        });
+
+        document.getElementById('nextImageBtn')?.addEventListener('click', () => {
+            this.navigateImagePlaylist('next');
+        });
+
+        document.getElementById('slideshowToggle')?.addEventListener('change', (e) => {
+            this.toggleSlideshow(e.target.checked);
+        });
+
+        document.getElementById('slideshowInterval')?.addEventListener('change', (e) => {
+            if (this.slideshowEnabled) {
+                this.toggleSlideshow(false);
+                this.toggleSlideshow(true);
+            }
+        });
+    },
+
+    async loadImagePlaylists() {
+        try {
+            // First load from localStorage
+            const saved = localStorage.getItem('focusImagePlaylists');
+            if (saved) {
+                this.imagePlaylists = JSON.parse(saved);
+            }
+
+            // Then try to load from Supabase and merge
+            if (typeof SupabaseDB !== 'undefined') {
+                const user = await SupabaseDB.getCurrentUser();
+                if (user) {
+                    const serverPlaylists = await SupabaseDB.getImagePlaylists(user.id);
+                    if (serverPlaylists && serverPlaylists.length > 0) {
+                        // Merge server playlists into local
+                        serverPlaylists.forEach(sp => {
+                            if (!this.imagePlaylists[sp.id]) {
+                                this.imagePlaylists[sp.id] = {
+                                    name: sp.name,
+                                    images: sp.images || []
+                                };
+                            }
+                        });
+                        // Save merged result to localStorage
+                        localStorage.setItem('focusImagePlaylists', JSON.stringify(this.imagePlaylists));
+                    }
+                }
+            }
+
+            this.renderImagePlaylistSelect();
+        } catch (e) {
+            console.log('Error loading image playlists:', e);
+        }
+    },
+
+    saveImagePlaylists() {
+        try {
+            localStorage.setItem('focusImagePlaylists', JSON.stringify(this.imagePlaylists));
+            // Also sync to Supabase if available
+            this.syncImagePlaylistsToSupabase();
+        } catch (e) {
+            console.log('Error saving image playlists:', e);
+        }
+    },
+
+    async syncImagePlaylistsToSupabase() {
+        if (typeof SupabaseDB !== 'undefined') {
+            try {
+                const user = await SupabaseDB.getCurrentUser();
+                if (user) {
+                    // Sync each playlist
+                    for (const id of Object.keys(this.imagePlaylists)) {
+                        const playlist = this.imagePlaylists[id];
+                        await SupabaseDB.upsertImagePlaylist(user.id, {
+                            id: id,
+                            name: playlist.name,
+                            images: playlist.images || []
+                        });
+                    }
+                }
+            } catch (e) {
+                console.log('Error syncing image playlists to Supabase:', e);
+            }
+        }
+    },
+
+    setImageBackground(url, name = '') {
+        if (!url) return;
+
+        const imageBg = document.getElementById('imageBgPlayer');
+        if (!imageBg) return;
+
+        // Clear other backgrounds
+        this.clearVideoBackground();
+        if (this.animationFrame) {
+            cancelAnimationFrame(this.animationFrame);
+            this.animationFrame = null;
+        }
+
+        // Set the image
+        imageBg.style.backgroundImage = `url('${url}')`;
+        imageBg.classList.add('active');
+        this.currentImageUrl = url;
+        this.imageBgActive = true;
+
+        // Update preview
+        this.updateImagePreview(url);
+
+        // Show remove button and add-to-playlist row
+        const removeBtn = document.getElementById('removeImageBgBtn');
+        const addRow = document.getElementById('addToImagePlaylistRow');
+        if (removeBtn) removeBtn.style.display = 'block';
+        if (addRow && this.currentImagePlaylist) addRow.style.display = 'flex';
+
+        // Save state
+        this.saveState();
+
+        this.showNotification('Background image set! 🖼️');
+    },
+
+    clearImageBackground() {
+        const imageBg = document.getElementById('imageBgPlayer');
+        if (imageBg) {
+            imageBg.style.backgroundImage = '';
+            imageBg.classList.remove('active');
+        }
+
+        this.currentImageUrl = null;
+        this.imageBgActive = false;
+
+        // Update UI
+        const preview = document.getElementById('currentImagePreview');
+        if (preview) {
+            preview.style.backgroundImage = '';
+            preview.innerHTML = '<span class="no-image-text">No image set</span>';
+        }
+
+        const removeBtn = document.getElementById('removeImageBgBtn');
+        const addRow = document.getElementById('addToImagePlaylistRow');
+        if (removeBtn) removeBtn.style.display = 'none';
+        if (addRow) addRow.style.display = 'none';
+
+        // Restart animation
+        this.startAnimation();
+        this.saveState();
+    },
+
+    handleImageFile(file) {
+        if (!file || !file.type.startsWith('image/')) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const dataUrl = e.target.result;
+            this.setImageBackground(dataUrl, file.name);
+        };
+        reader.readAsDataURL(file);
+    },
+
+    updateImagePreview(url) {
+        const preview = document.getElementById('currentImagePreview');
+        if (preview) {
+            preview.style.backgroundImage = `url('${url}')`;
+            preview.innerHTML = '';
+        }
+    },
+
+    createImagePlaylist() {
+        const name = prompt('Enter collection name:');
+        if (!name) return;
+
+        const id = 'img_' + Date.now();
+        this.imagePlaylists[id] = {
+            name: name,
+            images: []
+        };
+        this.saveImagePlaylists();
+        this.renderImagePlaylistSelect();
+        this.selectImagePlaylist(id);
+        this.showNotification(`Collection "${name}" created! 📁`);
+    },
+
+    renderImagePlaylistSelect() {
+        const select = document.getElementById('imagePlaylistSelect');
+        if (!select) return;
+
+        select.innerHTML = '<option value="">Select a collection...</option>';
+        Object.keys(this.imagePlaylists).forEach(id => {
+            const playlist = this.imagePlaylists[id];
+            const option = document.createElement('option');
+            option.value = id;
+            option.textContent = `${playlist.name} (${playlist.images?.length || 0})`;
+            select.appendChild(option);
+        });
+
+        if (this.currentImagePlaylist) {
+            select.value = this.currentImagePlaylist;
+        }
+    },
+
+    selectImagePlaylist(playlistId) {
+        this.currentImagePlaylist = playlistId || null;
+        this.currentImageIndex = 0;
+
+        const controls = document.getElementById('imagePlaylistControls');
+        const addRow = document.getElementById('addToImagePlaylistRow');
+
+        if (playlistId && this.imagePlaylists[playlistId]) {
+            this.renderImagePlaylistItems(playlistId);
+            if (controls) controls.style.display = 'flex';
+            if (addRow && this.currentImageUrl) addRow.style.display = 'flex';
+        } else {
+            document.getElementById('imagePlaylistItems').innerHTML = '';
+            if (controls) controls.style.display = 'none';
+            if (addRow) addRow.style.display = 'none';
+        }
+    },
+
+    renderImagePlaylistItems(playlistId) {
+        const container = document.getElementById('imagePlaylistItems');
+        if (!container) return;
+
+        const playlist = this.imagePlaylists[playlistId];
+        if (!playlist) return;
+
+        container.innerHTML = '';
+
+        playlist.images?.forEach((img, index) => {
+            const item = document.createElement('div');
+            item.className = 'image-playlist-item';
+            if (this.currentImageUrl === img.url) {
+                item.classList.add('active');
+            }
+
+            item.innerHTML = `
+                <img src="${img.url}" alt="${img.name || 'Image'}" loading="lazy">
+                <div class="item-overlay">
+                    <span class="item-name">${img.name || 'Image ' + (index + 1)}</span>
+                </div>
+                <button class="item-delete" data-index="${index}"><i class="fas fa-times"></i></button>
+            `;
+
+            item.addEventListener('click', (e) => {
+                if (!e.target.closest('.item-delete')) {
+                    this.currentImageIndex = index;
+                    this.setImageBackground(img.url, img.name);
+                    this.renderImagePlaylistItems(playlistId);
+                }
+            });
+
+            item.querySelector('.item-delete')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.removeImageFromPlaylist(index);
+            });
+
+            container.appendChild(item);
+        });
+    },
+
+    addCurrentImageToPlaylist() {
+        if (!this.currentImageUrl || !this.currentImagePlaylist) return;
+
+        const playlist = this.imagePlaylists[this.currentImagePlaylist];
+        if (!playlist) return;
+
+        const name = prompt('Enter image name (optional):', 'Image ' + (playlist.images.length + 1));
+
+        playlist.images.push({
+            url: this.currentImageUrl,
+            name: name || 'Image ' + (playlist.images.length + 1)
+        });
+
+        this.saveImagePlaylists();
+        this.renderImagePlaylistItems(this.currentImagePlaylist);
+        this.renderImagePlaylistSelect();
+        this.showNotification('Image added to collection! ✅');
+    },
+
+    removeImageFromPlaylist(index) {
+        if (!this.currentImagePlaylist) return;
+
+        const playlist = this.imagePlaylists[this.currentImagePlaylist];
+        if (!playlist) return;
+
+        playlist.images.splice(index, 1);
+        this.saveImagePlaylists();
+        this.renderImagePlaylistItems(this.currentImagePlaylist);
+        this.renderImagePlaylistSelect();
+    },
+
+    editImagePlaylist() {
+        if (!this.currentImagePlaylist) return;
+
+        const playlist = this.imagePlaylists[this.currentImagePlaylist];
+        if (!playlist) return;
+
+        const newName = prompt('Edit collection name:', playlist.name);
+        if (newName && newName !== playlist.name) {
+            playlist.name = newName;
+            this.saveImagePlaylists();
+            this.renderImagePlaylistSelect();
+            this.showNotification('Collection renamed! ✏️');
+        }
+    },
+
+    deleteImagePlaylist() {
+        if (!this.currentImagePlaylist) return;
+
+        const playlist = this.imagePlaylists[this.currentImagePlaylist];
+        if (!playlist) return;
+
+        if (confirm(`Delete collection "${playlist.name}"?`)) {
+            delete this.imagePlaylists[this.currentImagePlaylist];
+            this.currentImagePlaylist = null;
+            this.saveImagePlaylists();
+            this.renderImagePlaylistSelect();
+            this.selectImagePlaylist(null);
+            this.showNotification('Collection deleted! 🗑️');
+        }
+    },
+
+    navigateImagePlaylist(direction) {
+        if (!this.currentImagePlaylist) return;
+
+        const playlist = this.imagePlaylists[this.currentImagePlaylist];
+        if (!playlist || !playlist.images?.length) return;
+
+        if (direction === 'next') {
+            this.currentImageIndex = (this.currentImageIndex + 1) % playlist.images.length;
+        } else {
+            this.currentImageIndex = (this.currentImageIndex - 1 + playlist.images.length) % playlist.images.length;
+        }
+
+        const img = playlist.images[this.currentImageIndex];
+        if (img) {
+            this.setImageBackground(img.url, img.name);
+            this.renderImagePlaylistItems(this.currentImagePlaylist);
+        }
+    },
+
+    shuffleImagePlaylist() {
+        if (!this.currentImagePlaylist) return;
+
+        const playlist = this.imagePlaylists[this.currentImagePlaylist];
+        if (!playlist || !playlist.images?.length) return;
+
+        const randomIndex = Math.floor(Math.random() * playlist.images.length);
+        this.currentImageIndex = randomIndex;
+
+        const img = playlist.images[randomIndex];
+        if (img) {
+            this.setImageBackground(img.url, img.name);
+            this.renderImagePlaylistItems(this.currentImagePlaylist);
+        }
+    },
+
+    toggleSlideshow(enabled) {
+        this.slideshowEnabled = enabled;
+
+        if (enabled) {
+            if (!this.currentImagePlaylist) {
+                this.showNotification('Select a collection first!');
+                document.getElementById('slideshowToggle').checked = false;
+                return;
+            }
+
+            const interval = parseInt(document.getElementById('slideshowInterval')?.value || 60) * 1000;
+            this.slideshowInterval = setInterval(() => {
+                this.navigateImagePlaylist('next');
+            }, interval);
+        } else {
+            if (this.slideshowInterval) {
+                clearInterval(this.slideshowInterval);
+                this.slideshowInterval = null;
+            }
         }
     }
 };

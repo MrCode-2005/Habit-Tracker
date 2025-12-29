@@ -349,6 +349,52 @@ const SupabaseDB = {
         if (error) console.error('Error deleting video playlist:', error);
     },
 
+    // Image Playlists (Focus Mode Image Backgrounds)
+    async getImagePlaylists(userId) {
+        const client = getSupabase();
+        if (!client) return [];
+        const { data, error } = await client
+            .from('image_playlists')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+
+        if (error) { console.error('Error fetching image playlists:', error); return []; }
+        return data || [];
+    },
+
+    async upsertImagePlaylist(userId, playlist) {
+        const client = getSupabase();
+        if (!client) return null;
+
+        const dbPlaylist = {
+            id: playlist.id || `img_${Date.now()}`,
+            user_id: userId,
+            name: playlist.name,
+            images: playlist.images || []
+        };
+
+        const { data, error } = await client
+            .from('image_playlists')
+            .upsert([dbPlaylist])
+            .select()
+            .single();
+
+        if (error) console.error('Error upserting image playlist:', error);
+        return data;
+    },
+
+    async deleteImagePlaylist(playlistId) {
+        const client = getSupabase();
+        if (!client) return;
+        const { error } = await client
+            .from('image_playlists')
+            .delete()
+            .eq('id', playlistId);
+
+        if (error) console.error('Error deleting image playlist:', error);
+    },
+
     // Calendar Events
     async getCalendarEvents(userId) {
         const client = getSupabase();
