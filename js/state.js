@@ -260,13 +260,16 @@ const State = {
 
     // Record habit completion in persistent history
     recordHabitCompletion(habit, dateKey) {
+        const habitIdStr = String(habit.id);
+
+        // Check if already recorded (use String comparison)
         const existingIndex = this.habitCompletionHistory.findIndex(
-            h => h.habitId === habit.id && h.dateKey === dateKey
+            h => String(h.habitId) === habitIdStr && h.dateKey === dateKey
         );
 
         if (existingIndex === -1) {
             this.habitCompletionHistory.push({
-                habitId: habit.id,
+                habitId: habitIdStr,
                 name: habit.name,
                 dateKey: dateKey,
                 completedAt: new Date().toISOString()

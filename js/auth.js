@@ -360,16 +360,30 @@ const Auth = {
                 const cloudHabitHistory = await SupabaseDB.getHabitHistory(userId);
                 const cloudGoalHistory = await SupabaseDB.getGoalHistory(userId);
 
-                // Use cloud data if available, otherwise keep local
-                State.taskCompletionHistory = (cloudTaskHistory && cloudTaskHistory.length > 0)
-                    ? cloudTaskHistory
-                    : localTaskHistory;
-                State.habitCompletionHistory = (cloudHabitHistory && cloudHabitHistory.length > 0)
-                    ? cloudHabitHistory
-                    : localHabitHistory;
-                State.goalCompletionHistory = (cloudGoalHistory && cloudGoalHistory.length > 0)
-                    ? cloudGoalHistory
-                    : localGoalHistory;
+                // Helper function to deduplicate history arrays
+                const dedupeHistory = (arr, idKey, dateKey) => {
+                    const seen = new Set();
+                    return arr.filter(item => {
+                        const key = `${String(item[idKey])}_${item[dateKey]}`;
+                        if (seen.has(key)) return false;
+                        seen.add(key);
+                        return true;
+                    });
+                };
+
+                // Use cloud data if available, otherwise keep local (with deduplication)
+                State.taskCompletionHistory = dedupeHistory(
+                    (cloudTaskHistory && cloudTaskHistory.length > 0) ? cloudTaskHistory : localTaskHistory,
+                    'taskId', 'dateKey'
+                );
+                State.habitCompletionHistory = dedupeHistory(
+                    (cloudHabitHistory && cloudHabitHistory.length > 0) ? cloudHabitHistory : localHabitHistory,
+                    'habitId', 'dateKey'
+                );
+                State.goalCompletionHistory = dedupeHistory(
+                    (cloudGoalHistory && cloudGoalHistory.length > 0) ? cloudGoalHistory : localGoalHistory,
+                    'goalId', 'dateKey'
+                );
 
                 // Save to per-user keys ONLY (no generic keys to prevent leakage)
                 Storage.set(`taskCompletionHistory_${userId}`, State.taskCompletionHistory);
