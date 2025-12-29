@@ -424,8 +424,9 @@ const FocusMode = {
         this.totalSeconds = totalMinutes * 60;
         this.remainingSeconds = this.totalSeconds;
 
-        // Check if we have a saved timer state for this specific subtask
+        // Check if we have a saved timer state for this specific subtask or task
         if (this.currentSubtask && task) {
+            // For subtasks, key by taskId_subtaskTitle
             const timerKey = `${task.id}_${this.currentSubtask.title}`;
             const savedState = this.subtaskTimerStates[timerKey];
             if (savedState && savedState.remainingSeconds !== undefined && savedState.remainingSeconds > 0) {
@@ -433,6 +434,16 @@ const FocusMode = {
                 this.remainingSeconds = savedState.remainingSeconds;
                 this.totalSeconds = savedState.totalSeconds || this.totalSeconds;
                 console.log(`Restored timer for subtask "${this.currentSubtask.title}": ${this.remainingSeconds}s remaining`);
+            }
+        } else if (task && !this.currentSubtask) {
+            // For tasks without subtasks, key by taskId_main
+            const timerKey = `${task.id}_main`;
+            const savedState = this.subtaskTimerStates[timerKey];
+            if (savedState && savedState.remainingSeconds !== undefined && savedState.remainingSeconds > 0) {
+                // Restore the saved remaining seconds
+                this.remainingSeconds = savedState.remainingSeconds;
+                this.totalSeconds = savedState.totalSeconds || this.totalSeconds;
+                console.log(`Restored timer for task "${task.title}": ${this.remainingSeconds}s remaining`);
             }
         }
 
@@ -467,9 +478,21 @@ const FocusMode = {
         // Save audio/video playback position before stopping
         this.savePlaybackPosition();
 
-        // Save the current subtask's timer state to persistent storage BEFORE pausing
-        if (this.currentTask && this.currentSubtask && this.remainingSeconds > 0) {
-            const timerKey = `${this.currentTask.id}_${this.currentSubtask.title}`;
+        // Save the current timer state to persistent storage BEFORE pausing
+        if (this.currentTask && this.remainingSeconds > 0) {
+            let timerKey;
+            let logMessage;
+
+            if (this.currentSubtask) {
+                // For subtasks, key by taskId_subtaskTitle
+                timerKey = `${this.currentTask.id}_${this.currentSubtask.title}`;
+                logMessage = `Saved timer for subtask "${this.currentSubtask.title}": ${this.remainingSeconds}s remaining`;
+            } else {
+                // For tasks without subtasks, key by taskId_main
+                timerKey = `${this.currentTask.id}_main`;
+                logMessage = `Saved timer for task "${this.currentTask.title}": ${this.remainingSeconds}s remaining`;
+            }
+
             this.subtaskTimerStates[timerKey] = {
                 remainingSeconds: this.remainingSeconds,
                 totalSeconds: this.totalSeconds,
@@ -477,7 +500,7 @@ const FocusMode = {
             };
             // Persist to localStorage
             this.saveSubtaskTimerStates();
-            console.log(`Saved timer for subtask "${this.currentSubtask.title}": ${this.remainingSeconds}s remaining`);
+            console.log(logMessage);
         }
 
         this.pauseTimer();
@@ -493,9 +516,14 @@ const FocusMode = {
         if (clearSession) {
             // Only clear if explicitly requested (timer completed or user cancelled)
             this.clearState();
-            // Also clear the current subtask's timer state since it's completed
-            if (this.currentTask && this.currentSubtask) {
-                const timerKey = `${this.currentTask.id}_${this.currentSubtask.title}`;
+            // Also clear the timer state since it's completed
+            if (this.currentTask) {
+                let timerKey;
+                if (this.currentSubtask) {
+                    timerKey = `${this.currentTask.id}_${this.currentSubtask.title}`;
+                } else {
+                    timerKey = `${this.currentTask.id}_main`;
+                }
                 delete this.subtaskTimerStates[timerKey];
                 this.saveSubtaskTimerStates();
             }
@@ -770,6 +798,9 @@ const FocusMode = {
                     this.showNotification('Session complete! 🎉');
                 }
             } else if (this.currentTask) {
+                // Clear the saved timer state for this completed task (without subtasks)
+                this.clearSubtaskTimerState(this.currentTask.id, 'main');
+
                 // Mark main task as completed
                 Tasks.toggleComplete(this.currentTask.id);
                 this.showNotification('Task completed! Great job! 🎉');
