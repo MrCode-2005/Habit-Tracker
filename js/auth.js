@@ -451,6 +451,26 @@ const Auth = {
                     // Now reload playlists (will merge cloud with local)
                     FocusMode.loadPlaylists();
                     FocusMode.loadVideoPlaylists();
+
+                    // Push local image playlists to cloud
+                    const localImagePlaylists = localStorage.getItem('focusImagePlaylists');
+                    if (localImagePlaylists) {
+                        const imagePlaylists = JSON.parse(localImagePlaylists);
+                        for (const [playlistId, playlist] of Object.entries(imagePlaylists)) {
+                            try {
+                                await SupabaseDB.upsertImagePlaylist(userId, {
+                                    id: playlistId,
+                                    name: playlist.name,
+                                    images: playlist.images || []
+                                });
+                            } catch (imagePlaylistError) {
+                                console.warn('Skipping image playlist sync (RLS error):', playlistId, imagePlaylistError.message);
+                            }
+                        }
+                    }
+
+                    // Reload image playlists from cloud
+                    await FocusMode.loadImagePlaylists();
                 } catch (focusModeError) {
                     console.warn('Focus mode sync skipped:', focusModeError.message);
                 }
