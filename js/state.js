@@ -18,9 +18,20 @@ const State = {
         this.habits = Storage.get('habits') || [];
         this.events = Storage.get('events') || [];
         this.goals = Storage.get('goals') || [];
-        this.taskCompletionHistory = Storage.get('taskCompletionHistory') || [];
-        this.habitCompletionHistory = Storage.get('habitCompletionHistory') || [];
-        this.goalCompletionHistory = Storage.get('goalCompletionHistory') || [];
+
+        // Load history from per-user keys if user was previously logged in
+        const currentUserId = Storage.get('currentUserId');
+        if (currentUserId) {
+            // Load from per-user keys
+            this.taskCompletionHistory = Storage.get(`taskCompletionHistory_${currentUserId}`) || [];
+            this.habitCompletionHistory = Storage.get(`habitCompletionHistory_${currentUserId}`) || [];
+            this.goalCompletionHistory = Storage.get(`goalCompletionHistory_${currentUserId}`) || [];
+        } else {
+            // Guest mode or first time - start with empty history
+            this.taskCompletionHistory = [];
+            this.habitCompletionHistory = [];
+            this.goalCompletionHistory = [];
+        }
 
         // Clean up old data (tasks older than 7 days)
         this.cleanupOldTasks();
