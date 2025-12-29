@@ -3298,7 +3298,9 @@ const FocusMode = {
             // Audio state
             currentPlaylist: this.currentPlaylist,
             currentTrackIndex: this.currentTrackIndex,
-            volume: this.volume
+            volume: this.volume,
+            // View mode (timer vs tree)
+            currentViewMode: this.currentViewMode
         };
         sessionStorage.setItem('focusModeState', JSON.stringify(state));
     },
@@ -3436,6 +3438,11 @@ const FocusMode = {
 
             this.showRandomQuote();
             this.startQuoteRotation();
+
+            // Restore view mode (timer vs tree)
+            if (state.currentViewMode) {
+                this.setViewMode(state.currentViewMode);
+            }
 
             // Remove the focus mode preload flag - focus mode is now properly active
             // (The CSS rules are no longer needed since JS has taken over)
