@@ -1133,25 +1133,35 @@
 
                             <!-- Stage 4: Trunk with Branches (40-60%) -->
                             <g class="tree-stage tree-branches" id="treeBranches">
-                                <!-- Main trunk - taller -->
-                                <path d="M100 268 L100 160" stroke="url(#trunkGradient)" stroke-width="14"
+                                <!-- MAIN TRUNK - from ground to top -->
+                                <rect x="92" y="160" width="16" height="115" fill="url(#trunkGradient)" rx="3" />
+                                <!-- Trunk base (wider at bottom) -->
+                                <path d="M88 270 Q100 265 112 270 L110 275 Q100 272 90 275 Z" fill="#5d4e37" />
+
+                                <!-- Main branches extending from trunk -->
+                                <path d="M100 190 Q60 165 35 150" stroke="url(#trunkGradient)" stroke-width="10"
+                                    stroke-linecap="round" fill="none" />
+                                <path d="M100 190 Q140 165 165 150" stroke="url(#trunkGradient)" stroke-width="10"
+                                    stroke-linecap="round" fill="none" />
+
+                                <!-- Upper branches -->
+                                <path d="M100 175 Q70 155 45 135" stroke="url(#trunkGradient)" stroke-width="7"
+                                    stroke-linecap="round" fill="none" />
+                                <path d="M100 175 Q130 155 155 135" stroke="url(#trunkGradient)" stroke-width="7"
+                                    stroke-linecap="round" fill="none" />
+
+                                <!-- Top central branch -->
+                                <path d="M100 165 L100 130" stroke="url(#trunkGradient)" stroke-width="6"
                                     stroke-linecap="round" />
-                                <!-- Main branches -->
-                                <path d="M100 200 Q65 175 45 155" stroke="url(#trunkGradient)" stroke-width="8"
-                                    stroke-linecap="round" fill="none" />
-                                <path d="M100 200 Q135 175 155 155" stroke="url(#trunkGradient)" stroke-width="8"
-                                    stroke-linecap="round" fill="none" />
-                                <!-- Secondary branches -->
-                                <path d="M100 180 Q75 160 55 140" stroke="url(#trunkGradient)" stroke-width="6"
-                                    stroke-linecap="round" fill="none" />
-                                <path d="M100 180 Q125 160 145 140" stroke="url(#trunkGradient)" stroke-width="6"
-                                    stroke-linecap="round" fill="none" />
+
                                 <!-- Small twigs -->
-                                <path d="M65 165 Q55 155 50 145" stroke="url(#trunkGradient)" stroke-width="3"
+                                <path d="M55 155 Q45 145 40 135" stroke="url(#trunkGradient)" stroke-width="4"
                                     stroke-linecap="round" fill="none" />
-                                <path d="M135 165 Q145 155 150 145" stroke="url(#trunkGradient)" stroke-width="3"
+                                <path d="M145 155 Q155 145 160 135" stroke="url(#trunkGradient)" stroke-width="4"
                                     stroke-linecap="round" fill="none" />
-                                <path d="M100 165 Q100 150 100 135" stroke="url(#trunkGradient)" stroke-width="5"
+                                <path d="M60 145 Q52 138 48 130" stroke="url(#trunkGradient)" stroke-width="3"
+                                    stroke-linecap="round" fill="none" />
+                                <path d="M140 145 Q148 138 152 130" stroke="url(#trunkGradient)" stroke-width="3"
                                     stroke-linecap="round" fill="none" />
                             </g>
 
