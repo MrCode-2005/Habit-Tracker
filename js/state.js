@@ -123,6 +123,8 @@ const State = {
             try {
                 const user = await SupabaseDB.getCurrentUser();
                 if (user) {
+                    // Also save with user ID for multi-user support
+                    Storage.set(`taskCompletionHistory_${user.id}`, this.taskCompletionHistory);
                     await SupabaseDB.syncTaskHistory(user.id, this.taskCompletionHistory);
                 }
             } catch (e) {
@@ -282,6 +284,8 @@ const State = {
             try {
                 const user = await SupabaseDB.getCurrentUser();
                 if (user) {
+                    // Also save with user ID for multi-user support
+                    Storage.set(`habitCompletionHistory_${user.id}`, this.habitCompletionHistory);
                     await SupabaseDB.syncHabitHistory(user.id, this.habitCompletionHistory);
                 }
             } catch (e) {
@@ -464,6 +468,8 @@ const State = {
             try {
                 const user = await SupabaseDB.getCurrentUser();
                 if (user) {
+                    // Also save with user ID for multi-user support
+                    Storage.set(`goalCompletionHistory_${user.id}`, this.goalCompletionHistory);
                     await SupabaseDB.syncGoalHistory(user.id, this.goalCompletionHistory);
                 }
             } catch (e) {

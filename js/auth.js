@@ -270,25 +270,38 @@ const Auth = {
 
         // Check if we're switching users
         const previousUserId = Storage.get('currentUserId');
-        const isSameUser = previousUserId === userId;
+        const isSwitchingUsers = previousUserId && previousUserId !== userId;
 
-        // Save current user ID for next comparison
+        // If switching users, SAVE the previous user's history before switching
+        if (isSwitchingUsers) {
+            console.log('Switching users - saving previous user history');
+            // Save current history to previous user's storage
+            Storage.set(`taskCompletionHistory_${previousUserId}`, State.taskCompletionHistory);
+            Storage.set(`habitCompletionHistory_${previousUserId}`, State.habitCompletionHistory);
+            Storage.set(`goalCompletionHistory_${previousUserId}`, State.goalCompletionHistory);
+        }
+
+        // Save current user ID
         Storage.set('currentUserId', userId);
 
         try {
             // Clear tasks/habits/goals/events (these come from Supabase per user)
             this.clearLocalData();
 
-            // Only clear history if switching to a DIFFERENT user
-            if (!isSameUser && previousUserId) {
-                console.log('User switched, clearing old history');
-                this.clearHistoryData();
-            }
+            // Load this user's history from their per-user storage
+            const userTaskHistory = Storage.get(`taskCompletionHistory_${userId}`) || [];
+            const userHabitHistory = Storage.get(`habitCompletionHistory_${userId}`) || [];
+            const userGoalHistory = Storage.get(`goalCompletionHistory_${userId}`) || [];
 
-            // Get local history (still in storage since we didn't clear it for same user)
-            const localTaskHistory = Storage.get('taskCompletionHistory') || [];
-            const localHabitHistory = Storage.get('habitCompletionHistory') || [];
-            const localGoalHistory = Storage.get('goalCompletionHistory') || [];
+            // Also check generic keys (backwards compatibility)
+            const genericTaskHistory = Storage.get('taskCompletionHistory') || [];
+            const genericHabitHistory = Storage.get('habitCompletionHistory') || [];
+            const genericGoalHistory = Storage.get('goalCompletionHistory') || [];
+
+            // Use user-specific history if available, otherwise use generic (migration)
+            const localTaskHistory = userTaskHistory.length > 0 ? userTaskHistory : genericTaskHistory;
+            const localHabitHistory = userHabitHistory.length > 0 ? userHabitHistory : genericHabitHistory;
+            const localGoalHistory = userGoalHistory.length > 0 ? userGoalHistory : genericGoalHistory;
 
             // Load tasks (convert snake_case to camelCase)
             const tasks = await SupabaseDB.getTasks(userId);
@@ -356,10 +369,14 @@ const Auth = {
                     ? cloudGoalHistory
                     : localGoalHistory;
 
-                // Save back to localStorage
+                // Save back to localStorage - BOTH generic and per-user keys
                 Storage.set('taskCompletionHistory', State.taskCompletionHistory);
                 Storage.set('habitCompletionHistory', State.habitCompletionHistory);
                 Storage.set('goalCompletionHistory', State.goalCompletionHistory);
+                // Also save with user ID for multi-user support
+                Storage.set(`taskCompletionHistory_${userId}`, State.taskCompletionHistory);
+                Storage.set(`habitCompletionHistory_${userId}`, State.habitCompletionHistory);
+                Storage.set(`goalCompletionHistory_${userId}`, State.goalCompletionHistory);
 
             } catch (historyError) {
                 console.warn('Could not sync history with Supabase:', historyError.message);
@@ -367,6 +384,10 @@ const Auth = {
                 State.taskCompletionHistory = localTaskHistory;
                 State.habitCompletionHistory = localHabitHistory;
                 State.goalCompletionHistory = localGoalHistory;
+                // Save with per-user keys
+                Storage.set(`taskCompletionHistory_${userId}`, localTaskHistory);
+                Storage.set(`habitCompletionHistory_${userId}`, localHabitHistory);
+                Storage.set(`goalCompletionHistory_${userId}`, localGoalHistory);
             }
 
             // Re-render all views
