@@ -739,6 +739,9 @@ const FocusMode = {
         this.animationPaused = false; // Resume animation when timer starts
         this.updateStartButton();
 
+        // If there's an audio enable overlay, remove it and start the pending audio
+        this.dismissAudioOverlayAndPlay();
+
         this.timerInterval = setInterval(() => {
             if (this.remainingSeconds > 0) {
                 this.remainingSeconds--;
@@ -750,6 +753,21 @@ const FocusMode = {
                 this.timerComplete();
             }
         }, 1000);
+    },
+
+    // Helper to dismiss audio overlay and start playing
+    dismissAudioOverlayAndPlay() {
+        const overlay = document.getElementById('audioEnableOverlay');
+        if (overlay) {
+            overlay.remove();
+            document.getElementById('audioOverlayStyles')?.remove();
+        }
+
+        // If there's pending audio to resume, play it now
+        if (this.pendingAudioResume) {
+            this.playTrack(this.pendingAudioResume.trackIndex);
+            this.pendingAudioResume = null;
+        }
     },
 
     pauseTimer() {
