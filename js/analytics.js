@@ -524,30 +524,29 @@ const Analytics = {
 
             weeks.push(`Week ${4 - i}`);
 
-            let totalCompletions = 0;
-            let totalPossible = 0;
+            let weeklyCompletions = 0;
 
             for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
                 const dateKey = d.toISOString().split('T')[0];
 
                 // Count active habit completions
                 habits.forEach(habit => {
-                    totalPossible++;
                     if (this.isHabitCompletedOnDate(habit, dateKey)) {
-                        totalCompletions++;
+                        weeklyCompletions++;
                     }
                 });
 
-                // Count deleted habit completions from history
+                // Count deleted habit completions from history (only for deleted habits)
                 const deletedOnDay = habitHistory.filter(h => {
                     return h.dateKey === dateKey && !activeHabitIds.has(String(h.habitId));
                 }).length;
 
-                totalCompletions += deletedOnDay;
-                totalPossible += deletedOnDay; // They were completed so add to possible
+                weeklyCompletions += deletedOnDay;
             }
 
-            completionRates.push(totalPossible > 0 ? Math.round((totalCompletions / totalPossible) * 100) : 0);
+            // Simple scaling: each completion per week = ~14% (7 * each habit * 2%)
+            // This keeps the scale consistent regardless of habit count changes
+            completionRates.push(Math.min(100, weeklyCompletions * 14));
         }
 
         return { weeks, completionRates };
