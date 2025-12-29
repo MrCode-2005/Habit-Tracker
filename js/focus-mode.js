@@ -92,6 +92,7 @@ const FocusMode = {
         this.loadPlaylists();
         this.loadVideoPlaylists();
         this.loadImagePlaylists();
+        this.loadAnimationState(); // Load saved animation/image state from localStorage
 
         // Restore focus mode if it was active before refresh
         this.restoreState();
@@ -533,12 +534,16 @@ const FocusMode = {
                 }
             }
 
-            // Restore image background if it was active
-            if (state.imageBgActive && state.currentImageUrl) {
-                this.setImageBackground(state.currentImageUrl);
-                if (state.currentImagePlaylist) {
-                    this.currentImagePlaylist = state.currentImagePlaylist;
-                    this.currentImageIndex = state.currentImageIndex || 0;
+            // Restore image background if it was active (check both sessionStorage and localStorage)
+            const hasImageBg = (state.imageBgActive && state.currentImageUrl) || (this.imageBgActive && this.currentImageUrl);
+            const imageUrl = state.currentImageUrl || this.currentImageUrl;
+
+            if (hasImageBg && imageUrl) {
+                this.setImageBackground(imageUrl);
+                const playlistId = state.currentImagePlaylist || this.currentImagePlaylist;
+                if (playlistId) {
+                    this.currentImagePlaylist = playlistId;
+                    this.currentImageIndex = state.currentImageIndex || this.currentImageIndex || 0;
                 }
             }
 
@@ -3379,8 +3384,32 @@ const FocusMode = {
         localStorage.setItem('focusAnimationState', JSON.stringify({
             currentAnimation: this.currentAnimation,
             videoBgActive: this.videoBgActive,
-            currentVideoBgUrl: this.currentVideoBgUrl || ''
+            currentVideoBgUrl: this.currentVideoBgUrl || '',
+            // Image background state
+            imageBgActive: this.imageBgActive,
+            currentImageUrl: this.currentImageUrl || '',
+            currentImagePlaylist: this.currentImagePlaylist,
+            currentImageIndex: this.currentImageIndex
         }));
+    },
+
+    loadAnimationState() {
+        try {
+            const saved = localStorage.getItem('focusAnimationState');
+            if (saved) {
+                const state = JSON.parse(saved);
+                this.currentAnimation = state.currentAnimation || 'none';
+                this.videoBgActive = state.videoBgActive || false;
+                this.currentVideoBgUrl = state.currentVideoBgUrl || '';
+                // Image background state
+                this.imageBgActive = state.imageBgActive || false;
+                this.currentImageUrl = state.currentImageUrl || null;
+                this.currentImagePlaylist = state.currentImagePlaylist || null;
+                this.currentImageIndex = state.currentImageIndex || 0;
+            }
+        } catch (e) {
+            console.log('Error loading animation state:', e);
+        }
     },
 
     // Save subtask timer states to localStorage for persistence across page navigation
@@ -3489,12 +3518,17 @@ const FocusMode = {
             }
 
             // Restore video background, image background, or start animation
-            if (state.imageBgActive && state.currentImageUrl) {
+            // Check both sessionStorage state and localStorage state (this.imageBgActive)
+            const hasImageBg = (state.imageBgActive && state.currentImageUrl) || (this.imageBgActive && this.currentImageUrl);
+            const imageUrl = state.currentImageUrl || this.currentImageUrl;
+
+            if (hasImageBg && imageUrl) {
                 // Restore image background
-                this.setImageBackground(state.currentImageUrl);
-                if (state.currentImagePlaylist) {
-                    this.currentImagePlaylist = state.currentImagePlaylist;
-                    this.currentImageIndex = state.currentImageIndex || 0;
+                this.setImageBackground(imageUrl);
+                const playlistId = state.currentImagePlaylist || this.currentImagePlaylist;
+                if (playlistId) {
+                    this.currentImagePlaylist = playlistId;
+                    this.currentImageIndex = state.currentImageIndex || this.currentImageIndex || 0;
                 }
             } else if (state.videoBgActive && state.currentVideoBgUrl) {
                 this.setVideoBackground(state.currentVideoBgUrl);
@@ -4426,8 +4460,9 @@ const FocusMode = {
         if (removeBtn) removeBtn.style.display = 'block';
         if (addRow && this.currentImagePlaylist) addRow.style.display = 'flex';
 
-        // Save state
+        // Save state to both sessionStorage and localStorage
         this.saveState();
+        this.saveAnimationState();
 
         this.showNotification('Background image set! 🖼️');
     },
@@ -4463,6 +4498,7 @@ const FocusMode = {
         // Restart animation
         this.startAnimation();
         this.saveState();
+        this.saveAnimationState();
     },
 
     handleImageFile(file) {
