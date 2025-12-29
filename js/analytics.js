@@ -32,10 +32,10 @@ const Analytics = {
         const days = [];
         const completionRates = [];
 
-        // Get completion history
-        const completionHistory = State.getCompletionHistory ? State.getCompletionHistory() : [];
-        // Get IDs of active tasks to avoid double counting
-        const activeTaskIds = new Set(State.tasks.map(t => t.id));
+        // Get completion history (for deleted tasks)
+        const completionHistory = State.taskCompletionHistory || [];
+        // Get IDs of active tasks to avoid double counting (convert to strings)
+        const activeTaskIds = new Set(State.tasks.map(t => String(t.id)));
 
         for (let i = 6; i >= 0; i--) {
             const date = new Date();
@@ -58,7 +58,10 @@ const Analytics = {
 
             // Count completions from history (for DELETED tasks only)
             const deletedCompletionsOnDay = completionHistory.filter(h => {
-                return h.dateKey === dateKey && !activeTaskIds.has(h.taskId);
+                const historyTaskId = String(h.taskId);
+                const isDeleted = !activeTaskIds.has(historyTaskId);
+                const matchesDate = h.dateKey === dateKey;
+                return matchesDate && isDeleted;
             }).length;
 
             // Total = active + deleted
@@ -75,10 +78,10 @@ const Analytics = {
         const weeks = [];
         const completionRates = [];
 
-        // Get completion history
-        const completionHistory = State.getCompletionHistory ? State.getCompletionHistory() : [];
-        // Get IDs of active tasks to avoid double counting
-        const activeTaskIds = new Set(State.tasks.map(t => t.id));
+        // Get completion history (for deleted tasks)
+        const completionHistory = State.taskCompletionHistory || [];
+        // Get IDs of active tasks to avoid double counting (convert to strings)
+        const activeTaskIds = new Set(State.tasks.map(t => String(t.id)));
 
         for (let i = 3; i >= 0; i--) {
             const endDate = new Date();
@@ -105,7 +108,10 @@ const Analytics = {
 
             // Count completions from history (for DELETED tasks only)
             const deletedCompletionsInWeek = completionHistory.filter(h => {
-                return h.dateKey >= startKey && h.dateKey <= endKey && !activeTaskIds.has(h.taskId);
+                const historyTaskId = String(h.taskId);
+                const isDeleted = !activeTaskIds.has(historyTaskId);
+                const inDateRange = h.dateKey >= startKey && h.dateKey <= endKey;
+                return inDateRange && isDeleted;
             }).length;
 
             // Total = active + deleted
@@ -133,22 +139,22 @@ const Analytics = {
     // Get habit completion count from history for a given date (includes deleted habits)
     getHabitCompletionsFromHistory(dateKey) {
         const history = State.habitCompletionHistory || [];
-        const activeHabitIds = new Set(State.habits.map(h => h.id));
+        const activeHabitIds = new Set(State.habits.map(h => String(h.id)));
 
         // Count completions from deleted habits only (active habits are counted separately)
         return history.filter(h => {
-            return h.dateKey === dateKey && !activeHabitIds.has(h.habitId);
+            return h.dateKey === dateKey && !activeHabitIds.has(String(h.habitId));
         }).length;
     },
 
     // Get goal completion count from history for a given date (includes deleted goals)
     getGoalCompletionsFromHistory(dateKey) {
         const history = State.goalCompletionHistory || [];
-        const activeGoalIds = new Set(State.goals.map(g => g.id));
+        const activeGoalIds = new Set(State.goals.map(g => String(g.id)));
 
         // Count completions from deleted goals only
         return history.filter(g => {
-            return g.dateKey === dateKey && !activeGoalIds.has(g.goalId);
+            return g.dateKey === dateKey && !activeGoalIds.has(String(g.goalId));
         }).length;
     },
 
@@ -348,8 +354,8 @@ const Analytics = {
 
         // Add completed goals from history (deleted goals)
         const goalHistory = State.goalCompletionHistory || [];
-        const activeGoalIds = new Set(goals.map(g => g.id));
-        const deletedCompleted = goalHistory.filter(g => !activeGoalIds.has(g.goalId)).length;
+        const activeGoalIds = new Set(goals.map(g => String(g.id)));
+        const deletedCompleted = goalHistory.filter(g => !activeGoalIds.has(String(g.goalId))).length;
         completed += deletedCompleted;
 
         const total = goals.length + deletedCompleted;
@@ -464,7 +470,7 @@ const Analytics = {
 
         // Get habit history for deleted habits
         const habitHistory = State.habitCompletionHistory || [];
-        const activeHabitIds = new Set(habits.map(h => h.id));
+        const activeHabitIds = new Set(habits.map(h => String(h.id)));
 
         for (let i = 6; i >= 0; i--) {
             const date = new Date();
@@ -483,7 +489,7 @@ const Analytics = {
 
             // Count deleted habit completions from history
             const deletedCompleted = habitHistory.filter(h => {
-                return h.dateKey === dateKey && !activeHabitIds.has(h.habitId);
+                return h.dateKey === dateKey && !activeHabitIds.has(String(h.habitId));
             }).length;
 
             const totalCompleted = activeCompleted + deletedCompleted;
@@ -508,7 +514,7 @@ const Analytics = {
 
         // Get habit history for deleted habits
         const habitHistory = State.habitCompletionHistory || [];
-        const activeHabitIds = new Set(habits.map(h => h.id));
+        const activeHabitIds = new Set(habits.map(h => String(h.id)));
 
         for (let i = 3; i >= 0; i--) {
             const endDate = new Date();
@@ -534,7 +540,7 @@ const Analytics = {
 
                 // Count deleted habit completions from history
                 const deletedOnDay = habitHistory.filter(h => {
-                    return h.dateKey === dateKey && !activeHabitIds.has(h.habitId);
+                    return h.dateKey === dateKey && !activeHabitIds.has(String(h.habitId));
                 }).length;
 
                 totalCompletions += deletedOnDay;
@@ -1008,10 +1014,10 @@ const Analytics = {
         const mostProductiveSlot = timeSlotData.labels[timeSlotData.data.indexOf(Math.max(...timeSlotData.data))];
 
         // Count from both active tasks and history
-        const completionHistory = State.getCompletionHistory ? State.getCompletionHistory() : [];
+        const completionHistory = State.taskCompletionHistory || [];
         const activeCompletedCount = State.tasks.filter(t => t.completed).length;
-        const activeTaskIds = new Set(State.tasks.map(t => t.id));
-        const deletedCompletedCount = completionHistory.filter(h => !activeTaskIds.has(h.taskId)).length;
+        const activeTaskIds = new Set(State.tasks.map(t => String(t.id)));
+        const deletedCompletedCount = completionHistory.filter(h => !activeTaskIds.has(String(h.taskId))).length;
         const completedTaskCount = activeCompletedCount + deletedCompletedCount;
 
         // Count habits completed today (including history)
