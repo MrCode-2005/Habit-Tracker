@@ -3311,11 +3311,16 @@ const FocusMode = {
             }
             if (state.volume !== undefined) {
                 this.volume = state.volume;
+                // Update volume sliders
+                const volumeSlider = document.getElementById('focusVolumeSlider');
+                const volumeSliderMini = document.getElementById('volumeSliderMini');
+                if (volumeSlider) volumeSlider.value = this.volume * 100;
+                if (volumeSliderMini) volumeSliderMini.value = this.volume * 100;
             }
-            if (state.currentPlaylist) {
-                this.currentPlaylist = state.currentPlaylist;
-                this.currentTrackIndex = state.currentTrackIndex || 0;
-            }
+
+            // Store playlist state to restore after a delay (to ensure playlists are loaded)
+            const savedPlaylist = state.currentPlaylist;
+            const savedTrackIndex = state.currentTrackIndex || 0;
 
             // Update UI
             this.updateTaskInfo();
@@ -3345,23 +3350,11 @@ const FocusMode = {
                 this.startAnimation();
             }
 
-            // Restore audio if there was a playlist
-            if (state.currentPlaylist && this.playlists[state.currentPlaylist]) {
-                const selectEl = document.getElementById('playlistSelect');
-                const selectMini = document.getElementById('playlistSelectMini');
-                if (selectEl) selectEl.value = state.currentPlaylist;
-                if (selectMini) selectMini.value = state.currentPlaylist;
-                this.renderPlaylistTracks(state.currentPlaylist);
-                this.renderPlaylistTracksMini();
-
-                // Auto-resume the audio if there was a track playing
-                if (state.currentTrackIndex >= 0) {
-                    // Play the track
-                    this.playTrack(state.currentTrackIndex);
-                    // Then seek to saved position
-                    this.resumePlaybackPosition();
-                }
-            }
+            // Restore audio playlist after a short delay to ensure playlists are loaded
+            // This handles both sync (localStorage) and async (Supabase) loading
+            setTimeout(() => {
+                this.restoreAudioPlayback(savedPlaylist, savedTrackIndex);
+            }, 500);
 
             this.showRandomQuote();
             this.startQuoteRotation();
@@ -3375,6 +3368,54 @@ const FocusMode = {
             console.log('Error restoring focus state:', e);
             // Remove preload flag on error so content is visible
             document.documentElement.removeAttribute('data-focus-active');
+        }
+    },
+
+    // Helper method to restore audio playback after refresh
+    restoreAudioPlayback(playlistId, trackIndex) {
+        try {
+            if (!playlistId) return;
+
+            // Check if playlist exists
+            if (!this.playlists[playlistId]) {
+                console.log('Playlist not found for restore:', playlistId);
+                return;
+            }
+
+            // Set the current playlist
+            this.currentPlaylist = playlistId;
+            this.currentTrackIndex = trackIndex;
+
+            // Update dropdown selections
+            const selectEl = document.getElementById('playlistSelect');
+            const selectMini = document.getElementById('playlistSelectMini');
+
+            if (selectEl) {
+                selectEl.value = playlistId;
+            }
+            if (selectMini) {
+                selectMini.value = playlistId;
+            }
+
+            // Render the playlist tracks
+            this.renderPlaylistTracks(playlistId);
+            this.renderPlaylistTracksMini();
+
+            // Auto-play the track that was playing
+            const tracks = this.playlists[playlistId].tracks;
+            if (tracks && tracks.length > 0 && trackIndex >= 0 && trackIndex < tracks.length) {
+                console.log(`Restoring track ${trackIndex + 1} from playlist "${this.playlists[playlistId].name}"`);
+
+                // Play the track
+                this.playTrack(trackIndex);
+
+                // Then seek to saved position after the player is ready
+                setTimeout(() => {
+                    this.resumePlaybackPosition();
+                }, 2000);
+            }
+        } catch (e) {
+            console.log('Error restoring audio playback:', e);
         }
     },
 
