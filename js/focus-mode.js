@@ -52,6 +52,12 @@ const FocusMode = {
     treeStage: 0, // 0-6 for growth stages
     treeProgress: 0, // 0-100 percentage
 
+    // Tree withering (when paused too long)
+    pauseStartTime: null, // When timer was paused
+    witherLevel: 0, // 0-100, how much the tree has withered
+    witherInterval: null, // Interval for checking wither status
+    isWithering: false, // True if tree is currently withering
+
     // Focus quotes
     focusQuotes: [
         { text: "The secret of getting ahead is getting started.", author: "Mark Twain" },
@@ -792,6 +798,10 @@ const FocusMode = {
         this.animationPaused = false; // Resume animation when timer starts
         this.updateStartButton();
 
+        // Stop withering check and reset pause tracking
+        this.stopWitherCheck();
+        this.pauseStartTime = null;
+
         // If there's an audio enable overlay, remove it and start the pending audio
         this.dismissAudioOverlayAndPlay();
 
@@ -834,12 +844,19 @@ const FocusMode = {
         }
         this.updateStartButton();
 
+        // Start tracking pause time for tree withering
+        this.pauseStartTime = Date.now();
+        this.startWitherCheck();
+
         // Also pause YouTube video background if playing
         if (this.youtubePlayer && this.youtubePlayer.pauseVideo) {
             try {
                 this.youtubePlayer.pauseVideo();
             } catch (e) { }
         }
+
+        // Update tree display to show paused state
+        this.updateTreeDisplay();
     },
 
     resetTimer() {
@@ -847,8 +864,11 @@ const FocusMode = {
         this.remainingSeconds = this.isBreakMode ? this.breakDuration : this.totalSeconds;
         this.updateTimerDisplay();
         this.updateProgress(1);
-        // Reset tree growth animation
+        // Reset tree growth animation and withering
         this.resetTreeGrowth();
+        this.witherLevel = 0;
+        this.isWithering = false;
+        this.stopWitherCheck();
     },
 
     timerComplete() {
@@ -4026,11 +4046,13 @@ const FocusMode = {
             for (let i = 0; i <= 6; i++) {
                 treeSvg.classList.remove(`stage-${i}`);
             }
-            treeSvg.classList.remove('complete', 'paused', 'break-mode');
+            treeSvg.classList.remove('complete', 'paused', 'break-mode', 'withering', 'dead');
         }
 
         this.treeStage = 0;
         this.treeProgress = 0;
+        this.witherLevel = 0;
+        this.isWithering = false;
         this.updateTreeDisplay();
     },
 
@@ -4043,6 +4065,90 @@ const FocusMode = {
         const treeProgressText = document.getElementById('treeProgressText');
         if (treeProgressText) {
             treeProgressText.textContent = '🎉 Tree Fully Grown!';
+        }
+    },
+
+    // ==============================
+    // Tree Withering Methods
+    // ==============================
+
+    startWitherCheck() {
+        // Don't start if already checking or if tree hasn't grown past stage 4
+        if (this.witherInterval || this.treeStage < 4) return;
+
+        // Check every 30 seconds
+        this.witherInterval = setInterval(() => {
+            this.checkWither();
+        }, 30000);
+    },
+
+    stopWitherCheck() {
+        if (this.witherInterval) {
+            clearInterval(this.witherInterval);
+            this.witherInterval = null;
+        }
+    },
+
+    checkWither() {
+        if (!this.isPaused || !this.pauseStartTime) return;
+
+        const pauseDuration = Date.now() - this.pauseStartTime;
+        const pauseMinutes = pauseDuration / (1000 * 60);
+
+        // Start withering after 10 minutes of pause
+        const WITHER_START_MINUTES = 10;
+        // Full wither after 30 minutes (20 minutes of withering)
+        const WITHER_DURATION_MINUTES = 20;
+
+        if (pauseMinutes >= WITHER_START_MINUTES) {
+            this.isWithering = true;
+
+            // Calculate wither level (0-100)
+            const witherMinutes = pauseMinutes - WITHER_START_MINUTES;
+            this.witherLevel = Math.min(100, (witherMinutes / WITHER_DURATION_MINUTES) * 100);
+
+            // Update the tree display
+            this.updateWitherDisplay();
+        }
+    },
+
+    updateWitherDisplay() {
+        const treeSvg = document.getElementById('treeSvg');
+        const treeProgressText = document.getElementById('treeProgressText');
+        const treeLabel = document.querySelector('.tree-timer-label');
+
+        if (!treeSvg) return;
+
+        // Add withering class
+        treeSvg.classList.add('withering');
+
+        // Calculate which leaves to hide based on wither level
+        // witherLevel 0-25: Some leaves falling
+        // witherLevel 25-50: Most stage 6 leaves gone
+        // witherLevel 50-75: Stage 5 leaves falling
+        // witherLevel 75-100: All leaves gone, bare trunk
+
+        if (this.witherLevel >= 100) {
+            treeSvg.classList.add('dead');
+            treeSvg.classList.remove('stage-5', 'stage-6');
+            if (treeLabel) treeLabel.textContent = 'WILTED 💀';
+            if (treeProgressText) treeProgressText.textContent = 'Tree died! Timer paused too long';
+        } else if (this.witherLevel >= 75) {
+            treeSvg.classList.remove('stage-6');
+            treeSvg.classList.add('wither-heavy');
+            if (treeLabel) treeLabel.textContent = 'DYING...';
+            if (treeProgressText) treeProgressText.textContent = `Tree withering: ${Math.round(this.witherLevel)}%`;
+        } else if (this.witherLevel >= 50) {
+            treeSvg.classList.add('wither-medium');
+            if (treeLabel) treeLabel.textContent = 'WILTING...';
+            if (treeProgressText) treeProgressText.textContent = `Tree withering: ${Math.round(this.witherLevel)}%`;
+        } else if (this.witherLevel >= 25) {
+            treeSvg.classList.add('wither-light');
+            if (treeLabel) treeLabel.textContent = 'STRUGGLING';
+            if (treeProgressText) treeProgressText.textContent = `Tree needs attention!`;
+        } else if (this.witherLevel > 0) {
+            if (treeLabel) treeLabel.textContent = 'PAUSED';
+            if (treeProgressText) treeProgressText.textContent = `Resume soon to save tree!`;
         }
     }
 };
