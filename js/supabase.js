@@ -496,6 +496,20 @@ const SupabaseDB = {
         if (error) console.error('Error syncing task history:', error);
     },
 
+    // Delete task history by date range (for clearing history)
+    async deleteTaskHistoryByDateRange(userId, cutoffKey) {
+        const client = getSupabase();
+        if (!client) return;
+
+        const { error } = await client
+            .from('task_completion_history')
+            .delete()
+            .eq('user_id', userId)
+            .gte('date_key', cutoffKey);
+
+        if (error) console.error('Error deleting task history by date range:', error);
+    },
+
     // Habit Completion History
     async getHabitHistory(userId) {
         const client = getSupabase();
@@ -573,6 +587,20 @@ const SupabaseDB = {
         if (error) console.error('Error syncing habit history:', error);
     },
 
+    // Delete habit history by date range (for clearing history)
+    async deleteHabitHistoryByDateRange(userId, cutoffKey) {
+        const client = getSupabase();
+        if (!client) return;
+
+        const { error } = await client
+            .from('habit_completion_history')
+            .delete()
+            .eq('user_id', userId)
+            .gte('date_key', cutoffKey);
+
+        if (error) console.error('Error deleting habit history by date range:', error);
+    },
+
     // Goal Completion History
     async getGoalHistory(userId) {
         const client = getSupabase();
@@ -647,5 +675,19 @@ const SupabaseDB = {
             .upsert(records, { onConflict: 'user_id,goal_id' });
 
         if (error) console.error('Error syncing goal history:', error);
+    },
+
+    // Delete goal history by date range (for clearing history)
+    async deleteGoalHistoryByDateRange(userId, cutoffKey) {
+        const client = getSupabase();
+        if (!client) return;
+
+        const { error } = await client
+            .from('goal_completion_history')
+            .delete()
+            .eq('user_id', userId)
+            .gte('date_key', cutoffKey);
+
+        if (error) console.error('Error deleting goal history by date range:', error);
     }
 };

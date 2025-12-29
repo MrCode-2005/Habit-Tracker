@@ -354,13 +354,13 @@ const ClearHistory = {
 
         switch (this.currentType) {
             case 'tasks':
-                this.clearTaskHistory(cutoffKey);
+                await this.clearTaskHistory(cutoffKey);
                 break;
             case 'habits':
-                this.clearHabitHistory(cutoffKey);
+                await this.clearHabitHistory(cutoffKey);
                 break;
             case 'goals':
-                this.clearGoalHistory(cutoffKey);
+                await this.clearGoalHistory(cutoffKey);
                 break;
         }
 
@@ -375,7 +375,7 @@ const ClearHistory = {
         Toast.success(`${this.currentType.charAt(0).toUpperCase() + this.currentType.slice(1)} history cleared successfully!`);
     },
 
-    clearTaskHistory(cutoffKey) {
+    async clearTaskHistory(cutoffKey) {
         // Clear from completion history
         if (State.taskCompletionHistory) {
             State.taskCompletionHistory = State.taskCompletionHistory.filter(h => h.dateKey < cutoffKey);
@@ -390,9 +390,17 @@ const ClearHistory = {
             }
         });
         State.saveTasks();
+
+        // Also delete from Supabase
+        if (typeof SupabaseDB !== 'undefined' && typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
+            const userId = Auth.getUserId();
+            if (userId) {
+                await SupabaseDB.deleteTaskHistoryByDateRange(userId, cutoffKey);
+            }
+        }
     },
 
-    clearHabitHistory(cutoffKey) {
+    async clearHabitHistory(cutoffKey) {
         // Clear from habit completion history
         if (State.habitCompletionHistory) {
             State.habitCompletionHistory = State.habitCompletionHistory.filter(h => h.dateKey < cutoffKey);
@@ -413,9 +421,17 @@ const ClearHistory = {
             }
         });
         State.saveHabits();
+
+        // Also delete from Supabase
+        if (typeof SupabaseDB !== 'undefined' && typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
+            const userId = Auth.getUserId();
+            if (userId) {
+                await SupabaseDB.deleteHabitHistoryByDateRange(userId, cutoffKey);
+            }
+        }
     },
 
-    clearGoalHistory(cutoffKey) {
+    async clearGoalHistory(cutoffKey) {
         // Clear from goal completion history
         if (State.goalCompletionHistory) {
             State.goalCompletionHistory = State.goalCompletionHistory.filter(h => h.dateKey < cutoffKey);
@@ -430,6 +446,14 @@ const ClearHistory = {
             }
         });
         State.saveGoals();
+
+        // Also delete from Supabase
+        if (typeof SupabaseDB !== 'undefined' && typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
+            const userId = Auth.getUserId();
+            if (userId) {
+                await SupabaseDB.deleteGoalHistoryByDateRange(userId, cutoffKey);
+            }
+        }
     }
 };
 
