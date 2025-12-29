@@ -1044,7 +1044,18 @@
 
             <!-- Timer Display -->
             <div class="focus-timer-container">
-                <div class="focus-timer-ring">
+                <!-- View Mode Toggle -->
+                <div class="focus-view-toggle" id="focusViewToggle">
+                    <button class="view-toggle-btn active" data-view="timer" title="Timer View">
+                        <i class="fas fa-clock"></i>
+                    </button>
+                    <button class="view-toggle-btn" data-view="tree" title="Tree Growth View">
+                        <i class="fas fa-seedling"></i>
+                    </button>
+                </div>
+
+                <!-- Normal Timer View -->
+                <div class="focus-timer-ring" id="focusTimerView">
                     <svg viewBox="0 0 320 320">
                         <defs>
                             <linearGradient id="timerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -1058,6 +1069,134 @@
                     <div class="focus-timer-display">
                         <div class="focus-timer-time" id="focusTimerDisplay">00:00:00</div>
                         <div class="focus-timer-label" id="focusTimerLabel">FOCUS TIME</div>
+                    </div>
+                </div>
+
+                <!-- Tree Growth Animation View -->
+                <div class="focus-tree-view hidden" id="focusTreeView">
+                    <div class="tree-container" id="treeContainer">
+                        <!-- Tree SVG -->
+                        <svg class="tree-svg" viewBox="0 0 200 300" id="treeSvg">
+                            <defs>
+                                <!-- Ground gradient -->
+                                <linearGradient id="groundGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#4a3c2a" />
+                                    <stop offset="100%" style="stop-color:#2d2416" />
+                                </linearGradient>
+                                <!-- Trunk gradient -->
+                                <linearGradient id="trunkGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" style="stop-color:#5d4e37" />
+                                    <stop offset="50%" style="stop-color:#8b7355" />
+                                    <stop offset="100%" style="stop-color:#5d4e37" />
+                                </linearGradient>
+                                <!-- Leaf gradient -->
+                                <linearGradient id="leafGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#4ade80" />
+                                    <stop offset="100%" style="stop-color:#22c55e" />
+                                </linearGradient>
+                                <!-- Leaf shadow -->
+                                <filter id="leafShadow" x="-20%" y="-20%" width="140%" height="140%">
+                                    <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.2" />
+                                </filter>
+                            </defs>
+
+                            <!-- Ground/Soil -->
+                            <ellipse class="tree-ground" cx="100" cy="280" rx="80" ry="15"
+                                fill="url(#groundGradient)" />
+
+                            <!-- Stage 1: Seed (0-10%) -->
+                            <g class="tree-stage tree-seed" id="treeSeed">
+                                <ellipse cx="100" cy="265" rx="8" ry="5" fill="#8b6914" />
+                            </g>
+
+                            <!-- Stage 2: Sprout (10-25%) -->
+                            <g class="tree-stage tree-sprout" id="treeSprout">
+                                <path d="M100 265 L100 250" stroke="#22c55e" stroke-width="3" stroke-linecap="round" />
+                                <ellipse cx="95" cy="248" rx="6" ry="4" fill="#4ade80" transform="rotate(-30 95 248)" />
+                                <ellipse cx="105" cy="248" rx="6" ry="4" fill="#4ade80"
+                                    transform="rotate(30 105 248)" />
+                            </g>
+
+                            <!-- Stage 3: Stem (25-40%) -->
+                            <g class="tree-stage tree-stem" id="treeStem">
+                                <path d="M100 265 L100 220" stroke="url(#trunkGradient)" stroke-width="6"
+                                    stroke-linecap="round" />
+                                <ellipse cx="92" cy="235" rx="8" ry="5" fill="#4ade80" transform="rotate(-40 92 235)" />
+                                <ellipse cx="108" cy="240" rx="8" ry="5" fill="#4ade80"
+                                    transform="rotate(40 108 240)" />
+                                <ellipse cx="90" cy="225" rx="7" ry="4" fill="#22c55e" transform="rotate(-50 90 225)" />
+                                <ellipse cx="110" cy="228" rx="7" ry="4" fill="#22c55e"
+                                    transform="rotate(50 110 228)" />
+                            </g>
+
+                            <!-- Stage 4: Branches (40-60%) -->
+                            <g class="tree-stage tree-branches" id="treeBranches">
+                                <path d="M100 265 L100 180" stroke="url(#trunkGradient)" stroke-width="10"
+                                    stroke-linecap="round" />
+                                <!-- Left branch -->
+                                <path d="M100 200 Q70 180 55 160" stroke="url(#trunkGradient)" stroke-width="5"
+                                    stroke-linecap="round" fill="none" />
+                                <!-- Right branch -->
+                                <path d="M100 200 Q130 180 145 160" stroke="url(#trunkGradient)" stroke-width="5"
+                                    stroke-linecap="round" fill="none" />
+                                <!-- Upper left -->
+                                <path d="M100 185 Q80 170 65 145" stroke="url(#trunkGradient)" stroke-width="4"
+                                    stroke-linecap="round" fill="none" />
+                                <!-- Upper right -->
+                                <path d="M100 185 Q120 170 135 145" stroke="url(#trunkGradient)" stroke-width="4"
+                                    stroke-linecap="round" fill="none" />
+                            </g>
+
+                            <!-- Stage 5: Leaves Growing (60-85%) -->
+                            <g class="tree-stage tree-leaves-growing" id="treeLeavesGrowing" filter="url(#leafShadow)">
+                                <ellipse class="leaf leaf-1" cx="55" cy="155" rx="18" ry="14"
+                                    fill="url(#leafGradient)" />
+                                <ellipse class="leaf leaf-2" cx="145" cy="155" rx="18" ry="14"
+                                    fill="url(#leafGradient)" />
+                                <ellipse class="leaf leaf-3" cx="65" cy="140" rx="20" ry="16"
+                                    fill="url(#leafGradient)" />
+                                <ellipse class="leaf leaf-4" cx="135" cy="140" rx="20" ry="16"
+                                    fill="url(#leafGradient)" />
+                                <ellipse class="leaf leaf-5" cx="100" cy="130" rx="22" ry="18"
+                                    fill="url(#leafGradient)" />
+                                <ellipse class="leaf leaf-6" cx="75" cy="120" rx="18" ry="14"
+                                    fill="url(#leafGradient)" />
+                                <ellipse class="leaf leaf-7" cx="125" cy="120" rx="18" ry="14"
+                                    fill="url(#leafGradient)" />
+                            </g>
+
+                            <!-- Stage 6: Full Tree (85-100%) -->
+                            <g class="tree-stage tree-full" id="treeFullGrown" filter="url(#leafShadow)">
+                                <!-- Full canopy -->
+                                <ellipse class="leaf leaf-8" cx="50" cy="135" rx="20" ry="16" fill="#22c55e" />
+                                <ellipse class="leaf leaf-9" cx="150" cy="135" rx="20" ry="16" fill="#22c55e" />
+                                <ellipse class="leaf leaf-10" cx="60" cy="110" rx="22" ry="18"
+                                    fill="url(#leafGradient)" />
+                                <ellipse class="leaf leaf-11" cx="140" cy="110" rx="22" ry="18"
+                                    fill="url(#leafGradient)" />
+                                <ellipse class="leaf leaf-12" cx="85" cy="95" rx="25" ry="20"
+                                    fill="url(#leafGradient)" />
+                                <ellipse class="leaf leaf-13" cx="115" cy="95" rx="25" ry="20"
+                                    fill="url(#leafGradient)" />
+                                <ellipse class="leaf leaf-14" cx="100" cy="85" rx="28" ry="22" fill="#4ade80" />
+                                <ellipse class="leaf leaf-15" cx="70" cy="100" rx="18" ry="14" fill="#16a34a" />
+                                <ellipse class="leaf leaf-16" cx="130" cy="100" rx="18" ry="14" fill="#16a34a" />
+                                <!-- Crown highlight -->
+                                <ellipse class="leaf leaf-crown" cx="100" cy="75" rx="20" ry="15" fill="#86efac" />
+                            </g>
+                        </svg>
+
+                        <!-- Timer overlay on tree view -->
+                        <div class="tree-timer-overlay">
+                            <div class="tree-timer-time" id="treeTimerDisplay">00:00</div>
+                            <div class="tree-timer-label">GROWING</div>
+                        </div>
+
+                        <!-- Progress indicator -->
+                        <div class="tree-progress-bar">
+                            <div class="tree-progress-fill" id="treeProgressFill"></div>
+                        </div>
+                        <div class="tree-progress-text" id="treeProgressText">0% Complete</div>
                     </div>
                 </div>
             </div>

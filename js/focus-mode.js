@@ -45,6 +45,12 @@ const FocusMode = {
     animationCanvas: null,
     animationCtx: null,
     animationFrame: null,
+    animationPaused: false,
+
+    // Tree Growth Animation
+    currentViewMode: 'timer', // 'timer' or 'tree'
+    treeStage: 0, // 0-6 for growth stages
+    treeProgress: 0, // 0-100 percentage
 
     // Focus quotes
     focusQuotes: [
@@ -93,6 +99,14 @@ const FocusMode = {
             btn.addEventListener('click', (e) => {
                 const minutes = parseInt(e.target.dataset.minutes);
                 this.setBreakDuration(minutes);
+            });
+        });
+
+        // View mode toggle (Timer vs Tree)
+        document.querySelectorAll('.view-toggle-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const view = e.currentTarget.dataset.view;
+                this.setViewMode(view);
             });
         });
 
@@ -777,6 +791,8 @@ const FocusMode = {
                 this.remainingSeconds--;
                 this.updateTimerDisplay();
                 this.updateProgress(this.remainingSeconds / this.totalSeconds);
+                // Update tree growth if in tree view
+                this.updateTreeGrowth();
                 // Update saved state periodically
                 this.saveState();
             } else {
@@ -822,6 +838,8 @@ const FocusMode = {
         this.remainingSeconds = this.isBreakMode ? this.breakDuration : this.totalSeconds;
         this.updateTimerDisplay();
         this.updateProgress(1);
+        // Reset tree growth animation
+        this.resetTreeGrowth();
     },
 
     timerComplete() {
@@ -859,6 +877,8 @@ const FocusMode = {
             } else {
                 this.showNotification('Great job! Session complete! 🎉');
             }
+            // Trigger tree completion animation
+            this.treeComplete();
         }
     },
 
@@ -3861,6 +3881,152 @@ const FocusMode = {
                 osc.start();
                 osc.stop(audioCtx.currentTime + 2);
             });
+        }
+    },
+
+    // ==============================
+    // Tree Growth Animation Methods
+    // ==============================
+
+    setViewMode(mode) {
+        this.currentViewMode = mode;
+
+        const timerView = document.getElementById('focusTimerView');
+        const treeView = document.getElementById('focusTreeView');
+        const toggleBtns = document.querySelectorAll('.view-toggle-btn');
+
+        // Update button states
+        toggleBtns.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.view === mode);
+        });
+
+        // Show/hide views
+        if (mode === 'tree') {
+            timerView?.classList.add('hidden');
+            treeView?.classList.remove('hidden');
+            // Update tree with current progress
+            this.updateTreeGrowth();
+        } else {
+            timerView?.classList.remove('hidden');
+            treeView?.classList.add('hidden');
+        }
+
+        // Save preference
+        localStorage.setItem('focusViewMode', mode);
+    },
+
+    updateTreeGrowth() {
+        if (this.currentViewMode !== 'tree') return;
+
+        // Calculate progress based on time elapsed
+        const elapsedSeconds = this.totalSeconds - this.remainingSeconds;
+        const progressPercent = this.totalSeconds > 0
+            ? Math.min(100, (elapsedSeconds / this.totalSeconds) * 100)
+            : 0;
+
+        this.treeProgress = progressPercent;
+
+        // Determine tree stage based on progress
+        // Stage 1: 0-10% (seed)
+        // Stage 2: 10-25% (sprout)
+        // Stage 3: 25-40% (stem)
+        // Stage 4: 40-60% (branches)
+        // Stage 5: 60-85% (leaves growing)
+        // Stage 6: 85-100% (full tree)
+        let newStage = 0;
+        if (progressPercent >= 85) newStage = 6;
+        else if (progressPercent >= 60) newStage = 5;
+        else if (progressPercent >= 40) newStage = 4;
+        else if (progressPercent >= 25) newStage = 3;
+        else if (progressPercent >= 10) newStage = 2;
+        else if (progressPercent > 0) newStage = 1;
+
+        this.treeStage = newStage;
+
+        // Update the visual display
+        this.updateTreeDisplay();
+    },
+
+    updateTreeDisplay() {
+        const treeSvg = document.getElementById('treeSvg');
+        const treeTimerDisplay = document.getElementById('treeTimerDisplay');
+        const treeProgressFill = document.getElementById('treeProgressFill');
+        const treeProgressText = document.getElementById('treeProgressText');
+
+        if (!treeSvg) return;
+
+        // Remove all stage classes
+        for (let i = 0; i <= 6; i++) {
+            treeSvg.classList.remove(`stage-${i}`);
+        }
+
+        // Add current stage class
+        if (this.treeStage > 0) {
+            treeSvg.classList.add(`stage-${this.treeStage}`);
+        }
+
+        // Update paused state
+        treeSvg.classList.toggle('paused', this.isPaused);
+
+        // Update break mode state
+        treeSvg.classList.toggle('break-mode', this.isBreakMode);
+
+        // Update timer display in tree view
+        if (treeTimerDisplay) {
+            const minutes = Math.floor(this.remainingSeconds / 60);
+            const seconds = this.remainingSeconds % 60;
+            treeTimerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        // Update progress bar
+        if (treeProgressFill) {
+            treeProgressFill.style.width = `${this.treeProgress}%`;
+        }
+
+        // Update progress text
+        if (treeProgressText) {
+            treeProgressText.textContent = `${Math.round(this.treeProgress)}% Complete`;
+        }
+
+        // Add growing label based on stage
+        const treeLabel = document.querySelector('.tree-timer-label');
+        if (treeLabel) {
+            if (this.isPaused) {
+                treeLabel.textContent = 'PAUSED';
+            } else if (this.isBreakMode) {
+                treeLabel.textContent = 'RESTING';
+            } else if (this.treeProgress >= 100) {
+                treeLabel.textContent = 'COMPLETE!';
+            } else {
+                treeLabel.textContent = 'GROWING';
+            }
+        }
+    },
+
+    resetTreeGrowth() {
+        const treeSvg = document.getElementById('treeSvg');
+        if (treeSvg) {
+            // Remove all stage classes
+            for (let i = 0; i <= 6; i++) {
+                treeSvg.classList.remove(`stage-${i}`);
+            }
+            treeSvg.classList.remove('complete', 'paused', 'break-mode');
+        }
+
+        this.treeStage = 0;
+        this.treeProgress = 0;
+        this.updateTreeDisplay();
+    },
+
+    treeComplete() {
+        const treeSvg = document.getElementById('treeSvg');
+        if (treeSvg) {
+            treeSvg.classList.add('stage-6', 'complete');
+        }
+
+        const treeProgressText = document.getElementById('treeProgressText');
+        if (treeProgressText) {
+            treeProgressText.textContent = '🎉 Tree Fully Grown!';
         }
     }
 };
