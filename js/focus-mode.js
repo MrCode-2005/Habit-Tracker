@@ -491,13 +491,22 @@ const FocusMode = {
         }, 500);
     },
 
-    // Restore audio from saved sessionStorage state (for when returning to focus mode)
+    // Restore audio and view mode from saved sessionStorage state (for when returning to focus mode)
     restoreAudioFromState() {
         try {
             const saved = sessionStorage.getItem('focusModeState');
             if (!saved) return;
 
             const state = JSON.parse(saved);
+
+            // Restore view mode (timer vs tree)
+            if (state.currentViewMode) {
+                this.setViewMode(state.currentViewMode);
+                // Also update tree progress if in tree view
+                if (state.currentViewMode === 'tree') {
+                    this.updateTreeGrowth();
+                }
+            }
 
             // Check if there was a playlist playing
             if (state.currentPlaylist && this.playlists[state.currentPlaylist]) {

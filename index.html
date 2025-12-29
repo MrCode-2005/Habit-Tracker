@@ -1101,89 +1101,96 @@
                                 </filter>
                             </defs>
 
-                            <!-- Ground/Soil -->
-                            <ellipse class="tree-ground" cx="100" cy="280" rx="80" ry="15"
+                            <!-- Ground/Soil - Always visible -->
+                            <ellipse class="tree-ground" cx="100" cy="275" rx="70" ry="12"
                                 fill="url(#groundGradient)" />
 
                             <!-- Stage 1: Seed (0-10%) -->
                             <g class="tree-stage tree-seed" id="treeSeed">
-                                <ellipse cx="100" cy="265" rx="8" ry="5" fill="#8b6914" />
+                                <ellipse cx="100" cy="268" rx="6" ry="4" fill="#8b6914" />
                             </g>
 
                             <!-- Stage 2: Sprout (10-25%) -->
                             <g class="tree-stage tree-sprout" id="treeSprout">
-                                <path d="M100 265 L100 250" stroke="#22c55e" stroke-width="3" stroke-linecap="round" />
-                                <ellipse cx="95" cy="248" rx="6" ry="4" fill="#4ade80" transform="rotate(-30 95 248)" />
-                                <ellipse cx="105" cy="248" rx="6" ry="4" fill="#4ade80"
-                                    transform="rotate(30 105 248)" />
+                                <path d="M100 268 L100 252" stroke="#22c55e" stroke-width="4" stroke-linecap="round" />
+                                <ellipse cx="94" cy="250" rx="7" ry="5" fill="#4ade80" transform="rotate(-35 94 250)" />
+                                <ellipse cx="106" cy="250" rx="7" ry="5" fill="#4ade80"
+                                    transform="rotate(35 106 250)" />
                             </g>
 
-                            <!-- Stage 3: Stem (25-40%) -->
+                            <!-- Stage 3: Young Stem (25-40%) -->
                             <g class="tree-stage tree-stem" id="treeStem">
-                                <path d="M100 265 L100 220" stroke="url(#trunkGradient)" stroke-width="6"
+                                <path d="M100 268 L100 220" stroke="url(#trunkGradient)" stroke-width="8"
                                     stroke-linecap="round" />
-                                <ellipse cx="92" cy="235" rx="8" ry="5" fill="#4ade80" transform="rotate(-40 92 235)" />
-                                <ellipse cx="108" cy="240" rx="8" ry="5" fill="#4ade80"
-                                    transform="rotate(40 108 240)" />
-                                <ellipse cx="90" cy="225" rx="7" ry="4" fill="#22c55e" transform="rotate(-50 90 225)" />
-                                <ellipse cx="110" cy="228" rx="7" ry="4" fill="#22c55e"
-                                    transform="rotate(50 110 228)" />
+                                <!-- Small leaves on stem -->
+                                <ellipse cx="92" cy="245" rx="9" ry="6" fill="#4ade80" transform="rotate(-40 92 245)" />
+                                <ellipse cx="108" cy="250" rx="9" ry="6" fill="#4ade80"
+                                    transform="rotate(40 108 250)" />
+                                <ellipse cx="90" cy="230" rx="8" ry="5" fill="#22c55e" transform="rotate(-50 90 230)" />
+                                <ellipse cx="110" cy="235" rx="8" ry="5" fill="#22c55e"
+                                    transform="rotate(50 110 235)" />
                             </g>
 
-                            <!-- Stage 4: Branches (40-60%) -->
+                            <!-- Stage 4: Trunk with Branches (40-60%) -->
                             <g class="tree-stage tree-branches" id="treeBranches">
-                                <path d="M100 265 L100 180" stroke="url(#trunkGradient)" stroke-width="10"
+                                <!-- Main trunk - taller -->
+                                <path d="M100 268 L100 160" stroke="url(#trunkGradient)" stroke-width="14"
                                     stroke-linecap="round" />
-                                <!-- Left branch -->
-                                <path d="M100 200 Q70 180 55 160" stroke="url(#trunkGradient)" stroke-width="5"
+                                <!-- Main branches -->
+                                <path d="M100 200 Q65 175 45 155" stroke="url(#trunkGradient)" stroke-width="8"
                                     stroke-linecap="round" fill="none" />
-                                <!-- Right branch -->
-                                <path d="M100 200 Q130 180 145 160" stroke="url(#trunkGradient)" stroke-width="5"
+                                <path d="M100 200 Q135 175 155 155" stroke="url(#trunkGradient)" stroke-width="8"
                                     stroke-linecap="round" fill="none" />
-                                <!-- Upper left -->
-                                <path d="M100 185 Q80 170 65 145" stroke="url(#trunkGradient)" stroke-width="4"
+                                <!-- Secondary branches -->
+                                <path d="M100 180 Q75 160 55 140" stroke="url(#trunkGradient)" stroke-width="6"
                                     stroke-linecap="round" fill="none" />
-                                <!-- Upper right -->
-                                <path d="M100 185 Q120 170 135 145" stroke="url(#trunkGradient)" stroke-width="4"
+                                <path d="M100 180 Q125 160 145 140" stroke="url(#trunkGradient)" stroke-width="6"
+                                    stroke-linecap="round" fill="none" />
+                                <!-- Small twigs -->
+                                <path d="M65 165 Q55 155 50 145" stroke="url(#trunkGradient)" stroke-width="3"
+                                    stroke-linecap="round" fill="none" />
+                                <path d="M135 165 Q145 155 150 145" stroke="url(#trunkGradient)" stroke-width="3"
+                                    stroke-linecap="round" fill="none" />
+                                <path d="M100 165 Q100 150 100 135" stroke="url(#trunkGradient)" stroke-width="5"
                                     stroke-linecap="round" fill="none" />
                             </g>
 
-                            <!-- Stage 5: Leaves Growing (60-85%) -->
+                            <!-- Stage 5: Small Leaves Growing (60-85%) -->
                             <g class="tree-stage tree-leaves-growing" id="treeLeavesGrowing" filter="url(#leafShadow)">
-                                <ellipse class="leaf leaf-1" cx="55" cy="155" rx="18" ry="14"
+                                <!-- First leaves on branch tips -->
+                                <ellipse class="leaf leaf-1" cx="48" cy="150" rx="15" ry="12"
                                     fill="url(#leafGradient)" />
-                                <ellipse class="leaf leaf-2" cx="145" cy="155" rx="18" ry="14"
+                                <ellipse class="leaf leaf-2" cx="152" cy="150" rx="15" ry="12"
                                     fill="url(#leafGradient)" />
-                                <ellipse class="leaf leaf-3" cx="65" cy="140" rx="20" ry="16"
+                                <ellipse class="leaf leaf-3" cx="55" cy="135" rx="16" ry="13"
                                     fill="url(#leafGradient)" />
-                                <ellipse class="leaf leaf-4" cx="135" cy="140" rx="20" ry="16"
+                                <ellipse class="leaf leaf-4" cx="145" cy="135" rx="16" ry="13"
                                     fill="url(#leafGradient)" />
-                                <ellipse class="leaf leaf-5" cx="100" cy="130" rx="22" ry="18"
+                                <ellipse class="leaf leaf-5" cx="100" cy="130" rx="18" ry="14"
                                     fill="url(#leafGradient)" />
-                                <ellipse class="leaf leaf-6" cx="75" cy="120" rx="18" ry="14"
-                                    fill="url(#leafGradient)" />
-                                <ellipse class="leaf leaf-7" cx="125" cy="120" rx="18" ry="14"
-                                    fill="url(#leafGradient)" />
+                                <!-- More leaves filling in -->
+                                <ellipse class="leaf leaf-6" cx="70" cy="125" rx="14" ry="11" fill="#22c55e" />
+                                <ellipse class="leaf leaf-7" cx="130" cy="125" rx="14" ry="11" fill="#22c55e" />
                             </g>
 
                             <!-- Stage 6: Full Tree (85-100%) -->
                             <g class="tree-stage tree-full" id="treeFullGrown" filter="url(#leafShadow)">
-                                <!-- Full canopy -->
-                                <ellipse class="leaf leaf-8" cx="50" cy="135" rx="20" ry="16" fill="#22c55e" />
-                                <ellipse class="leaf leaf-9" cx="150" cy="135" rx="20" ry="16" fill="#22c55e" />
-                                <ellipse class="leaf leaf-10" cx="60" cy="110" rx="22" ry="18"
+                                <!-- Dense canopy -->
+                                <ellipse class="leaf leaf-8" cx="45" cy="140" rx="18" ry="14" fill="#22c55e" />
+                                <ellipse class="leaf leaf-9" cx="155" cy="140" rx="18" ry="14" fill="#22c55e" />
+                                <ellipse class="leaf leaf-10" cx="60" cy="115" rx="20" ry="16"
                                     fill="url(#leafGradient)" />
-                                <ellipse class="leaf leaf-11" cx="140" cy="110" rx="22" ry="18"
+                                <ellipse class="leaf leaf-11" cx="140" cy="115" rx="20" ry="16"
                                     fill="url(#leafGradient)" />
-                                <ellipse class="leaf leaf-12" cx="85" cy="95" rx="25" ry="20"
+                                <ellipse class="leaf leaf-12" cx="80" cy="100" rx="22" ry="18"
                                     fill="url(#leafGradient)" />
-                                <ellipse class="leaf leaf-13" cx="115" cy="95" rx="25" ry="20"
+                                <ellipse class="leaf leaf-13" cx="120" cy="100" rx="22" ry="18"
                                     fill="url(#leafGradient)" />
-                                <ellipse class="leaf leaf-14" cx="100" cy="85" rx="28" ry="22" fill="#4ade80" />
-                                <ellipse class="leaf leaf-15" cx="70" cy="100" rx="18" ry="14" fill="#16a34a" />
-                                <ellipse class="leaf leaf-16" cx="130" cy="100" rx="18" ry="14" fill="#16a34a" />
-                                <!-- Crown highlight -->
-                                <ellipse class="leaf leaf-crown" cx="100" cy="75" rx="20" ry="15" fill="#86efac" />
+                                <ellipse class="leaf leaf-14" cx="100" cy="95" rx="24" ry="19" fill="#4ade80" />
+                                <!-- Top crown -->
+                                <ellipse class="leaf leaf-15" cx="68" cy="105" rx="16" ry="12" fill="#16a34a" />
+                                <ellipse class="leaf leaf-16" cx="132" cy="105" rx="16" ry="12" fill="#16a34a" />
+                                <ellipse class="leaf leaf-crown" cx="100" cy="82" rx="18" ry="14" fill="#86efac" />
                             </g>
                         </svg>
 
