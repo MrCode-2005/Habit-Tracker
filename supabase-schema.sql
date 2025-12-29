@@ -216,6 +216,38 @@ CREATE POLICY "Users can delete own video_playlists"
     USING (auth.uid() = user_id);
 
 -- =============================================
+-- IMAGE PLAYLISTS TABLE (Focus Mode Background Images)
+-- =============================================
+CREATE TABLE IF NOT EXISTS image_playlists (
+    id TEXT PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    name TEXT NOT NULL,
+    images JSONB DEFAULT '[]',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable RLS
+ALTER TABLE image_playlists ENABLE ROW LEVEL SECURITY;
+
+-- Policies for image_playlists
+CREATE POLICY "Users can view own image_playlists"
+    ON image_playlists FOR SELECT
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own image_playlists"
+    ON image_playlists FOR INSERT
+    WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own image_playlists"
+    ON image_playlists FOR UPDATE
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own image_playlists"
+    ON image_playlists FOR DELETE
+    USING (auth.uid() = user_id);
+
+-- =============================================
 -- INDEXES FOR PERFORMANCE
 -- =============================================
 CREATE INDEX IF NOT EXISTS tasks_user_id_idx ON tasks(user_id);
@@ -224,6 +256,7 @@ CREATE INDEX IF NOT EXISTS goals_user_id_idx ON goals(user_id);
 CREATE INDEX IF NOT EXISTS events_user_id_idx ON events(user_id);
 CREATE INDEX IF NOT EXISTS playlists_user_id_idx ON playlists(user_id);
 CREATE INDEX IF NOT EXISTS video_playlists_user_id_idx ON video_playlists(user_id);
+CREATE INDEX IF NOT EXISTS image_playlists_user_id_idx ON image_playlists(user_id);
 
 -- =============================================
 -- CALENDAR EVENTS TABLE (Rich Calendar Entries)
