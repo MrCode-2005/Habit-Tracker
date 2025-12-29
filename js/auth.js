@@ -266,18 +266,29 @@ const Auth = {
     async loadUserData() {
         if (!this.currentUser) return;
 
-        try {
-            // IMPORTANT: Save history data BEFORE clearing (so we can push to Supabase)
-            const savedTaskHistory = Storage.get('taskCompletionHistory') || [];
-            const savedHabitHistory = Storage.get('habitCompletionHistory') || [];
-            const savedGoalHistory = Storage.get('goalCompletionHistory') || [];
+        const userId = this.currentUser.id;
 
-            // Clear old user data before loading new user's data
-            // This prevents data leakage between different user accounts
+        // Check if we're switching users
+        const previousUserId = Storage.get('currentUserId');
+        const isSameUser = previousUserId === userId;
+
+        // Save current user ID for next comparison
+        Storage.set('currentUserId', userId);
+
+        try {
+            // Clear tasks/habits/goals/events (these come from Supabase per user)
             this.clearLocalData();
 
-            // Sync data from Supabase to local state
-            const userId = this.currentUser.id;
+            // Only clear history if switching to a DIFFERENT user
+            if (!isSameUser && previousUserId) {
+                console.log('User switched, clearing old history');
+                this.clearHistoryData();
+            }
+
+            // Get local history (still in storage since we didn't clear it for same user)
+            const localTaskHistory = Storage.get('taskCompletionHistory') || [];
+            const localHabitHistory = Storage.get('habitCompletionHistory') || [];
+            const localGoalHistory = Storage.get('goalCompletionHistory') || [];
 
             // Load tasks (convert snake_case to camelCase)
             const tasks = await SupabaseDB.getTasks(userId);
@@ -316,49 +327,46 @@ const Auth = {
             State.saveEvents();
 
             // Load completion history from Supabase
-            // IMPORTANT: Use savedHistory from BEFORE clearLocalData() was called
+            // Sync and load history from Supabase
             try {
-                // Push saved local history to Supabase first (in case we have data not yet synced)
-                if (savedTaskHistory.length > 0) {
-                    await SupabaseDB.syncTaskHistory(userId, savedTaskHistory);
+                // Push local history to Supabase (in case we have data not yet synced)
+                if (localTaskHistory.length > 0) {
+                    await SupabaseDB.syncTaskHistory(userId, localTaskHistory);
                 }
-                if (savedHabitHistory.length > 0) {
-                    await SupabaseDB.syncHabitHistory(userId, savedHabitHistory);
+                if (localHabitHistory.length > 0) {
+                    await SupabaseDB.syncHabitHistory(userId, localHabitHistory);
                 }
-                if (savedGoalHistory.length > 0) {
-                    await SupabaseDB.syncGoalHistory(userId, savedGoalHistory);
+                if (localGoalHistory.length > 0) {
+                    await SupabaseDB.syncGoalHistory(userId, localGoalHistory);
                 }
 
-                // Now load from Supabase (will include our pushed data)
-                const taskHistory = await SupabaseDB.getTaskHistory(userId);
-                const habitHistory = await SupabaseDB.getHabitHistory(userId);
-                const goalHistory = await SupabaseDB.getGoalHistory(userId);
+                // Load from Supabase (will include our pushed data)
+                const cloudTaskHistory = await SupabaseDB.getTaskHistory(userId);
+                const cloudHabitHistory = await SupabaseDB.getHabitHistory(userId);
+                const cloudGoalHistory = await SupabaseDB.getGoalHistory(userId);
 
-                // Use cloud data if available, otherwise keep saved local
-                State.taskCompletionHistory = (taskHistory && taskHistory.length > 0)
-                    ? taskHistory
-                    : savedTaskHistory;
-                State.habitCompletionHistory = (habitHistory && habitHistory.length > 0)
-                    ? habitHistory
-                    : savedHabitHistory;
-                State.goalCompletionHistory = (goalHistory && goalHistory.length > 0)
-                    ? goalHistory
-                    : savedGoalHistory;
+                // Use cloud data if available, otherwise keep local
+                State.taskCompletionHistory = (cloudTaskHistory && cloudTaskHistory.length > 0)
+                    ? cloudTaskHistory
+                    : localTaskHistory;
+                State.habitCompletionHistory = (cloudHabitHistory && cloudHabitHistory.length > 0)
+                    ? cloudHabitHistory
+                    : localHabitHistory;
+                State.goalCompletionHistory = (cloudGoalHistory && cloudGoalHistory.length > 0)
+                    ? cloudGoalHistory
+                    : localGoalHistory;
 
-                // Update localStorage
+                // Save back to localStorage
                 Storage.set('taskCompletionHistory', State.taskCompletionHistory);
                 Storage.set('habitCompletionHistory', State.habitCompletionHistory);
                 Storage.set('goalCompletionHistory', State.goalCompletionHistory);
 
             } catch (historyError) {
                 console.warn('Could not sync history with Supabase:', historyError.message);
-                // Keep saved local history if sync fails
-                State.taskCompletionHistory = savedTaskHistory;
-                State.habitCompletionHistory = savedHabitHistory;
-                State.goalCompletionHistory = savedGoalHistory;
-                Storage.set('taskCompletionHistory', savedTaskHistory);
-                Storage.set('habitCompletionHistory', savedHabitHistory);
-                Storage.set('goalCompletionHistory', savedGoalHistory);
+                // Keep local history if sync fails
+                State.taskCompletionHistory = localTaskHistory;
+                State.habitCompletionHistory = localHabitHistory;
+                State.goalCompletionHistory = localGoalHistory;
             }
 
             // Re-render all views
@@ -454,18 +462,24 @@ const Auth = {
     },
 
     // Clear all local data - used when switching users or logging out
+    // Note: History is NOT cleared here - it's preserved for the same user
     clearLocalData() {
         State.tasks = [];
         State.habits = [];
         State.events = [];
         State.goals = [];
-        State.taskCompletionHistory = [];
-        State.habitCompletionHistory = [];
-        State.goalCompletionHistory = [];
         Storage.remove('tasks');
         Storage.remove('habits');
         Storage.remove('events');
         Storage.remove('goals');
+        // History is NOT cleared here - it persists until explicitly cleared
+    },
+
+    // Clear history data - only call when switching to a DIFFERENT user
+    clearHistoryData() {
+        State.taskCompletionHistory = [];
+        State.habitCompletionHistory = [];
+        State.goalCompletionHistory = [];
         Storage.remove('taskCompletionHistory');
         Storage.remove('habitCompletionHistory');
         Storage.remove('goalCompletionHistory');
