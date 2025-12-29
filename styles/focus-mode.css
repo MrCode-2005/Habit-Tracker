@@ -1689,13 +1689,11 @@
    Tree Growth Animation
    =================================== */
 
-/* View Mode Toggle */
+/* View Mode Toggle - Positioned at top of focus content */
 .focus-view-toggle {
-    position: absolute;
-    top: -60px;
-    left: 50%;
-    transform: translateX(-50%);
+    position: relative;
     display: flex;
+    justify-content: center;
     gap: 0.5rem;
     background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
@@ -1703,6 +1701,10 @@
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.15);
     z-index: 10;
+    margin-bottom: 1rem;
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .view-toggle-btn {
@@ -1738,10 +1740,12 @@
 .focus-tree-view {
     position: relative;
     width: 320px;
-    height: 320px;
+    height: 380px;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
+    padding-top: 20px;
 }
 
 .focus-tree-view.hidden {
@@ -2021,41 +2025,41 @@
     filter: drop-shadow(0 10px 30px rgba(16, 185, 129, 0.3));
 }
 
-/* Timer overlay on tree */
+/* Timer overlay on tree - positioned below the tree */
 .tree-timer-overlay {
     position: absolute;
-    bottom: 30px;
+    bottom: 60px;
     left: 50%;
     transform: translateX(-50%);
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(10px);
-    padding: 0.75rem 1.5rem;
-    border-radius: 16px;
+    padding: 0.5rem 1.25rem;
+    border-radius: 12px;
     text-align: center;
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .tree-timer-time {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
     font-weight: 700;
     color: white;
     font-variant-numeric: tabular-nums;
 }
 
 .tree-timer-label {
-    font-size: 0.65rem;
+    font-size: 0.6rem;
     color: rgba(255, 255, 255, 0.6);
     text-transform: uppercase;
     letter-spacing: 2px;
 }
 
-/* Progress bar */
+/* Progress bar - positioned at bottom */
 .tree-progress-bar {
     position: absolute;
-    bottom: 5px;
+    bottom: 35px;
     left: 50%;
     transform: translateX(-50%);
-    width: 160px;
+    width: 180px;
     height: 4px;
     background: rgba(255, 255, 255, 0.1);
     border-radius: 2px;
@@ -2072,7 +2076,7 @@
 
 .tree-progress-text {
     position: absolute;
-    bottom: -15px;
+    bottom: 15px;
     left: 50%;
     transform: translateX(-50%);
     font-size: 0.7rem;
@@ -2137,10 +2141,6 @@
 
 /* Responsive */
 @media (max-width: 768px) {
-    .focus-view-toggle {
-        top: -50px;
-    }
-
     .view-toggle-btn {
         width: 36px;
         height: 36px;
@@ -2148,7 +2148,7 @@
 
     .focus-tree-view {
         width: 280px;
-        height: 280px;
+        height: 350px;
     }
 
     .tree-svg {
@@ -2157,22 +2157,28 @@
     }
 
     .tree-timer-overlay {
-        padding: 0.5rem 1rem;
+        padding: 0.4rem 1rem;
+        bottom: 50px;
     }
 
     .tree-timer-time {
-        font-size: 1.5rem;
+        font-size: 1.25rem;
     }
 
     .tree-progress-bar {
         width: 140px;
+        bottom: 30px;
+    }
+
+    .tree-progress-text {
+        bottom: 10px;
     }
 }
 
 @media (max-width: 480px) {
     .focus-tree-view {
         width: 240px;
-        height: 260px;
+        height: 320px;
     }
 
     .tree-svg {
@@ -2181,7 +2187,7 @@
     }
 
     .tree-timer-time {
-        font-size: 1.25rem;
+        font-size: 1.1rem;
     }
 
     .tree-progress-bar {
