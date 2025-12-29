@@ -1,8 +1,10 @@
 -- =============================================
--- IMAGE PLAYLISTS TABLE (Focus Mode Background Images)
+-- IMAGE PLAYLISTS TABLE - Safe Migration
 -- Run this in Supabase SQL Editor
+-- This version handles the case where some parts already exist
 -- =============================================
 
+-- Create table if not exists
 CREATE TABLE IF NOT EXISTS image_playlists (
     id TEXT PRIMARY KEY,
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
@@ -15,7 +17,13 @@ CREATE TABLE IF NOT EXISTS image_playlists (
 -- Enable RLS
 ALTER TABLE image_playlists ENABLE ROW LEVEL SECURITY;
 
--- Policies for image_playlists
+-- Drop existing policies first to avoid conflicts
+DROP POLICY IF EXISTS "Users can view own image_playlists" ON image_playlists;
+DROP POLICY IF EXISTS "Users can insert own image_playlists" ON image_playlists;
+DROP POLICY IF EXISTS "Users can update own image_playlists" ON image_playlists;
+DROP POLICY IF EXISTS "Users can delete own image_playlists" ON image_playlists;
+
+-- Create policies fresh
 CREATE POLICY "Users can view own image_playlists"
     ON image_playlists FOR SELECT
     USING (auth.uid() = user_id);
@@ -34,7 +42,3 @@ CREATE POLICY "Users can delete own image_playlists"
 
 -- Index for performance
 CREATE INDEX IF NOT EXISTS image_playlists_user_id_idx ON image_playlists(user_id);
-
--- Add trigger for auto-updating updated_at
-CREATE TRIGGER update_image_playlists_updated_at BEFORE UPDATE ON image_playlists
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

@@ -395,6 +395,102 @@ const SupabaseDB = {
         if (error) console.error('Error deleting image playlist:', error);
     },
 
+    // Focus Sessions (Cross-Browser Timer Sync)
+    async getFocusSession(userId, taskId, subtaskIndex = -1) {
+        const client = getSupabase();
+        if (!client) return null;
+
+        let query = client
+            .from('focus_sessions')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('task_id', taskId);
+
+        // Match subtask index (-1 means main task only)
+        if (subtaskIndex >= 0) {
+            query = query.eq('subtask_index', subtaskIndex);
+        } else {
+            query = query.eq('subtask_index', -1);
+        }
+
+        const { data, error } = await query.single();
+
+        if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+            console.error('Error fetching focus session:', error);
+            return null;
+        }
+        return data;
+    },
+
+    async upsertFocusSession(userId, session) {
+        const client = getSupabase();
+        if (!client) return null;
+
+        const dbSession = {
+            id: session.id || `focus_${session.taskId}_${session.subtaskIndex || -1}_${userId}`,
+            user_id: userId,
+            task_id: session.taskId,
+            task_title: session.taskTitle,
+            subtask_index: session.subtaskIndex ?? -1,
+            subtask_title: session.subtaskTitle || null,
+            total_seconds: session.totalSeconds,
+            remaining_seconds: session.remainingSeconds,
+            is_break_mode: session.isBreakMode || false,
+            break_duration: session.breakDuration || 5,
+            is_paused: session.isPaused ?? true,
+            tree_stage: session.treeStage || 0,
+            tree_progress: session.treeProgress || 0,
+            view_mode: session.viewMode || 'timer',
+            paused_at: new Date().toISOString()
+        };
+
+        const { data, error } = await client
+            .from('focus_sessions')
+            .upsert([dbSession])
+            .select()
+            .single();
+
+        if (error) console.error('Error upserting focus session:', error);
+        return data;
+    },
+
+    async deleteFocusSession(userId, taskId, subtaskIndex = -1) {
+        const client = getSupabase();
+        if (!client) return;
+
+        let query = client
+            .from('focus_sessions')
+            .delete()
+            .eq('user_id', userId)
+            .eq('task_id', taskId);
+
+        if (subtaskIndex >= 0) {
+            query = query.eq('subtask_index', subtaskIndex);
+        } else {
+            query = query.eq('subtask_index', -1);
+        }
+
+        const { error } = await query;
+        if (error) console.error('Error deleting focus session:', error);
+    },
+
+    async getAllFocusSessions(userId) {
+        const client = getSupabase();
+        if (!client) return [];
+
+        const { data, error } = await client
+            .from('focus_sessions')
+            .select('*')
+            .eq('user_id', userId)
+            .order('updated_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching focus sessions:', error);
+            return [];
+        }
+        return data || [];
+    },
+
     // Calendar Events
     async getCalendarEvents(userId) {
         const client = getSupabase();

@@ -421,7 +421,7 @@ const FocusMode = {
     },
 
     // Open focus mode with a task
-    open(task, subtask = null) {
+    async open(task, subtask = null) {
         // Load persisted subtask timer states from localStorage
         this.loadSubtaskTimerStates();
 
@@ -464,26 +464,44 @@ const FocusMode = {
         this.totalSeconds = totalMinutes * 60;
         this.remainingSeconds = this.totalSeconds;
 
-        // Check if we have a saved timer state for this specific subtask or task
-        if (this.currentSubtask && task) {
-            // For subtasks, key by taskId_subtaskTitle
-            const timerKey = `${task.id}_${this.currentSubtask.title}`;
-            const savedState = this.subtaskTimerStates[timerKey];
-            if (savedState && savedState.remainingSeconds !== undefined && savedState.remainingSeconds > 0) {
-                // Restore the saved remaining seconds
-                this.remainingSeconds = savedState.remainingSeconds;
-                this.totalSeconds = savedState.totalSeconds || this.totalSeconds;
-                console.log(`Restored timer for subtask "${this.currentSubtask.title}": ${this.remainingSeconds}s remaining`);
+        // Check for cloud session first (cross-browser sync)
+        const subtaskIndex = this.currentSubtask?.index ?? -1;
+        const cloudCheck = await this.checkForSavedSession(task, this.currentSubtask);
+
+        if (cloudCheck.shouldResume) {
+            // Resume from cloud session
+            this.remainingSeconds = cloudCheck.remainingSeconds;
+            this.totalSeconds = cloudCheck.totalSeconds;
+            this.isBreakMode = cloudCheck.isBreakMode;
+            this.breakDuration = cloudCheck.breakDuration;
+            this.treeStage = cloudCheck.treeStage || 0;
+            this.treeProgress = cloudCheck.treeProgress || 0;
+            if (cloudCheck.viewMode) {
+                this.currentViewMode = cloudCheck.viewMode;
             }
-        } else if (task && !this.currentSubtask) {
-            // For tasks without subtasks, key by taskId_main
-            const timerKey = `${task.id}_main`;
-            const savedState = this.subtaskTimerStates[timerKey];
-            if (savedState && savedState.remainingSeconds !== undefined && savedState.remainingSeconds > 0) {
-                // Restore the saved remaining seconds
-                this.remainingSeconds = savedState.remainingSeconds;
-                this.totalSeconds = savedState.totalSeconds || this.totalSeconds;
-                console.log(`Restored timer for task "${task.title}": ${this.remainingSeconds}s remaining`);
+            console.log('Resumed from cloud session');
+        } else {
+            // Check local storage for saved timer state
+            if (this.currentSubtask && task) {
+                // For subtasks, key by taskId_subtaskTitle
+                const timerKey = `${task.id}_${this.currentSubtask.title}`;
+                const savedState = this.subtaskTimerStates[timerKey];
+                if (savedState && savedState.remainingSeconds !== undefined && savedState.remainingSeconds > 0) {
+                    // Restore the saved remaining seconds
+                    this.remainingSeconds = savedState.remainingSeconds;
+                    this.totalSeconds = savedState.totalSeconds || this.totalSeconds;
+                    console.log(`Restored timer for subtask "${this.currentSubtask.title}": ${this.remainingSeconds}s remaining`);
+                }
+            } else if (task && !this.currentSubtask) {
+                // For tasks without subtasks, key by taskId_main
+                const timerKey = `${task.id}_main`;
+                const savedState = this.subtaskTimerStates[timerKey];
+                if (savedState && savedState.remainingSeconds !== undefined && savedState.remainingSeconds > 0) {
+                    // Restore the saved remaining seconds
+                    this.remainingSeconds = savedState.remainingSeconds;
+                    this.totalSeconds = savedState.totalSeconds || this.totalSeconds;
+                    console.log(`Restored timer for task "${task.title}": ${this.remainingSeconds}s remaining`);
+                }
             }
         }
 
@@ -890,6 +908,9 @@ const FocusMode = {
 
         // Update tree display to show paused state
         this.updateTreeDisplay();
+
+        // Save session to cloud for cross-browser sync
+        this.saveFocusSessionToCloud();
     },
 
     resetTimer() {
@@ -902,6 +923,9 @@ const FocusMode = {
         this.witherLevel = 0;
         this.isWithering = false;
         this.stopWitherCheck();
+
+        // Delete cloud session since timer was reset
+        this.deleteFocusSessionFromCloud();
     },
 
     timerComplete() {
@@ -941,6 +965,9 @@ const FocusMode = {
             }
             // Trigger tree completion animation
             this.treeComplete();
+
+            // Delete cloud session since timer is complete
+            this.deleteFocusSessionFromCloud();
         }
     },
 
@@ -4729,6 +4756,111 @@ const FocusMode = {
                 this.slideshowInterval = null;
             }
         }
+    },
+
+    // ==============================
+    // Focus Session Sync (Cross-Browser)
+    // ==============================
+
+    async saveFocusSessionToCloud() {
+        // Only save if user is logged in and we have a valid task
+        if (typeof SupabaseDB === 'undefined') return;
+        if (!this.currentTask?.id) return;
+
+        try {
+            const user = await SupabaseDB.getCurrentUser();
+            if (!user) return;
+
+            const subtaskIndex = this.currentSubtask?.index ?? -1;
+
+            const session = {
+                taskId: this.currentTask.id,
+                taskTitle: this.currentTask.title,
+                subtaskIndex: subtaskIndex,
+                subtaskTitle: this.currentSubtask?.title || null,
+                totalSeconds: this.totalSeconds,
+                remainingSeconds: this.remainingSeconds,
+                isBreakMode: this.isBreakMode,
+                breakDuration: this.breakDuration,
+                isPaused: this.isPaused,
+                treeStage: this.treeStage,
+                treeProgress: this.treeProgress,
+                viewMode: this.currentViewMode
+            };
+
+            await SupabaseDB.upsertFocusSession(user.id, session);
+            console.log('Focus session saved to cloud');
+        } catch (e) {
+            console.log('Could not save focus session to cloud:', e.message);
+        }
+    },
+
+    async loadFocusSessionFromCloud(taskId, subtaskIndex = -1) {
+        if (typeof SupabaseDB === 'undefined') return null;
+
+        try {
+            const user = await SupabaseDB.getCurrentUser();
+            if (!user) return null;
+
+            const session = await SupabaseDB.getFocusSession(user.id, taskId, subtaskIndex);
+            return session;
+        } catch (e) {
+            console.log('Could not load focus session from cloud:', e.message);
+            return null;
+        }
+    },
+
+    async deleteFocusSessionFromCloud() {
+        if (typeof SupabaseDB === 'undefined') return;
+        if (!this.currentTask?.id) return;
+
+        try {
+            const user = await SupabaseDB.getCurrentUser();
+            if (!user) return;
+
+            const subtaskIndex = this.currentSubtask?.index ?? -1;
+            await SupabaseDB.deleteFocusSession(user.id, this.currentTask.id, subtaskIndex);
+            console.log('Focus session deleted from cloud');
+        } catch (e) {
+            console.log('Could not delete focus session from cloud:', e.message);
+        }
+    },
+
+    async checkForSavedSession(task, subtask = null) {
+        const subtaskIndex = subtask?.index ?? -1;
+        const cloudSession = await this.loadFocusSessionFromCloud(task.id, subtaskIndex);
+
+        if (cloudSession && cloudSession.remaining_seconds > 0 && cloudSession.remaining_seconds < cloudSession.total_seconds) {
+            // Found a saved session with progress
+            const remainingMins = Math.floor(cloudSession.remaining_seconds / 60);
+            const remainingSecs = cloudSession.remaining_seconds % 60;
+            const timeStr = `${remainingMins}:${remainingSecs.toString().padStart(2, '0')}`;
+
+            // Ask user if they want to resume
+            const resume = confirm(
+                `Found a saved session for this ${subtask ? 'subtask' : 'task'}!\n\n` +
+                `Time remaining: ${timeStr}\n\n` +
+                `Would you like to resume where you left off?`
+            );
+
+            if (resume) {
+                return {
+                    shouldResume: true,
+                    remainingSeconds: cloudSession.remaining_seconds,
+                    totalSeconds: cloudSession.total_seconds,
+                    isBreakMode: cloudSession.is_break_mode,
+                    breakDuration: cloudSession.break_duration,
+                    treeStage: cloudSession.tree_stage,
+                    treeProgress: cloudSession.tree_progress,
+                    viewMode: cloudSession.view_mode
+                };
+            } else {
+                // User chose not to resume - delete the old session
+                await this.deleteFocusSessionFromCloud();
+            }
+        }
+
+        return { shouldResume: false };
     }
 };
 
