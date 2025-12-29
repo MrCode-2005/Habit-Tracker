@@ -267,7 +267,12 @@ const Auth = {
         if (!this.currentUser) return;
 
         try {
-            // IMPORTANT: Clear old user data before loading new user's data
+            // IMPORTANT: Save history data BEFORE clearing (so we can push to Supabase)
+            const savedTaskHistory = Storage.get('taskCompletionHistory') || [];
+            const savedHabitHistory = Storage.get('habitCompletionHistory') || [];
+            const savedGoalHistory = Storage.get('goalCompletionHistory') || [];
+
+            // Clear old user data before loading new user's data
             // This prevents data leakage between different user accounts
             this.clearLocalData();
 
@@ -311,29 +316,49 @@ const Auth = {
             State.saveEvents();
 
             // Load completion history from Supabase
+            // IMPORTANT: Use savedHistory from BEFORE clearLocalData() was called
             try {
-                // Task completion history
+                // Push saved local history to Supabase first (in case we have data not yet synced)
+                if (savedTaskHistory.length > 0) {
+                    await SupabaseDB.syncTaskHistory(userId, savedTaskHistory);
+                }
+                if (savedHabitHistory.length > 0) {
+                    await SupabaseDB.syncHabitHistory(userId, savedHabitHistory);
+                }
+                if (savedGoalHistory.length > 0) {
+                    await SupabaseDB.syncGoalHistory(userId, savedGoalHistory);
+                }
+
+                // Now load from Supabase (will include our pushed data)
                 const taskHistory = await SupabaseDB.getTaskHistory(userId);
-                if (taskHistory && taskHistory.length > 0) {
-                    State.taskCompletionHistory = taskHistory;
-                    Storage.set('taskCompletionHistory', taskHistory);
-                }
-
-                // Habit completion history
                 const habitHistory = await SupabaseDB.getHabitHistory(userId);
-                if (habitHistory && habitHistory.length > 0) {
-                    State.habitCompletionHistory = habitHistory;
-                    Storage.set('habitCompletionHistory', habitHistory);
-                }
-
-                // Goal completion history
                 const goalHistory = await SupabaseDB.getGoalHistory(userId);
-                if (goalHistory && goalHistory.length > 0) {
-                    State.goalCompletionHistory = goalHistory;
-                    Storage.set('goalCompletionHistory', goalHistory);
-                }
+
+                // Use cloud data if available, otherwise keep saved local
+                State.taskCompletionHistory = (taskHistory && taskHistory.length > 0)
+                    ? taskHistory
+                    : savedTaskHistory;
+                State.habitCompletionHistory = (habitHistory && habitHistory.length > 0)
+                    ? habitHistory
+                    : savedHabitHistory;
+                State.goalCompletionHistory = (goalHistory && goalHistory.length > 0)
+                    ? goalHistory
+                    : savedGoalHistory;
+
+                // Update localStorage
+                Storage.set('taskCompletionHistory', State.taskCompletionHistory);
+                Storage.set('habitCompletionHistory', State.habitCompletionHistory);
+                Storage.set('goalCompletionHistory', State.goalCompletionHistory);
+
             } catch (historyError) {
-                console.warn('Could not load history from Supabase:', historyError.message);
+                console.warn('Could not sync history with Supabase:', historyError.message);
+                // Keep saved local history if sync fails
+                State.taskCompletionHistory = savedTaskHistory;
+                State.habitCompletionHistory = savedHabitHistory;
+                State.goalCompletionHistory = savedGoalHistory;
+                Storage.set('taskCompletionHistory', savedTaskHistory);
+                Storage.set('habitCompletionHistory', savedHabitHistory);
+                Storage.set('goalCompletionHistory', savedGoalHistory);
             }
 
             // Re-render all views
