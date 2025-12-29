@@ -284,24 +284,26 @@ const Auth = {
         // Save current user ID
         Storage.set('currentUserId', userId);
 
+        // IMPORTANT: Clear generic (shared) keys to prevent data leakage between accounts
+        // These should never be used anymore - only per-user keys
+        const migrated = Storage.get('historyMigrated');
+        if (!migrated) {
+            console.log('Clearing old generic history keys for clean per-user storage');
+            Storage.remove('taskCompletionHistory');
+            Storage.remove('habitCompletionHistory');
+            Storage.remove('goalCompletionHistory');
+            Storage.set('historyMigrated', true);
+        }
+
         try {
             // Clear tasks/habits/goals/events (these come from Supabase per user)
             this.clearLocalData();
 
-            // Load this user's history from their per-user storage
-            const userTaskHistory = Storage.get(`taskCompletionHistory_${userId}`) || [];
-            const userHabitHistory = Storage.get(`habitCompletionHistory_${userId}`) || [];
-            const userGoalHistory = Storage.get(`goalCompletionHistory_${userId}`) || [];
-
-            // Also check generic keys (backwards compatibility)
-            const genericTaskHistory = Storage.get('taskCompletionHistory') || [];
-            const genericHabitHistory = Storage.get('habitCompletionHistory') || [];
-            const genericGoalHistory = Storage.get('goalCompletionHistory') || [];
-
-            // Use user-specific history if available, otherwise use generic (migration)
-            const localTaskHistory = userTaskHistory.length > 0 ? userTaskHistory : genericTaskHistory;
-            const localHabitHistory = userHabitHistory.length > 0 ? userHabitHistory : genericHabitHistory;
-            const localGoalHistory = userGoalHistory.length > 0 ? userGoalHistory : genericGoalHistory;
+            // Load ONLY this user's history from their per-user storage
+            // DO NOT fall back to generic keys - each user starts fresh
+            const localTaskHistory = Storage.get(`taskCompletionHistory_${userId}`) || [];
+            const localHabitHistory = Storage.get(`habitCompletionHistory_${userId}`) || [];
+            const localGoalHistory = Storage.get(`goalCompletionHistory_${userId}`) || [];
 
             // Load tasks (convert snake_case to camelCase)
             const tasks = await SupabaseDB.getTasks(userId);
@@ -369,11 +371,7 @@ const Auth = {
                     ? cloudGoalHistory
                     : localGoalHistory;
 
-                // Save back to localStorage - BOTH generic and per-user keys
-                Storage.set('taskCompletionHistory', State.taskCompletionHistory);
-                Storage.set('habitCompletionHistory', State.habitCompletionHistory);
-                Storage.set('goalCompletionHistory', State.goalCompletionHistory);
-                // Also save with user ID for multi-user support
+                // Save to per-user keys ONLY (no generic keys to prevent leakage)
                 Storage.set(`taskCompletionHistory_${userId}`, State.taskCompletionHistory);
                 Storage.set(`habitCompletionHistory_${userId}`, State.habitCompletionHistory);
                 Storage.set(`goalCompletionHistory_${userId}`, State.goalCompletionHistory);
@@ -384,7 +382,7 @@ const Auth = {
                 State.taskCompletionHistory = localTaskHistory;
                 State.habitCompletionHistory = localHabitHistory;
                 State.goalCompletionHistory = localGoalHistory;
-                // Save with per-user keys
+                // Save with per-user keys only
                 Storage.set(`taskCompletionHistory_${userId}`, localTaskHistory);
                 Storage.set(`habitCompletionHistory_${userId}`, localHabitHistory);
                 Storage.set(`goalCompletionHistory_${userId}`, localGoalHistory);

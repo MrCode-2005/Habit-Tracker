@@ -114,16 +114,14 @@ const State = {
         this.saveCompletionHistory();
     },
 
-    // Save completion history to localStorage and Supabase
+    // Save completion history to localStorage (per-user) and Supabase
     async saveCompletionHistory() {
-        Storage.set('taskCompletionHistory', this.taskCompletionHistory);
-
         // Sync to Supabase if logged in
         if (typeof SupabaseDB !== 'undefined') {
             try {
                 const user = await SupabaseDB.getCurrentUser();
                 if (user) {
-                    // Also save with user ID for multi-user support
+                    // Save with user ID ONLY (no generic key to prevent leakage)
                     Storage.set(`taskCompletionHistory_${user.id}`, this.taskCompletionHistory);
                     await SupabaseDB.syncTaskHistory(user.id, this.taskCompletionHistory);
                 }
@@ -275,16 +273,14 @@ const State = {
         this.saveHabitCompletionHistory();
     },
 
-    // Save habit completion history to localStorage and Supabase
+    // Save habit completion history to localStorage (per-user) and Supabase
     async saveHabitCompletionHistory() {
-        Storage.set('habitCompletionHistory', this.habitCompletionHistory);
-
         // Sync to Supabase if logged in
         if (typeof SupabaseDB !== 'undefined') {
             try {
                 const user = await SupabaseDB.getCurrentUser();
                 if (user) {
-                    // Also save with user ID for multi-user support
+                    // Save with user ID ONLY (no generic key to prevent leakage)
                     Storage.set(`habitCompletionHistory_${user.id}`, this.habitCompletionHistory);
                     await SupabaseDB.syncHabitHistory(user.id, this.habitCompletionHistory);
                 }
@@ -459,16 +455,14 @@ const State = {
         this.saveGoalCompletionHistory();
     },
 
-    // Save goal completion history to localStorage and Supabase
+    // Save goal completion history to localStorage (per-user) and Supabase
     async saveGoalCompletionHistory() {
-        Storage.set('goalCompletionHistory', this.goalCompletionHistory);
-
         // Sync to Supabase if logged in
         if (typeof SupabaseDB !== 'undefined') {
             try {
                 const user = await SupabaseDB.getCurrentUser();
                 if (user) {
-                    // Also save with user ID for multi-user support
+                    // Save with user ID ONLY (no generic key to prevent leakage)
                     Storage.set(`goalCompletionHistory_${user.id}`, this.goalCompletionHistory);
                     await SupabaseDB.syncGoalHistory(user.id, this.goalCompletionHistory);
                 }
