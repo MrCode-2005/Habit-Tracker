@@ -68,13 +68,20 @@ const State = {
     },
 
     deleteTask(taskId) {
-        taskId = String(taskId); // Ensure string comparison
+        taskId = String(taskId);
+        const task = this.tasks.find(t => String(t.id) === taskId);
+
+        // Before deleting, save completion to history if task was completed
+        if (task && task.completed && task.completedAt) {
+            this.recordTaskCompletion(task, task.completedAt);
+        }
+
         this.tasks = this.tasks.filter(t => String(t.id) !== taskId);
         this.saveTasks();
     },
 
     toggleTaskComplete(taskId) {
-        taskId = String(taskId); // Ensure string comparison
+        taskId = String(taskId);
         const task = this.tasks.find(t => String(t.id) === taskId);
         if (task) {
             task.completed = !task.completed;
@@ -82,13 +89,8 @@ const State = {
             const completedAt = task.completed ? new Date().toISOString() : null;
             task.completedAt = completedAt;
 
-            // Record completion in history (persists after deletion)
-            if (task.completed) {
-                this.recordTaskCompletion(task, completedAt);
-            } else {
-                // Remove from history if uncompleted
-                this.removeTaskCompletion(taskId);
-            }
+            // Note: We don't record to history on toggle anymore
+            // History is only for DELETED tasks - recorded in deleteTask()
 
             this.saveTasks();
             return task;
@@ -231,26 +233,35 @@ const State = {
     },
 
     deleteHabit(habitId) {
-        habitId = String(habitId); // Ensure string comparison
-        // Note: Habit completion history is already recorded on each toggle
-        // So deleting the habit still preserves the completion history
+        habitId = String(habitId);
+        const habit = this.habits.find(h => String(h.id) === habitId);
+
+        // Before deleting, save all completions to history so they persist in analytics
+        if (habit && habit.completions) {
+            Object.keys(habit.completions).forEach(dateKey => {
+                if (habit.completions[dateKey]) {
+                    this.recordHabitCompletion(habit, dateKey);
+                }
+            });
+        }
+
         this.habits = this.habits.filter(h => String(h.id) !== habitId);
         this.saveHabits();
     },
 
     toggleHabitToday(habitId) {
-        habitId = String(habitId); // Ensure string comparison
+        habitId = String(habitId);
         const habit = this.habits.find(h => String(h.id) === habitId);
         if (habit) {
             const today = this.getTodayKey();
             if (habit.completions[today]) {
                 delete habit.completions[today];
-                // Remove from history
-                this.removeHabitCompletion(habitId, today);
+                // Note: We don't record to history on toggle anymore
+                // History is only for DELETED habits - recorded in deleteHabit()
             } else {
                 habit.completions[today] = true;
-                // Record in history
-                this.recordHabitCompletion(habit, today);
+                // Note: We don't record to history on toggle anymore
+                // History is only for DELETED habits - recorded in deleteHabit()
             }
             this.saveHabits();
             return habit;
@@ -415,8 +426,13 @@ const State = {
 
     deleteGoal(goalId) {
         goalId = String(goalId);
-        // Note: Goal completion history is already recorded on toggle
-        // So deleting the goal still preserves the completion history
+        const goal = this.goals.find(g => String(g.id) === goalId);
+
+        // Before deleting, save completion to history if goal was completed
+        if (goal && goal.completed && goal.completedAt) {
+            this.recordGoalCompletion(goal, goal.completedAt);
+        }
+
         this.goals = this.goals.filter(g => String(g.id) !== goalId);
         this.saveGoals();
     },
@@ -429,12 +445,8 @@ const State = {
             const completedAt = goal.completed ? new Date().toISOString() : null;
             goal.completedAt = completedAt;
 
-            // Record/remove from history
-            if (goal.completed) {
-                this.recordGoalCompletion(goal, completedAt);
-            } else {
-                this.removeGoalCompletion(goalId);
-            }
+            // Note: We don't record to history on toggle anymore
+            // History is only for DELETED goals - recorded in deleteGoal()
 
             this.saveGoals();
             return goal;
