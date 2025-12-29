@@ -411,5 +411,241 @@ const SupabaseDB = {
             .eq('id', eventId);
 
         if (error) console.error('Error deleting calendar event:', error);
+    },
+
+    // =============================================
+    // COMPLETION HISTORY SYNC
+    // =============================================
+
+    // Task Completion History
+    async getTaskHistory(userId) {
+        const client = getSupabase();
+        if (!client) return [];
+
+        const { data, error } = await client
+            .from('task_completion_history')
+            .select('*')
+            .eq('user_id', userId)
+            .order('completed_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching task history:', error);
+            return [];
+        }
+
+        // Transform to local format
+        return (data || []).map(h => ({
+            taskId: h.task_id,
+            title: h.title,
+            dateKey: h.date_key,
+            completedAt: h.completed_at
+        }));
+    },
+
+    async addTaskHistory(userId, historyItem) {
+        const client = getSupabase();
+        if (!client) return;
+
+        const { error } = await client
+            .from('task_completion_history')
+            .upsert({
+                user_id: userId,
+                task_id: historyItem.taskId,
+                title: historyItem.title,
+                date_key: historyItem.dateKey,
+                completed_at: historyItem.completedAt
+            }, {
+                onConflict: 'user_id,task_id,date_key',
+                ignoreDuplicates: true
+            });
+
+        if (error) console.error('Error adding task history:', error);
+    },
+
+    async deleteTaskHistory(userId, taskId, dateKey) {
+        const client = getSupabase();
+        if (!client) return;
+
+        const { error } = await client
+            .from('task_completion_history')
+            .delete()
+            .eq('user_id', userId)
+            .eq('task_id', taskId)
+            .eq('date_key', dateKey);
+
+        if (error) console.error('Error deleting task history:', error);
+    },
+
+    async syncTaskHistory(userId, localHistory) {
+        const client = getSupabase();
+        if (!client || !localHistory || localHistory.length === 0) return;
+
+        // Bulk upsert all history
+        const records = localHistory.map(h => ({
+            user_id: userId,
+            task_id: h.taskId,
+            title: h.title,
+            date_key: h.dateKey,
+            completed_at: h.completedAt
+        }));
+
+        const { error } = await client
+            .from('task_completion_history')
+            .upsert(records, { onConflict: 'user_id,task_id,date_key' });
+
+        if (error) console.error('Error syncing task history:', error);
+    },
+
+    // Habit Completion History
+    async getHabitHistory(userId) {
+        const client = getSupabase();
+        if (!client) return [];
+
+        const { data, error } = await client
+            .from('habit_completion_history')
+            .select('*')
+            .eq('user_id', userId)
+            .order('completed_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching habit history:', error);
+            return [];
+        }
+
+        return (data || []).map(h => ({
+            habitId: h.habit_id,
+            name: h.name,
+            dateKey: h.date_key,
+            completedAt: h.completed_at
+        }));
+    },
+
+    async addHabitHistory(userId, historyItem) {
+        const client = getSupabase();
+        if (!client) return;
+
+        const { error } = await client
+            .from('habit_completion_history')
+            .upsert({
+                user_id: userId,
+                habit_id: historyItem.habitId,
+                name: historyItem.name,
+                date_key: historyItem.dateKey,
+                completed_at: historyItem.completedAt
+            }, {
+                onConflict: 'user_id,habit_id,date_key',
+                ignoreDuplicates: true
+            });
+
+        if (error) console.error('Error adding habit history:', error);
+    },
+
+    async deleteHabitHistory(userId, habitId, dateKey) {
+        const client = getSupabase();
+        if (!client) return;
+
+        const { error } = await client
+            .from('habit_completion_history')
+            .delete()
+            .eq('user_id', userId)
+            .eq('habit_id', habitId)
+            .eq('date_key', dateKey);
+
+        if (error) console.error('Error deleting habit history:', error);
+    },
+
+    async syncHabitHistory(userId, localHistory) {
+        const client = getSupabase();
+        if (!client || !localHistory || localHistory.length === 0) return;
+
+        const records = localHistory.map(h => ({
+            user_id: userId,
+            habit_id: h.habitId,
+            name: h.name,
+            date_key: h.dateKey,
+            completed_at: h.completedAt
+        }));
+
+        const { error } = await client
+            .from('habit_completion_history')
+            .upsert(records, { onConflict: 'user_id,habit_id,date_key' });
+
+        if (error) console.error('Error syncing habit history:', error);
+    },
+
+    // Goal Completion History
+    async getGoalHistory(userId) {
+        const client = getSupabase();
+        if (!client) return [];
+
+        const { data, error } = await client
+            .from('goal_completion_history')
+            .select('*')
+            .eq('user_id', userId)
+            .order('completed_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching goal history:', error);
+            return [];
+        }
+
+        return (data || []).map(h => ({
+            goalId: h.goal_id,
+            title: h.title,
+            dateKey: h.date_key,
+            completedAt: h.completed_at
+        }));
+    },
+
+    async addGoalHistory(userId, historyItem) {
+        const client = getSupabase();
+        if (!client) return;
+
+        const { error } = await client
+            .from('goal_completion_history')
+            .upsert({
+                user_id: userId,
+                goal_id: historyItem.goalId,
+                title: historyItem.title,
+                date_key: historyItem.dateKey,
+                completed_at: historyItem.completedAt
+            }, {
+                onConflict: 'user_id,goal_id',
+                ignoreDuplicates: true
+            });
+
+        if (error) console.error('Error adding goal history:', error);
+    },
+
+    async deleteGoalHistory(userId, goalId) {
+        const client = getSupabase();
+        if (!client) return;
+
+        const { error } = await client
+            .from('goal_completion_history')
+            .delete()
+            .eq('user_id', userId)
+            .eq('goal_id', goalId);
+
+        if (error) console.error('Error deleting goal history:', error);
+    },
+
+    async syncGoalHistory(userId, localHistory) {
+        const client = getSupabase();
+        if (!client || !localHistory || localHistory.length === 0) return;
+
+        const records = localHistory.map(h => ({
+            user_id: userId,
+            goal_id: h.goalId,
+            title: h.title,
+            date_key: h.dateKey,
+            completed_at: h.completedAt
+        }));
+
+        const { error } = await client
+            .from('goal_completion_history')
+            .upsert(records, { onConflict: 'user_id,goal_id' });
+
+        if (error) console.error('Error syncing goal history:', error);
     }
 };

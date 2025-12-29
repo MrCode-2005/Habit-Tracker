@@ -114,9 +114,21 @@ const State = {
         this.saveCompletionHistory();
     },
 
-    // Save completion history to localStorage
-    saveCompletionHistory() {
+    // Save completion history to localStorage and Supabase
+    async saveCompletionHistory() {
         Storage.set('taskCompletionHistory', this.taskCompletionHistory);
+
+        // Sync to Supabase if logged in
+        if (typeof SupabaseDB !== 'undefined') {
+            try {
+                const user = await SupabaseDB.getCurrentUser();
+                if (user) {
+                    await SupabaseDB.syncTaskHistory(user.id, this.taskCompletionHistory);
+                }
+            } catch (e) {
+                console.error('Error syncing task history to Supabase:', e);
+            }
+        }
     },
 
     // Get completion history (for analytics)
@@ -261,9 +273,21 @@ const State = {
         this.saveHabitCompletionHistory();
     },
 
-    // Save habit completion history
-    saveHabitCompletionHistory() {
+    // Save habit completion history to localStorage and Supabase
+    async saveHabitCompletionHistory() {
         Storage.set('habitCompletionHistory', this.habitCompletionHistory);
+
+        // Sync to Supabase if logged in
+        if (typeof SupabaseDB !== 'undefined') {
+            try {
+                const user = await SupabaseDB.getCurrentUser();
+                if (user) {
+                    await SupabaseDB.syncHabitHistory(user.id, this.habitCompletionHistory);
+                }
+            } catch (e) {
+                console.error('Error syncing habit history to Supabase:', e);
+            }
+        }
     },
 
     // Get habit completion history
@@ -431,9 +455,21 @@ const State = {
         this.saveGoalCompletionHistory();
     },
 
-    // Save goal completion history
-    saveGoalCompletionHistory() {
+    // Save goal completion history to localStorage and Supabase
+    async saveGoalCompletionHistory() {
         Storage.set('goalCompletionHistory', this.goalCompletionHistory);
+
+        // Sync to Supabase if logged in
+        if (typeof SupabaseDB !== 'undefined') {
+            try {
+                const user = await SupabaseDB.getCurrentUser();
+                if (user) {
+                    await SupabaseDB.syncGoalHistory(user.id, this.goalCompletionHistory);
+                }
+            } catch (e) {
+                console.error('Error syncing goal history to Supabase:', e);
+            }
+        }
     },
 
     // Get goal completion history

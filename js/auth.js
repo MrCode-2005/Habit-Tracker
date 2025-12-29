@@ -310,6 +310,32 @@ const Auth = {
             }));
             State.saveEvents();
 
+            // Load completion history from Supabase
+            try {
+                // Task completion history
+                const taskHistory = await SupabaseDB.getTaskHistory(userId);
+                if (taskHistory && taskHistory.length > 0) {
+                    State.taskCompletionHistory = taskHistory;
+                    Storage.set('taskCompletionHistory', taskHistory);
+                }
+
+                // Habit completion history
+                const habitHistory = await SupabaseDB.getHabitHistory(userId);
+                if (habitHistory && habitHistory.length > 0) {
+                    State.habitCompletionHistory = habitHistory;
+                    Storage.set('habitCompletionHistory', habitHistory);
+                }
+
+                // Goal completion history
+                const goalHistory = await SupabaseDB.getGoalHistory(userId);
+                if (goalHistory && goalHistory.length > 0) {
+                    State.goalCompletionHistory = goalHistory;
+                    Storage.set('goalCompletionHistory', goalHistory);
+                }
+            } catch (historyError) {
+                console.warn('Could not load history from Supabase:', historyError.message);
+            }
+
             // Re-render all views
             if (typeof Tasks !== 'undefined') Tasks.render();
             if (typeof Habits !== 'undefined') Habits.render();
@@ -408,10 +434,16 @@ const Auth = {
         State.habits = [];
         State.events = [];
         State.goals = [];
+        State.taskCompletionHistory = [];
+        State.habitCompletionHistory = [];
+        State.goalCompletionHistory = [];
         Storage.remove('tasks');
         Storage.remove('habits');
         Storage.remove('events');
         Storage.remove('goals');
+        Storage.remove('taskCompletionHistory');
+        Storage.remove('habitCompletionHistory');
+        Storage.remove('goalCompletionHistory');
     },
 
     showMessage(message, type = 'info') {
