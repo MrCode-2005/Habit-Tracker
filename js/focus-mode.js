@@ -516,7 +516,7 @@ const FocusMode = {
         }, 500);
     },
 
-    // Restore audio and view mode from saved sessionStorage state (for when returning to focus mode)
+    // Restore audio, image, and view mode from saved sessionStorage state (for when returning to focus mode)
     restoreAudioFromState() {
         try {
             const saved = sessionStorage.getItem('focusModeState');
@@ -530,6 +530,15 @@ const FocusMode = {
                 // Also update tree progress if in tree view
                 if (state.currentViewMode === 'tree') {
                     this.updateTreeGrowth();
+                }
+            }
+
+            // Restore image background if it was active
+            if (state.imageBgActive && state.currentImageUrl) {
+                this.setImageBackground(state.currentImageUrl);
+                if (state.currentImagePlaylist) {
+                    this.currentImagePlaylist = state.currentImagePlaylist;
+                    this.currentImageIndex = state.currentImageIndex || 0;
                 }
             }
 
@@ -4396,6 +4405,12 @@ const FocusMode = {
             this.animationFrame = null;
         }
 
+        // Hide the canvas
+        const canvas = document.getElementById('focusAnimationCanvas');
+        if (canvas) {
+            canvas.style.display = 'none';
+        }
+
         // Set the image
         imageBg.style.backgroundImage = `url('${url}')`;
         imageBg.classList.add('active');
@@ -4438,6 +4453,12 @@ const FocusMode = {
         const addRow = document.getElementById('addToImagePlaylistRow');
         if (removeBtn) removeBtn.style.display = 'none';
         if (addRow) addRow.style.display = 'none';
+
+        // Show canvas again
+        const canvas = document.getElementById('focusAnimationCanvas');
+        if (canvas) {
+            canvas.style.display = 'block';
+        }
 
         // Restart animation
         this.startAnimation();
