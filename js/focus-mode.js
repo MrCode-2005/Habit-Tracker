@@ -2767,6 +2767,16 @@ const FocusMode = {
         const track = tracks[index];
         this.playYouTubeAudio(track.url);
         this.renderPlaylistTracks(this.currentPlaylist);
+        this.renderPlaylistTracksMini();
+
+        // Check if we're resuming from a refresh and need to seek to saved position
+        if (this.pendingAudioResume && this.pendingAudioResume.needsSeek && this.pendingAudioResume.trackIndex === index) {
+            // Wait for player to be ready, then seek
+            setTimeout(() => {
+                this.resumePlaybackPosition();
+                this.pendingAudioResume = null;
+            }, 2500);
+        }
     },
 
     playPlaylist() {
@@ -3401,18 +3411,27 @@ const FocusMode = {
             this.renderPlaylistTracks(playlistId);
             this.renderPlaylistTracksMini();
 
-            // Auto-play the track that was playing
+            // Check if there was a track to restore
             const tracks = this.playlists[playlistId].tracks;
             if (tracks && tracks.length > 0 && trackIndex >= 0 && trackIndex < tracks.length) {
-                console.log(`Restoring track ${trackIndex + 1} from playlist "${this.playlists[playlistId].name}"`);
+                const trackName = tracks[trackIndex].name || tracks[trackIndex].title || `Track ${trackIndex + 1}`;
+                console.log(`Ready to resume track ${trackIndex + 1}: "${trackName}" from playlist "${this.playlists[playlistId].name}"`);
 
-                // Play the track
-                this.playTrack(trackIndex);
+                // Update status to show which track is ready to play
+                const statusEl = document.getElementById('youtubeStatus');
+                if (statusEl) {
+                    statusEl.textContent = `▶ Click Play to resume: ${trackName}`;
+                    statusEl.className = 'youtube-status';
+                }
 
-                // Then seek to saved position after the player is ready
-                setTimeout(() => {
-                    this.resumePlaybackPosition();
-                }, 2000);
+                // Store the pending resume info so we can seek when user clicks play
+                this.pendingAudioResume = {
+                    trackIndex: trackIndex,
+                    needsSeek: true
+                };
+
+                // Note: We don't auto-play because browsers block autoplay without user interaction
+                // The user just needs to click the play button or the track to resume
             }
         } catch (e) {
             console.log('Error restoring audio playback:', e);
