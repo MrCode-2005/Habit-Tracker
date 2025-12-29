@@ -3415,27 +3415,115 @@ const FocusMode = {
             const tracks = this.playlists[playlistId].tracks;
             if (tracks && tracks.length > 0 && trackIndex >= 0 && trackIndex < tracks.length) {
                 const trackName = tracks[trackIndex].name || tracks[trackIndex].title || `Track ${trackIndex + 1}`;
-                console.log(`Ready to resume track ${trackIndex + 1}: "${trackName}" from playlist "${this.playlists[playlistId].name}"`);
+                console.log(`Attempting to auto-play track ${trackIndex + 1}: "${trackName}"`);
 
-                // Update status to show which track is ready to play
-                const statusEl = document.getElementById('youtubeStatus');
-                if (statusEl) {
-                    statusEl.textContent = `▶ Click Play to resume: ${trackName}`;
-                    statusEl.className = 'youtube-status';
-                }
-
-                // Store the pending resume info so we can seek when user clicks play
+                // Store pending resume info
                 this.pendingAudioResume = {
                     trackIndex: trackIndex,
                     needsSeek: true
                 };
 
-                // Note: We don't auto-play because browsers block autoplay without user interaction
-                // The user just needs to click the play button or the track to resume
+                // Try to auto-play (might be blocked by browser)
+                this.playTrack(trackIndex);
+
+                // Show a click overlay in case autoplay is blocked
+                // This gives user an easy way to enable audio with one click anywhere
+                this.showAudioEnableOverlay(trackName);
             }
         } catch (e) {
             console.log('Error restoring audio playback:', e);
         }
+    },
+
+    // Show an overlay that enables audio with a single click
+    showAudioEnableOverlay(trackName) {
+        // Check if overlay already exists
+        if (document.getElementById('audioEnableOverlay')) return;
+
+        const overlay = document.createElement('div');
+        overlay.id = 'audioEnableOverlay';
+        overlay.innerHTML = `
+            <div class="audio-enable-content">
+                <i class="fas fa-music"></i>
+                <p>Click anywhere to resume audio</p>
+                <span class="audio-track-name">${trackName}</span>
+            </div>
+        `;
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            cursor: pointer;
+            animation: fadeIn 0.3s ease;
+        `;
+
+        const style = document.createElement('style');
+        style.id = 'audioOverlayStyles';
+        style.textContent = `
+            .audio-enable-content {
+                text-align: center;
+                color: white;
+                padding: 2rem;
+                border-radius: 20px;
+                background: rgba(124, 58, 237, 0.3);
+                border: 1px solid rgba(124, 58, 237, 0.5);
+            }
+            .audio-enable-content i {
+                font-size: 3rem;
+                margin-bottom: 1rem;
+                color: #a78bfa;
+                animation: pulse 2s infinite;
+            }
+            .audio-enable-content p {
+                font-size: 1.25rem;
+                margin-bottom: 0.5rem;
+            }
+            .audio-track-name {
+                font-size: 0.875rem;
+                color: rgba(255,255,255,0.6);
+            }
+            @keyframes pulse {
+                0%, 100% { transform: scale(1); opacity: 1; }
+                50% { transform: scale(1.1); opacity: 0.8; }
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+
+        const removeOverlay = () => {
+            overlay.remove();
+            document.getElementById('audioOverlayStyles')?.remove();
+
+            // If audio wasn't playing yet, start it now
+            if (this.pendingAudioResume) {
+                this.playTrack(this.pendingAudioResume.trackIndex);
+            }
+        };
+
+        overlay.addEventListener('click', removeOverlay, { once: true });
+
+        // Auto-remove overlay after 3 seconds if audio started playing successfully
+        setTimeout(() => {
+            if (document.getElementById('audioEnableOverlay')) {
+                // Check if audio is actually playing
+                if (this.youtubePlayer && !this.audioPaused) {
+                    removeOverlay();
+                }
+            }
+        }, 3000);
+
+        document.body.appendChild(overlay);
     },
 
     // ==============================
