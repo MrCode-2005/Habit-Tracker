@@ -37,16 +37,13 @@
                 document.documentElement.setAttribute('data-theme', theme || 'dark');
 
                 // Check if focus mode was active before refresh
-                // Hide navbar and main content immediately to prevent flash
+                // Hide everything immediately to prevent ANY flash
                 var focusState = sessionStorage.getItem('focusModeState');
                 if (focusState) {
                     var state = JSON.parse(focusState);
                     if (state && state.isActive) {
-                        // Add a style tag to hide navbar and main content before they render
-                        var style = document.createElement('style');
-                        style.id = 'focus-mode-preload';
-                        style.textContent = '.navbar, .main-container, .side-panel { display: none !important; } #focusMode { display: flex !important; }';
-                        document.head.appendChild(style);
+                        // Set a flag for CSS to use
+                        document.documentElement.setAttribute('data-focus-active', 'true');
                     }
                 }
             } catch (e) {
@@ -54,6 +51,20 @@
             }
         })();
     </script>
+
+    <!-- Critical CSS to prevent flash when focus mode is active -->
+    <style id="focus-mode-preload">
+        /* When focus mode was active during refresh, hide navbar and main content immediately */
+        html[data-focus-active="true"] .navbar,
+        html[data-focus-active="true"] .main-container,
+        html[data-focus-active="true"] .side-panel {
+            display: none !important;
+        }
+
+        html[data-focus-active="true"] .focus-mode {
+            display: flex !important;
+        }
+    </style>
 </head>
 
 <body>
