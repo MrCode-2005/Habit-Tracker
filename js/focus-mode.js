@@ -751,6 +751,10 @@ const FocusMode = {
 
     // Timer functions
     toggleTimer() {
+        // Always try to dismiss audio overlay and start pending audio when user clicks Start/Pause
+        // This ensures clicking Start will resume the music
+        this.dismissAudioOverlayAndPlay();
+
         if (this.isPaused) {
             this.startTimer();
         } else {
