@@ -100,14 +100,16 @@ const State = {
 
     // Record task completion in persistent history
     recordTaskCompletion(task, completedAt) {
-        // Check if already recorded
+        const taskIdStr = String(task.id);
+
+        // Check if already recorded (use String comparison)
         const existingIndex = this.taskCompletionHistory.findIndex(
-            h => h.taskId === task.id && h.completedAt === completedAt
+            h => String(h.taskId) === taskIdStr && h.completedAt === completedAt
         );
 
         if (existingIndex === -1) {
             this.taskCompletionHistory.push({
-                taskId: task.id,
+                taskId: taskIdStr,
                 title: task.title,
                 block: task.block,
                 priority: task.priority,
@@ -456,14 +458,17 @@ const State = {
 
     // Record goal completion in persistent history
     recordGoalCompletion(goal, completedAt) {
+        const goalIdStr = String(goal.id);
         const dateKey = completedAt.split('T')[0];
+
+        // Check if already recorded (use String comparison)
         const existingIndex = this.goalCompletionHistory.findIndex(
-            h => h.goalId === goal.id
+            h => String(h.goalId) === goalIdStr
         );
 
         if (existingIndex === -1) {
             this.goalCompletionHistory.push({
-                goalId: goal.id,
+                goalId: goalIdStr,
                 title: goal.title,
                 dateKey: dateKey,
                 completedAt: completedAt
