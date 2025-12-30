@@ -694,18 +694,32 @@ const FocusMode = {
     // Resume audio/video from saved position
     resumePlaybackPosition() {
         try {
-            const saved = localStorage.getItem('focusPlaybackPosition');
-            if (!saved) return;
+            // First, check if we have a position from pendingAudioResume (set by restoreAudioPlayback)
+            let targetPosition = 0;
 
-            const playbackState = JSON.parse(saved);
+            if (this.pendingAudioResume && this.pendingAudioResume.savedPosition > 0) {
+                targetPosition = this.pendingAudioResume.savedPosition;
+                console.log(`Using pending audio resume position: ${targetPosition}s`);
+            } else {
+                // Fallback to localStorage
+                const saved = localStorage.getItem('focusPlaybackPosition');
+                if (saved) {
+                    const playbackState = JSON.parse(saved);
+                    targetPosition = playbackState.audioPosition || playbackState.youtubePosition || 0;
+                }
+            }
+
+            if (targetPosition <= 0) return;
 
             // Wait a bit for player to initialize, then seek
             setTimeout(() => {
-                if (this.youtubePlayer && this.youtubePlayer.seekTo && playbackState.youtubePosition > 0) {
-                    this.youtubePlayer.seekTo(playbackState.youtubePosition, true);
+                if (this.youtubePlayer && this.youtubePlayer.seekTo) {
+                    this.youtubePlayer.seekTo(targetPosition, true);
+                    console.log(`Seeked YouTube player to ${targetPosition}s`);
                 }
-                if (this.currentAudio && playbackState.audioPosition > 0) {
-                    this.currentAudio.currentTime = playbackState.audioPosition;
+                if (this.currentAudio) {
+                    this.currentAudio.currentTime = targetPosition;
+                    console.log(`Seeked audio to ${targetPosition}s`);
                 }
             }, 1500);
         } catch (e) {
@@ -3058,6 +3072,9 @@ const FocusMode = {
             }, 2500);
         }
 
+        // Save audio state to localStorage for persistence across refresh
+        this.saveAudioState();
+
         // Sync to cloud immediately when track changes (for cross-device sync)
         this.saveFocusSessionToCloud();
     },
@@ -3523,6 +3540,9 @@ const FocusMode = {
             currentViewMode: this.currentViewMode
         };
         sessionStorage.setItem('focusModeState', JSON.stringify(state));
+
+        // Also save audio state to localStorage for persistence across hard refresh
+        this.saveAudioState();
     },
 
     saveAnimationState() {
@@ -3557,6 +3577,59 @@ const FocusMode = {
             console.log('Error loading animation state:', e);
         }
     },
+
+    // Save audio state to localStorage for persistence across refresh/hard refresh
+    saveAudioState() {
+        try {
+            let audioPosition = 0;
+            if (this.currentAudio && !this.currentAudio.paused) {
+                audioPosition = this.currentAudio.currentTime || 0;
+            } else if (this.youtubePlayer && this.youtubePlayer.getCurrentTime) {
+                try {
+                    audioPosition = this.youtubePlayer.getCurrentTime() || 0;
+                } catch (e) { }
+            }
+
+            const audioState = {
+                currentPlaylist: this.currentPlaylist || null,
+                currentTrackIndex: this.currentTrackIndex || 0,
+                audioPosition: audioPosition,
+                volume: this.volume,
+                savedAt: Date.now()
+            };
+            localStorage.setItem('focusAudioState', JSON.stringify(audioState));
+        } catch (e) {
+            console.log('Error saving audio state:', e);
+        }
+    },
+
+    // Load audio state from localStorage
+    loadAudioState() {
+        try {
+            const saved = localStorage.getItem('focusAudioState');
+            if (saved) {
+                const state = JSON.parse(saved);
+                // Only restore if saved within last 24 hours
+                if (state.savedAt && (Date.now() - state.savedAt) < 24 * 60 * 60 * 1000) {
+                    return {
+                        currentPlaylist: state.currentPlaylist,
+                        currentTrackIndex: state.currentTrackIndex || 0,
+                        audioPosition: state.audioPosition || 0,
+                        volume: state.volume
+                    };
+                }
+            }
+        } catch (e) {
+            console.log('Error loading audio state:', e);
+        }
+        return null;
+    },
+
+    // Clear audio state from localStorage
+    clearAudioState() {
+        localStorage.removeItem('focusAudioState');
+    },
+
 
     // Save subtask timer states to localStorage for persistence across page navigation
     saveSubtaskTimerStates() {
@@ -3723,6 +3796,16 @@ const FocusMode = {
                 return;
             }
 
+            // Load saved audio state from localStorage for position
+            const savedAudioState = this.loadAudioState();
+            let savedPosition = 0;
+
+            // Use saved position if it matches the same playlist and track
+            if (savedAudioState && savedAudioState.currentPlaylist === playlistId && savedAudioState.currentTrackIndex === trackIndex) {
+                savedPosition = savedAudioState.audioPosition || 0;
+                console.log(`Found saved audio position: ${savedPosition}s`);
+            }
+
             // Set the current playlist
             this.currentPlaylist = playlistId;
             this.currentTrackIndex = trackIndex;
@@ -3746,12 +3829,13 @@ const FocusMode = {
             const tracks = this.playlists[playlistId].tracks;
             if (tracks && tracks.length > 0 && trackIndex >= 0 && trackIndex < tracks.length) {
                 const trackName = tracks[trackIndex].name || tracks[trackIndex].title || `Track ${trackIndex + 1}`;
-                console.log(`Attempting to auto-play track ${trackIndex + 1}: "${trackName}"`);
+                console.log(`Attempting to auto-play track ${trackIndex + 1}: "${trackName}" at position ${savedPosition}s`);
 
-                // Store pending resume info
+                // Store pending resume info with saved position
                 this.pendingAudioResume = {
                     trackIndex: trackIndex,
-                    needsSeek: true
+                    needsSeek: true,
+                    savedPosition: savedPosition
                 };
 
                 // Try to auto-play (might be blocked by browser)
