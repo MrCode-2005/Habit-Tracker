@@ -4416,6 +4416,11 @@ const FocusMode = {
             }
 
             this.renderImagePlaylistSelect();
+
+            // If there's a current playlist selection, restore it and render items
+            if (this.currentImagePlaylist && this.imagePlaylists[this.currentImagePlaylist]) {
+                this.selectImagePlaylist(this.currentImagePlaylist);
+            }
         } catch (e) {
             console.log('Error loading image playlists:', e);
         }
