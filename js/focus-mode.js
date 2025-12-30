@@ -3057,6 +3057,9 @@ const FocusMode = {
                 this.pendingAudioResume = null;
             }, 2500);
         }
+
+        // Sync to cloud immediately when track changes (for cross-device sync)
+        this.saveFocusSessionToCloud();
     },
 
     playPlaylist() {
@@ -5242,7 +5245,10 @@ const FocusMode = {
                     imagePlaylistId: cloudSession.image_playlist_id,
                     imageIndex: cloudSession.image_index || 0,
                     // Animation
-                    animationType: cloudSession.animation_type || 'stars'
+                    animationType: cloudSession.animation_type || 'stars',
+                    // Timing for accurate position calculation
+                    pausedAt: cloudSession.paused_at,
+                    isPaused: cloudSession.is_paused
                 };
             } else {
                 // User chose not to resume - delete the old session
@@ -5256,6 +5262,15 @@ const FocusMode = {
     // Restore media state from cloud session data
     async restoreMediaFromCloud(cloudState) {
         if (!cloudState) return;
+
+        // Calculate time elapsed since last sync (for accurate position)
+        let elapsedSeconds = 0;
+        if (cloudState.pausedAt && !cloudState.isPaused) {
+            // If the timer was running when synced, calculate how much time has passed
+            const pausedAtTime = new Date(cloudState.pausedAt).getTime();
+            const now = Date.now();
+            elapsedSeconds = Math.floor((now - pausedAtTime) / 1000);
+        }
 
         // Restore animation type
         if (cloudState.animationType && cloudState.animationType !== this.currentAnimation) {
@@ -5273,14 +5288,16 @@ const FocusMode = {
         // Restore video background
         if (cloudState.videoUrl) {
             this.currentVideoUrl = cloudState.videoUrl;
+            // Calculate video position including elapsed time
+            const videoPosition = (cloudState.videoPosition || 0) + elapsedSeconds;
             // Set video and seek to position after it loads
             setTimeout(() => {
                 if (this.youtubePlayer && this.youtubePlayer.seekTo) {
-                    this.youtubePlayer.seekTo(cloudState.videoPosition || 0, true);
+                    this.youtubePlayer.seekTo(videoPosition, true);
                 } else {
                     const videoPlayer = document.getElementById('videoBgPlayer');
                     if (videoPlayer) {
-                        videoPlayer.currentTime = cloudState.videoPosition || 0;
+                        videoPlayer.currentTime = videoPosition;
                     }
                 }
             }, 2000);
@@ -5291,13 +5308,17 @@ const FocusMode = {
             this.currentPlaylist = cloudState.audioPlaylistId;
             this.currentTrackIndex = cloudState.audioTrackIndex || 0;
 
+            // Calculate audio position including elapsed time
+            const audioPosition = (cloudState.audioPosition || 0) + elapsedSeconds;
+
             // Restore audio playback after a short delay
             setTimeout(() => {
                 this.playTrack(this.currentTrackIndex);
-                // Seek to saved position after audio starts
+                // Seek to calculated position after audio starts
                 setTimeout(() => {
-                    if (this.currentAudio && cloudState.audioPosition > 0) {
-                        this.currentAudio.currentTime = cloudState.audioPosition;
+                    if (this.currentAudio && audioPosition > 0) {
+                        this.currentAudio.currentTime = audioPosition;
+                        console.log(`Audio restored to position: ${audioPosition}s (original: ${cloudState.audioPosition}s + elapsed: ${elapsedSeconds}s)`);
                     }
                 }, 500);
             }, 1000);
@@ -5314,3 +5335,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Expose globally
 window.FocusMode = FocusMode;
+
