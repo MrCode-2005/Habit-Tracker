@@ -1,5 +1,5 @@
 // Service Worker for Habit Tracker PWA
-const CACHE_NAME = 'habit-tracker-v81';
+const CACHE_NAME = 'habit-tracker-v82';
 const OFFLINE_URL = '/offline.html';
 
 // Assets to cache on install
@@ -15,7 +15,8 @@ const PRECACHE_ASSETS = [
 // JS and CSS files - use network-first strategy
 const NETWORK_FIRST_ASSETS = [
     '/js/',
-    '/styles/'
+    '/styles/',
+    '/customize.html'
 ];
 
 // Check if URL should use network-first strategy
@@ -25,7 +26,7 @@ function shouldUseNetworkFirst(url) {
 
 // Install event - cache assets
 self.addEventListener('install', (event) => {
-    console.log('[Service Worker] Installing v60...');
+    console.log('[Service Worker] Installing v82...');
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => {
@@ -38,7 +39,7 @@ self.addEventListener('install', (event) => {
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-    console.log('[Service Worker] Activating v60...');
+    console.log('[Service Worker] Activating v82...');
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
@@ -53,7 +54,7 @@ self.addEventListener('activate', (event) => {
     );
 });
 
-// Fetch event - network-first for JS/CSS, cache-first for others
+// Fetch event - network-first for JS/CSS/navigation, cache-first for others
 self.addEventListener('fetch', (event) => {
     // IMPORTANT: Never cache Supabase API calls - they must always go to network
     if (event.request.url.includes('supabase.co')) {
@@ -65,6 +66,29 @@ self.addEventListener('fetch', (event) => {
     if (!event.request.url.startsWith(self.location.origin) &&
         !event.request.url.includes('cdnjs.cloudflare.com') &&
         !event.request.url.includes('cdn.jsdelivr.net')) {
+        return;
+    }
+
+    // Use network-first for navigation requests (page loads)
+    if (event.request.mode === 'navigate') {
+        event.respondWith(
+            fetch(event.request)
+                .then((response) => {
+                    // Cache the fresh response
+                    if (response && response.status === 200) {
+                        const responseToCache = response.clone();
+                        caches.open(CACHE_NAME).then((cache) => {
+                            cache.put(event.request, responseToCache);
+                        });
+                    }
+                    return response;
+                })
+                .catch(() => {
+                    // Fallback to cache, then offline page
+                    return caches.match(event.request)
+                        .then((cached) => cached || caches.match(OFFLINE_URL));
+                })
+        );
         return;
     }
 
