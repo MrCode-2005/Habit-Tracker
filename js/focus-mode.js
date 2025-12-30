@@ -4421,11 +4421,11 @@ const FocusMode = {
         }
     },
 
-    saveImagePlaylists() {
+    async saveImagePlaylists() {
         try {
             localStorage.setItem('focusImagePlaylists', JSON.stringify(this.imagePlaylists));
-            // Also sync to Supabase if available
-            this.syncImagePlaylistsToSupabase();
+            // Also sync to Supabase if available - AWAIT to prevent race condition
+            await this.syncImagePlaylistsToSupabase();
         } catch (e) {
             console.log('Error saving image playlists:', e);
         }
@@ -4546,7 +4546,7 @@ const FocusMode = {
         }
     },
 
-    createImagePlaylist() {
+    async createImagePlaylist() {
         const name = prompt('Enter collection name:');
         if (!name) return;
 
@@ -4555,7 +4555,7 @@ const FocusMode = {
             name: name,
             images: []
         };
-        this.saveImagePlaylists();
+        await this.saveImagePlaylists();
         this.renderImagePlaylistSelect();
         this.selectImagePlaylist(id);
         this.showNotification(`Collection "${name}" created! 📁`);
@@ -4638,7 +4638,7 @@ const FocusMode = {
         });
     },
 
-    addCurrentImageToPlaylist() {
+    async addCurrentImageToPlaylist() {
         if (!this.currentImageUrl || !this.currentImagePlaylist) return;
 
         const playlist = this.imagePlaylists[this.currentImagePlaylist];
@@ -4651,25 +4651,25 @@ const FocusMode = {
             name: name || 'Image ' + (playlist.images.length + 1)
         });
 
-        this.saveImagePlaylists();
+        await this.saveImagePlaylists();
         this.renderImagePlaylistItems(this.currentImagePlaylist);
         this.renderImagePlaylistSelect();
         this.showNotification('Image added to collection! ✅');
     },
 
-    removeImageFromPlaylist(index) {
+    async removeImageFromPlaylist(index) {
         if (!this.currentImagePlaylist) return;
 
         const playlist = this.imagePlaylists[this.currentImagePlaylist];
         if (!playlist) return;
 
         playlist.images.splice(index, 1);
-        this.saveImagePlaylists();
+        await this.saveImagePlaylists();
         this.renderImagePlaylistItems(this.currentImagePlaylist);
         this.renderImagePlaylistSelect();
     },
 
-    editImagePlaylist() {
+    async editImagePlaylist() {
         if (!this.currentImagePlaylist) return;
 
         const playlist = this.imagePlaylists[this.currentImagePlaylist];
@@ -4678,7 +4678,7 @@ const FocusMode = {
         const newName = prompt('Edit collection name:', playlist.name);
         if (newName && newName !== playlist.name) {
             playlist.name = newName;
-            this.saveImagePlaylists();
+            await this.saveImagePlaylists();
             this.renderImagePlaylistSelect();
             this.showNotification('Collection renamed! ✏️');
         }
@@ -4694,7 +4694,7 @@ const FocusMode = {
         if (confirmed) {
             delete this.imagePlaylists[this.currentImagePlaylist];
             this.currentImagePlaylist = null;
-            this.saveImagePlaylists();
+            await this.saveImagePlaylists();
             this.renderImagePlaylistSelect();
             this.selectImagePlaylist(null);
             this.showNotification('Collection deleted! 🗑️');
