@@ -1796,6 +1796,60 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-variant-numeric: tabular-nums;
     line-height: 1;
+    transition: font-size 0.3s ease;
+}
+
+/* Size variants for minimal timer */
+.minimal-time.size-small {
+    font-size: clamp(40px, 10vw, 100px);
+}
+
+.minimal-time.size-medium {
+    font-size: clamp(80px, 20vw, 200px);
+}
+
+.minimal-time.size-large {
+    font-size: clamp(120px, 30vw, 300px);
+}
+
+.minimal-time.size-xlarge {
+    font-size: clamp(150px, 40vw, 400px);
+}
+
+/* Size controls */
+.minimal-size-controls {
+    display: flex;
+    gap: 8px;
+    margin-top: 30px;
+    opacity: 0.6;
+    transition: opacity 0.3s ease;
+}
+
+.minimal-size-controls:hover {
+    opacity: 1;
+}
+
+.minimal-size-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.minimal-size-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.minimal-size-btn.active {
+    background: rgba(124, 58, 237, 0.8);
+    border-color: #7c3aed;
 }
 
 .tree-container {

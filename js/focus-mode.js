@@ -127,6 +127,9 @@ const FocusMode = {
             });
         });
 
+        // Initialize minimal view size controls
+        this.initMinimalSizeControls();
+
         // Settings panels
         document.getElementById('focusSoundBtn')?.addEventListener('click', () => {
             this.togglePanel('sound');
@@ -4083,6 +4086,38 @@ const FocusMode = {
         } else {
             minimalDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
         }
+    },
+
+    setMinimalSize(size) {
+        const minimalDisplay = document.getElementById('minimalTimeDisplay');
+        if (!minimalDisplay) return;
+
+        // Remove all size classes
+        minimalDisplay.classList.remove('size-small', 'size-medium', 'size-large', 'size-xlarge');
+
+        // Add the new size class
+        minimalDisplay.classList.add(`size-${size}`);
+
+        // Update button states
+        document.querySelectorAll('.minimal-size-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.size === size);
+        });
+
+        // Save preference
+        localStorage.setItem('minimalTimerSize', size);
+    },
+
+    initMinimalSizeControls() {
+        // Restore saved size preference
+        const savedSize = localStorage.getItem('minimalTimerSize') || 'medium';
+        this.setMinimalSize(savedSize);
+
+        // Add event listeners to size buttons
+        document.querySelectorAll('.minimal-size-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.setMinimalSize(btn.dataset.size);
+            });
+        });
     },
 
     updateTreeGrowth() {
