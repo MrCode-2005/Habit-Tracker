@@ -441,6 +441,19 @@ const SupabaseDB = {
             tree_stage: session.treeStage || 0,
             tree_progress: session.treeProgress || 0,
             view_mode: session.viewMode || 'timer',
+            // Audio sync
+            audio_playlist_id: session.audioPlaylistId || null,
+            audio_track_index: session.audioTrackIndex || 0,
+            audio_position: session.audioPosition || 0,
+            // Video sync
+            video_url: session.videoUrl || null,
+            video_position: session.videoPosition || 0,
+            // Image sync
+            image_url: session.imageUrl || null,
+            image_playlist_id: session.imagePlaylistId || null,
+            image_index: session.imageIndex || 0,
+            // Animation
+            animation_type: session.animationType || 'stars',
             paused_at: new Date().toISOString()
         };
 

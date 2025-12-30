@@ -503,6 +503,9 @@ const FocusMode = {
                 this.currentViewMode = cloudCheck.viewMode;
             }
             console.log('Resumed from cloud session');
+
+            // Restore media state (audio, video, image, animation) from cloud
+            await this.restoreMediaFromCloud(cloudCheck);
         } else {
             // Check local storage for saved timer state
             if (this.currentSubtask && task) {
@@ -916,7 +919,35 @@ const FocusMode = {
                 this.timerComplete();
             }
         }, 1000);
+
+        // Start periodic cloud sync (every 30 seconds) for cross-device sync
+        this.startPeriodicCloudSync();
     },
+
+    // Start periodic sync to cloud for cross-device synchronization
+    startPeriodicCloudSync() {
+        // Clear any existing sync interval
+        this.stopPeriodicCloudSync();
+
+        // Sync every 30 seconds while timer is running
+        this.cloudSyncInterval = setInterval(() => {
+            if (!this.isPaused && this.remainingSeconds > 0) {
+                this.saveFocusSessionToCloud();
+            }
+        }, 30000);
+
+        // Also sync immediately when starting
+        this.saveFocusSessionToCloud();
+    },
+
+    // Stop periodic cloud sync
+    stopPeriodicCloudSync() {
+        if (this.cloudSyncInterval) {
+            clearInterval(this.cloudSyncInterval);
+            this.cloudSyncInterval = null;
+        }
+    },
+
 
     // Helper to dismiss audio overlay and start playing
     dismissAudioOverlayAndPlay() {
@@ -941,6 +972,9 @@ const FocusMode = {
             this.timerInterval = null;
         }
         this.updateStartButton();
+
+        // Stop periodic cloud sync
+        this.stopPeriodicCloudSync();
 
         // Start tracking pause time for tree withering
         this.pauseStartTime = Date.now();
@@ -5053,6 +5087,28 @@ const FocusMode = {
 
             const subtaskIndex = this.currentSubtask?.index ?? -1;
 
+            // Get current audio position
+            let audioPosition = 0;
+            if (this.currentAudio && !this.currentAudio.paused) {
+                audioPosition = this.currentAudio.currentTime || 0;
+            }
+
+            // Get current video position (YouTube or custom)
+            let videoPosition = 0;
+            let videoUrl = null;
+            if (this.youtubePlayer && this.youtubePlayer.getCurrentTime) {
+                try {
+                    videoPosition = this.youtubePlayer.getCurrentTime() || 0;
+                    videoUrl = this.currentVideoUrl || null;
+                } catch (e) { }
+            } else if (this.videoBgActive) {
+                const videoPlayer = document.getElementById('videoBgPlayer');
+                if (videoPlayer) {
+                    videoPosition = videoPlayer.currentTime || 0;
+                    videoUrl = videoPlayer.src || null;
+                }
+            }
+
             const session = {
                 taskId: this.currentTask.id,
                 taskTitle: this.currentTask.title,
@@ -5065,11 +5121,24 @@ const FocusMode = {
                 isPaused: this.isPaused,
                 treeStage: this.treeStage,
                 treeProgress: this.treeProgress,
-                viewMode: this.currentViewMode
+                viewMode: this.currentViewMode,
+                // Audio sync
+                audioPlaylistId: this.currentPlaylist || null,
+                audioTrackIndex: this.currentTrackIndex || 0,
+                audioPosition: audioPosition,
+                // Video sync
+                videoUrl: videoUrl,
+                videoPosition: videoPosition,
+                // Image sync
+                imageUrl: this.currentImageUrl || null,
+                imagePlaylistId: this.currentImagePlaylist || null,
+                imageIndex: this.currentImageIndex || 0,
+                // Animation
+                animationType: this.currentAnimation || 'stars'
             };
 
             await SupabaseDB.upsertFocusSession(user.id, session);
-            console.log('Focus session saved to cloud');
+            console.log('Focus session saved to cloud (full state)');
         } catch (e) {
             console.log('Could not save focus session to cloud:', e.message);
         }
@@ -5131,7 +5200,20 @@ const FocusMode = {
                     breakDuration: cloudSession.break_duration,
                     treeStage: cloudSession.tree_stage,
                     treeProgress: cloudSession.tree_progress,
-                    viewMode: cloudSession.view_mode
+                    viewMode: cloudSession.view_mode,
+                    // Audio state
+                    audioPlaylistId: cloudSession.audio_playlist_id,
+                    audioTrackIndex: cloudSession.audio_track_index || 0,
+                    audioPosition: cloudSession.audio_position || 0,
+                    // Video state
+                    videoUrl: cloudSession.video_url,
+                    videoPosition: cloudSession.video_position || 0,
+                    // Image state
+                    imageUrl: cloudSession.image_url,
+                    imagePlaylistId: cloudSession.image_playlist_id,
+                    imageIndex: cloudSession.image_index || 0,
+                    // Animation
+                    animationType: cloudSession.animation_type || 'stars'
                 };
             } else {
                 // User chose not to resume - delete the old session
@@ -5140,6 +5222,59 @@ const FocusMode = {
         }
 
         return { shouldResume: false };
+    },
+
+    // Restore media state from cloud session data
+    async restoreMediaFromCloud(cloudState) {
+        if (!cloudState) return;
+
+        // Restore animation type
+        if (cloudState.animationType && cloudState.animationType !== this.currentAnimation) {
+            this.setAnimation(cloudState.animationType);
+        }
+
+        // Restore image background
+        if (cloudState.imageUrl) {
+            this.currentImageUrl = cloudState.imageUrl;
+            this.currentImagePlaylist = cloudState.imagePlaylistId;
+            this.currentImageIndex = cloudState.imageIndex || 0;
+            this.setImageBackground(cloudState.imageUrl);
+        }
+
+        // Restore video background
+        if (cloudState.videoUrl) {
+            this.currentVideoUrl = cloudState.videoUrl;
+            // Set video and seek to position after it loads
+            setTimeout(() => {
+                if (this.youtubePlayer && this.youtubePlayer.seekTo) {
+                    this.youtubePlayer.seekTo(cloudState.videoPosition || 0, true);
+                } else {
+                    const videoPlayer = document.getElementById('videoBgPlayer');
+                    if (videoPlayer) {
+                        videoPlayer.currentTime = cloudState.videoPosition || 0;
+                    }
+                }
+            }, 2000);
+        }
+
+        // Restore audio playlist and position
+        if (cloudState.audioPlaylistId && this.playlists[cloudState.audioPlaylistId]) {
+            this.currentPlaylist = cloudState.audioPlaylistId;
+            this.currentTrackIndex = cloudState.audioTrackIndex || 0;
+
+            // Restore audio playback after a short delay
+            setTimeout(() => {
+                this.playTrack(this.currentTrackIndex);
+                // Seek to saved position after audio starts
+                setTimeout(() => {
+                    if (this.currentAudio && cloudState.audioPosition > 0) {
+                        this.currentAudio.currentTime = cloudState.audioPosition;
+                    }
+                }, 500);
+            }, 1000);
+        }
+
+        console.log('Media state restored from cloud');
     }
 };
 
