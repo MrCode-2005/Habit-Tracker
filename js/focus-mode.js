@@ -985,6 +985,9 @@ const FocusMode = {
             }
         }
 
+        // Update minimal view display
+        this.updateMinimalDisplay();
+
         // Update label
         const label = document.getElementById('focusTimerLabel');
         if (label) {
@@ -4037,6 +4040,7 @@ const FocusMode = {
 
         const timerView = document.getElementById('focusTimerView');
         const treeView = document.getElementById('focusTreeView');
+        const minimalView = document.getElementById('focusMinimalView');
         const toggleBtns = document.querySelectorAll('.view-toggle-btn');
 
         // Update button states
@@ -4044,19 +4048,41 @@ const FocusMode = {
             btn.classList.toggle('active', btn.dataset.view === mode);
         });
 
-        // Show/hide views
+        // Hide all views first
+        timerView?.classList.add('hidden');
+        treeView?.classList.add('hidden');
+        minimalView?.classList.add('hidden');
+
+        // Show the selected view
         if (mode === 'tree') {
-            timerView?.classList.add('hidden');
             treeView?.classList.remove('hidden');
             // Update tree with current progress
             this.updateTreeGrowth();
+        } else if (mode === 'minimal') {
+            minimalView?.classList.remove('hidden');
+            // Update minimal display
+            this.updateMinimalDisplay();
         } else {
             timerView?.classList.remove('hidden');
-            treeView?.classList.add('hidden');
         }
 
         // Save preference
         localStorage.setItem('focusViewMode', mode);
+    },
+
+    updateMinimalDisplay() {
+        const minimalDisplay = document.getElementById('minimalTimeDisplay');
+        if (!minimalDisplay) return;
+
+        const hours = Math.floor(this.remainingSeconds / 3600);
+        const minutes = Math.floor((this.remainingSeconds % 3600) / 60);
+        const seconds = this.remainingSeconds % 60;
+
+        if (hours > 0) {
+            minimalDisplay.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        } else {
+            minimalDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
     },
 
     updateTreeGrowth() {
