@@ -444,6 +444,7 @@ const FocusMode = {
 
         this.currentTask = task;
         this.currentSubtask = subtask;
+        this.currentSubtaskPath = null; // Initialize path
 
         // Calculate total time in seconds
         let totalMinutes = 0;
@@ -455,13 +456,24 @@ const FocusMode = {
             } else if (subtask.hours !== undefined || subtask.minutes !== undefined) {
                 totalMinutes = (subtask.hours || 0) * 60 + (subtask.minutes || 0);
             }
+
+            // Find the path for this subtask in the flattened list
+            if (task && task.subtasks && task.subtasks.length > 0) {
+                const flatSubtasks = this.flattenSubtasks(task.subtasks);
+                const found = flatSubtasks.find(s => s.subtask.title === subtask.title);
+                if (found) {
+                    this.currentSubtaskPath = found.path;
+                }
+            }
         } else if (task && task.subtasks && task.subtasks.length > 0) {
-            // Task with subtasks - find first INCOMPLETE subtask
-            const incompleteSubtasks = task.subtasks.filter(s => !s.completed);
+            // Task with subtasks - find first INCOMPLETE subtask (including nested ones)
+            const flatSubtasks = this.flattenSubtasks(task.subtasks);
+            const incompleteSubtasks = flatSubtasks.filter(s => !s.subtask.completed);
 
             if (incompleteSubtasks.length > 0) {
                 // Set current subtask to first incomplete one
-                this.currentSubtask = incompleteSubtasks[0];
+                this.currentSubtask = incompleteSubtasks[0].subtask;
+                this.currentSubtaskPath = incompleteSubtasks[0].path;
                 totalMinutes = this.currentSubtask.duration || 0;
             } else {
                 // All subtasks complete - use task total time
@@ -712,7 +724,9 @@ const FocusMode = {
 
         if (subtaskEl) {
             if (this.currentSubtask) {
-                subtaskEl.textContent = `Sub-task: ${this.currentSubtask.title}`;
+                // Show the subtask path for nested subtasks
+                const displayName = this.currentSubtaskPath || this.currentSubtask.title;
+                subtaskEl.textContent = `Sub-task: ${displayName}`;
                 subtaskEl.style.display = 'block';
             } else {
                 subtaskEl.style.display = 'none';
@@ -743,16 +757,14 @@ const FocusMode = {
             detailsEl.style.display = (hasComment || hasLink) ? 'block' : 'none';
         }
 
-        // Show task progress if we have a task with subtasks
+        // Show task progress using flattened subtasks
         const navEl = document.getElementById('focusSubtaskNav');
         if (progressEl && this.currentTask && this.currentTask.subtasks && this.currentTask.subtasks.length > 0) {
-            const total = this.currentTask.subtasks.length;
-            const completed = this.currentTask.subtasks.filter(s => s.completed).length;
+            const flatSubtasks = this.flattenSubtasks(this.currentTask.subtasks);
+            const total = flatSubtasks.length;
+            const completed = flatSubtasks.filter(s => s.subtask.completed).length;
             const currentIdx = this.currentSubtask
-                ? this.currentTask.subtasks.findIndex(s =>
-                    (s.id && s.id === this.currentSubtask.id) ||
-                    (s.title && s.title === this.currentSubtask.title)
-                ) + 1
+                ? flatSubtasks.findIndex(s => s.subtask.title === this.currentSubtask.title) + 1
                 : 0;
 
             progressEl.innerHTML = `
@@ -769,21 +781,43 @@ const FocusMode = {
         }
     },
 
+    // Flatten all subtasks (including nested children) into a single array
+    // Returns array of { subtask, path, pathStr } where path is for display and pathStr is for timer key
+    flattenSubtasks(subtasks, parentPath = '') {
+        const result = [];
+        subtasks.forEach((subtask, index) => {
+            const currentPath = parentPath ? `${parentPath} → ${subtask.title}` : subtask.title;
+            const pathKey = parentPath ? `${parentPath}_${index}` : `${index}`;
+
+            result.push({
+                subtask: subtask,
+                path: currentPath,
+                pathKey: pathKey
+            });
+
+            // Recursively add children
+            if (subtask.children && subtask.children.length > 0) {
+                const childResults = this.flattenSubtasks(subtask.children, currentPath);
+                result.push(...childResults);
+            }
+        });
+        return result;
+    },
+
     navigateSubtask(direction) {
         if (!this.currentTask || !this.currentTask.subtasks || this.currentTask.subtasks.length === 0) return;
 
-        const subtasks = this.currentTask.subtasks;
+        // Flatten all subtasks including nested ones
+        const flatSubtasks = this.flattenSubtasks(this.currentTask.subtasks);
+        if (flatSubtasks.length === 0) return;
 
-        // Find current subtask index by title (subtasks may not have id)
+        // Find current subtask index by title
         let currentIdx = -1;
         if (this.currentSubtask) {
-            currentIdx = subtasks.findIndex(s =>
-                (s.id && s.id === this.currentSubtask.id) ||
-                (s.title && s.title === this.currentSubtask.title)
-            );
+            currentIdx = flatSubtasks.findIndex(s => s.subtask.title === this.currentSubtask.title);
         }
 
-        // Save the current subtask's remaining time before switching (using new object format)
+        // Save the current subtask's remaining time before switching
         if (this.currentSubtask && this.currentSubtask.title && this.remainingSeconds > 0) {
             const key = `${this.currentTask.id}_${this.currentSubtask.title}`;
             this.subtaskTimerStates[key] = {
@@ -800,31 +834,32 @@ const FocusMode = {
 
         let newIdx;
         if (direction === 'prev') {
-            newIdx = currentIdx > 0 ? currentIdx - 1 : subtasks.length - 1;
+            newIdx = currentIdx > 0 ? currentIdx - 1 : flatSubtasks.length - 1;
         } else {
-            newIdx = currentIdx < subtasks.length - 1 ? currentIdx + 1 : 0;
+            newIdx = currentIdx < flatSubtasks.length - 1 ? currentIdx + 1 : 0;
         }
 
         // Skip completed subtasks when navigating forward
         if (direction === 'next') {
             let attempts = 0;
-            while (subtasks[newIdx] && subtasks[newIdx].completed && attempts < subtasks.length) {
-                newIdx = (newIdx + 1) % subtasks.length;
+            while (flatSubtasks[newIdx] && flatSubtasks[newIdx].subtask.completed && attempts < flatSubtasks.length) {
+                newIdx = (newIdx + 1) % flatSubtasks.length;
                 attempts++;
             }
         }
 
-        const newSubtask = subtasks[newIdx];
-        if (!newSubtask) return;
+        const newSubtaskEntry = flatSubtasks[newIdx];
+        if (!newSubtaskEntry) return;
 
-        this.currentSubtask = newSubtask;
+        this.currentSubtask = newSubtaskEntry.subtask;
+        this.currentSubtaskPath = newSubtaskEntry.path; // Store the display path
 
-        // Check if we have saved timer state for this subtask (using new object format)
-        const newKey = `${this.currentTask.id}_${newSubtask.title}`;
+        // Check if we have saved timer state for this subtask
+        const newKey = `${this.currentTask.id}_${newSubtaskEntry.subtask.title}`;
         const savedState = this.subtaskTimerStates[newKey];
 
         // Calculate default total time
-        const durationMinutes = newSubtask.duration || 25;
+        const durationMinutes = newSubtaskEntry.subtask.duration || 25;
         this.totalSeconds = durationMinutes * 60;
 
         // Restore saved remaining time or use default
@@ -839,6 +874,7 @@ const FocusMode = {
         this.updateProgress(this.remainingSeconds / this.totalSeconds);
         this.updateTaskInfo();
     },
+
 
     // Timer functions
     toggleTimer() {
