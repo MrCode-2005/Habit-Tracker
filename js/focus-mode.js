@@ -67,6 +67,11 @@ const FocusMode = {
     slideshowInterval: null, // Slideshow timer
     slideshowEnabled: false, // Whether slideshow is active
 
+    // Timer Completion Alarm
+    alarmSound: 'bell', // Default alarm sound
+    alarmVolume: 0.7, // Default volume (0-1)
+    alarmRepeatCount: 2, // Default repeat count
+
     // Focus quotes
     focusQuotes: [
         { text: "The secret of getting ahead is getting started.", author: "Mark Twain" },
@@ -129,6 +134,9 @@ const FocusMode = {
 
         // Initialize minimal view size controls
         this.initMinimalSizeControls();
+
+        // Initialize alarm controls
+        this.initAlarmControls();
 
         // Settings panels
         document.getElementById('focusSoundBtn')?.addEventListener('click', () => {
@@ -968,6 +976,9 @@ const FocusMode = {
             }
             // Trigger tree completion animation
             this.treeComplete();
+
+            // Play completion alarm
+            this.playAlarm();
 
             // Delete cloud session since timer is complete
             this.deleteFocusSessionFromCloud();
@@ -4031,6 +4042,173 @@ const FocusMode = {
                 osc.start();
                 osc.stop(audioCtx.currentTime + 2);
             });
+        }
+    },
+
+    // ==============================
+    // Timer Completion Alarm Methods
+    // ==============================
+
+    initAlarmControls() {
+        // Load saved preferences
+        const savedSound = localStorage.getItem('alarmSound');
+        const savedVolume = localStorage.getItem('alarmVolume');
+        const savedRepeat = localStorage.getItem('alarmRepeatCount');
+
+        if (savedSound) this.alarmSound = savedSound;
+        if (savedVolume) this.alarmVolume = parseFloat(savedVolume);
+        if (savedRepeat) this.alarmRepeatCount = parseInt(savedRepeat);
+
+        // Update UI to reflect saved values
+        const soundSelect = document.getElementById('completionAlarmSelect');
+        const volumeSlider = document.getElementById('alarmVolumeSlider');
+        const volumeValue = document.getElementById('alarmVolumeValue');
+
+        if (soundSelect) soundSelect.value = this.alarmSound;
+        if (volumeSlider) {
+            volumeSlider.value = this.alarmVolume * 100;
+            if (volumeValue) volumeValue.textContent = Math.round(this.alarmVolume * 100) + '%';
+        }
+
+        // Update repeat buttons
+        document.querySelectorAll('.repeat-option').forEach(btn => {
+            btn.classList.toggle('active', parseInt(btn.dataset.count) === this.alarmRepeatCount);
+        });
+
+        // Sound select listener
+        soundSelect?.addEventListener('change', (e) => {
+            this.alarmSound = e.target.value;
+            localStorage.setItem('alarmSound', this.alarmSound);
+        });
+
+        // Volume slider listener
+        volumeSlider?.addEventListener('input', (e) => {
+            this.alarmVolume = e.target.value / 100;
+            if (volumeValue) volumeValue.textContent = e.target.value + '%';
+            localStorage.setItem('alarmVolume', this.alarmVolume);
+        });
+
+        // Repeat count listeners
+        document.querySelectorAll('.repeat-option').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.alarmRepeatCount = parseInt(btn.dataset.count);
+                document.querySelectorAll('.repeat-option').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                localStorage.setItem('alarmRepeatCount', this.alarmRepeatCount);
+            });
+        });
+
+        // Test alarm button
+        document.getElementById('testCompletionAlarmBtn')?.addEventListener('click', () => {
+            this.playAlarm();
+        });
+    },
+
+    playAlarm(repeatIndex = 0) {
+        if (this.alarmSound === 'none' || repeatIndex >= this.alarmRepeatCount) return;
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.value = this.alarmVolume;
+        gainNode.connect(audioCtx.destination);
+
+        const sounds = {
+            bell: () => {
+                [523.25, 659.25, 783.99].forEach((freq, i) => {
+                    const osc = audioCtx.createOscillator();
+                    osc.frequency.value = freq;
+                    osc.type = 'sine';
+                    const env = audioCtx.createGain();
+                    env.gain.setValueAtTime(0.4, audioCtx.currentTime + i * 0.1);
+                    env.gain.exponentialDecayTo?.(0.01, audioCtx.currentTime + 1) ||
+                        env.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1);
+                    osc.connect(env);
+                    env.connect(gainNode);
+                    osc.start(audioCtx.currentTime + i * 0.1);
+                    osc.stop(audioCtx.currentTime + 1.5);
+                });
+            },
+            chime: () => {
+                [880, 1100, 1320, 1650].forEach((freq, i) => {
+                    const osc = audioCtx.createOscillator();
+                    osc.frequency.value = freq;
+                    osc.type = 'triangle';
+                    const env = audioCtx.createGain();
+                    env.gain.setValueAtTime(0.3, audioCtx.currentTime + i * 0.15);
+                    env.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + i * 0.15 + 0.5);
+                    osc.connect(env);
+                    env.connect(gainNode);
+                    osc.start(audioCtx.currentTime + i * 0.15);
+                    osc.stop(audioCtx.currentTime + i * 0.15 + 0.6);
+                });
+            },
+            digital: () => {
+                [1000, 1500, 1000, 1500].forEach((freq, i) => {
+                    const osc = audioCtx.createOscillator();
+                    osc.frequency.value = freq;
+                    osc.type = 'square';
+                    const env = audioCtx.createGain();
+                    env.gain.value = 0.2;
+                    osc.connect(env);
+                    env.connect(gainNode);
+                    osc.start(audioCtx.currentTime + i * 0.15);
+                    osc.stop(audioCtx.currentTime + i * 0.15 + 0.1);
+                });
+            },
+            gentle: () => {
+                [392, 440, 493.88].forEach((freq, i) => {
+                    const osc = audioCtx.createOscillator();
+                    osc.frequency.value = freq;
+                    osc.type = 'sine';
+                    const env = audioCtx.createGain();
+                    env.gain.setValueAtTime(0.25, audioCtx.currentTime + i * 0.3);
+                    env.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + i * 0.3 + 1);
+                    osc.connect(env);
+                    env.connect(gainNode);
+                    osc.start(audioCtx.currentTime + i * 0.3);
+                    osc.stop(audioCtx.currentTime + i * 0.3 + 1.2);
+                });
+            },
+            alert: () => {
+                [800, 1200].forEach((freq, i) => {
+                    for (let j = 0; j < 3; j++) {
+                        const osc = audioCtx.createOscillator();
+                        osc.frequency.value = freq;
+                        osc.type = 'sawtooth';
+                        const env = audioCtx.createGain();
+                        env.gain.value = 0.15;
+                        osc.connect(env);
+                        env.connect(gainNode);
+                        const startTime = audioCtx.currentTime + j * 0.2 + i * 0.1;
+                        osc.start(startTime);
+                        osc.stop(startTime + 0.1);
+                    }
+                });
+            },
+            success: () => {
+                [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+                    const osc = audioCtx.createOscillator();
+                    osc.frequency.value = freq;
+                    osc.type = 'sine';
+                    const env = audioCtx.createGain();
+                    env.gain.setValueAtTime(0.35, audioCtx.currentTime + i * 0.12);
+                    env.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + i * 0.12 + 0.4);
+                    osc.connect(env);
+                    env.connect(gainNode);
+                    osc.start(audioCtx.currentTime + i * 0.12);
+                    osc.stop(audioCtx.currentTime + i * 0.12 + 0.5);
+                });
+            }
+        };
+
+        const playSound = sounds[this.alarmSound];
+        if (playSound) playSound();
+
+        // Schedule next repeat
+        if (repeatIndex + 1 < this.alarmRepeatCount) {
+            setTimeout(() => {
+                this.playAlarm(repeatIndex + 1);
+            }, 1500);
         }
     },
 

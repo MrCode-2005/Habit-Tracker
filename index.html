@@ -950,6 +950,46 @@
                     <button id="testAlertBtn" class="test-alert-btn"><i class="fas fa-play"></i> Test Sound</button>
                 </div>
             </div>
+
+            <!-- Timer Completion Alarm -->
+            <div class="completion-alarm-section">
+                <div class="section-header">
+                    <i class="fas fa-bell"></i>
+                    <span>Timer Completion Alarm</span>
+                </div>
+                <div class="completion-alarm-settings">
+                    <div class="alarm-sound-row">
+                        <label>Alarm sound:</label>
+                        <select id="completionAlarmSelect" class="alarm-sound-select">
+                            <option value="none">🔇 None</option>
+                            <option value="bell" selected>🔔 Bell</option>
+                            <option value="chime">✨ Chime</option>
+                            <option value="digital">⏰ Digital</option>
+                            <option value="gentle">🌸 Gentle</option>
+                            <option value="alert">⚡ Alert</option>
+                            <option value="success">🎉 Success</option>
+                        </select>
+                    </div>
+                    <div class="alarm-volume-row">
+                        <label>Volume:</label>
+                        <input type="range" id="alarmVolumeSlider" min="0" max="100" value="70"
+                            class="alarm-volume-slider">
+                        <span id="alarmVolumeValue">70%</span>
+                    </div>
+                    <div class="alarm-repeat-row">
+                        <label>Ring times:</label>
+                        <div class="repeat-options">
+                            <button class="repeat-option" data-count="1">1x</button>
+                            <button class="repeat-option active" data-count="2">2x</button>
+                            <button class="repeat-option" data-count="3">3x</button>
+                            <button class="repeat-option" data-count="5">5x</button>
+                        </div>
+                    </div>
+                    <button id="testCompletionAlarmBtn" class="test-alarm-btn">
+                        <i class="fas fa-play"></i> Test Alarm
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- Animation Settings Panel -->
@@ -1676,8 +1716,7 @@
                     })
                     .catch((error) => {
                         console.log('Service Worker registration failed:', error);
-                    });
-            });
+                         });
         }
     </script>
 </body>

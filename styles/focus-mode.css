@@ -1205,6 +1205,143 @@
     background: var(--primary);
 }
 
+/* Timer Completion Alarm Section */
+.completion-alarm-section {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.completion-alarm-section .section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+}
+
+.completion-alarm-section .section-header i {
+    color: #f59e0b;
+}
+
+.completion-alarm-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.alarm-sound-row,
+.alarm-volume-row,
+.alarm-repeat-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.75rem;
+}
+
+.alarm-sound-row label,
+.alarm-volume-row label,
+.alarm-repeat-row label {
+    min-width: 80px;
+}
+
+.alarm-sound-select {
+    flex: 1;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: white;
+    font-size: 0.8rem;
+}
+
+.alarm-sound-select option {
+    background: #1a1a2e;
+}
+
+.alarm-volume-slider {
+    flex: 1;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+    outline: none;
+}
+
+.alarm-volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #7c3aed;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.alarm-volume-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+#alarmVolumeValue {
+    min-width: 35px;
+    text-align: right;
+    color: #7c3aed;
+    font-weight: 600;
+}
+
+.repeat-options {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.repeat-option {
+    padding: 0.4rem 0.7rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: white;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.repeat-option:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.repeat-option.active {
+    background: rgba(124, 58, 237, 0.6);
+    border-color: #7c3aed;
+}
+
+.test-alarm-btn {
+    width: 100%;
+    padding: 0.6rem;
+    margin-top: 0.5rem;
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.test-alarm-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .focus-header {
