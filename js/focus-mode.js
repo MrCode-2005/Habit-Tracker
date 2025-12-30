@@ -4685,13 +4685,14 @@ const FocusMode = {
         }
     },
 
-    deleteImagePlaylist() {
+    async deleteImagePlaylist() {
         if (!this.currentImagePlaylist) return;
 
         const playlist = this.imagePlaylists[this.currentImagePlaylist];
         if (!playlist) return;
 
-        if (confirm(`Delete collection "${playlist.name}"?`)) {
+        const confirmed = await Toast.confirm(`Delete collection "${playlist.name}"?`, 'Delete Collection');
+        if (confirmed) {
             delete this.imagePlaylists[this.currentImagePlaylist];
             this.currentImagePlaylist = null;
             this.saveImagePlaylists();
@@ -4837,10 +4838,9 @@ const FocusMode = {
             const timeStr = `${remainingMins}:${remainingSecs.toString().padStart(2, '0')}`;
 
             // Ask user if they want to resume
-            const resume = confirm(
-                `Found a saved session for this ${subtask ? 'subtask' : 'task'}!\n\n` +
-                `Time remaining: ${timeStr}\n\n` +
-                `Would you like to resume where you left off?`
+            const resume = await Toast.confirm(
+                `Found a saved session! Time remaining: ${timeStr}. Resume where you left off?`,
+                subtask ? 'Resume Subtask' : 'Resume Task'
             );
 
             if (resume) {
