@@ -4401,14 +4401,13 @@ const FocusMode = {
                 if (user) {
                     const serverPlaylists = await SupabaseDB.getImagePlaylists(user.id);
                     if (serverPlaylists && serverPlaylists.length > 0) {
-                        // Merge server playlists into local
+                        // Merge server playlists - server takes precedence for existing playlists
                         serverPlaylists.forEach(sp => {
-                            if (!this.imagePlaylists[sp.id]) {
-                                this.imagePlaylists[sp.id] = {
-                                    name: sp.name,
-                                    images: sp.images || []
-                                };
-                            }
+                            // Always update from server (server is source of truth)
+                            this.imagePlaylists[sp.id] = {
+                                name: sp.name,
+                                images: sp.images || []
+                            };
                         });
                         // Save merged result to localStorage
                         localStorage.setItem('focusImagePlaylists', JSON.stringify(this.imagePlaylists));
