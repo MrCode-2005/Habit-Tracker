@@ -785,23 +785,25 @@ const FocusMode = {
     },
 
     // Flatten all subtasks (including nested children) into a single array
-    // Returns array of { subtask, path, pathStr } where path is for display and pathStr is for timer key
+    // Only includes LEAF subtasks (subtasks without children) for Focus Mode navigation
+    // Parent subtasks with children are skipped - you only work on the deepest level
     flattenSubtasks(subtasks, parentPath = '') {
         const result = [];
         subtasks.forEach((subtask, index) => {
             const currentPath = parentPath ? `${parentPath} → ${subtask.title}` : subtask.title;
             const pathKey = parentPath ? `${parentPath}_${index}` : `${index}`;
 
-            result.push({
-                subtask: subtask,
-                path: currentPath,
-                pathKey: pathKey
-            });
-
-            // Recursively add children
             if (subtask.children && subtask.children.length > 0) {
+                // This subtask has children - skip it and only add its children (recursively)
                 const childResults = this.flattenSubtasks(subtask.children, currentPath);
                 result.push(...childResults);
+            } else {
+                // This is a leaf subtask (no children) - add it to the list
+                result.push({
+                    subtask: subtask,
+                    path: currentPath,
+                    pathKey: pathKey
+                });
             }
         });
         return result;
@@ -1022,17 +1024,24 @@ const FocusMode = {
                 // Clear the saved timer state for this completed subtask
                 this.clearSubtaskTimerState(this.currentTask.id, this.currentSubtask.title);
 
-                // Find the subtask index in the task
-                const subtaskIndex = this.currentTask.subtasks?.findIndex(
-                    s => s.title === this.currentSubtask.title
-                );
+                // Find the subtask path (works for nested subtasks too)
+                const subtaskPath = this.findSubtaskPath(this.currentTask.subtasks, this.currentSubtask.title);
 
-                if (subtaskIndex !== -1 && subtaskIndex !== undefined) {
-                    // Mark subtask as completed
-                    Tasks.toggleSubtask(this.currentTask.id, subtaskIndex);
+                if (subtaskPath !== null) {
+                    // Mark subtask as completed using path (supports nested subtasks)
+                    Tasks.toggleSubtaskByPath(this.currentTask.id, subtaskPath);
                     this.showNotification('Subtask completed! Great work! 🎉');
                 } else {
-                    this.showNotification('Session complete! 🎉');
+                    // Fallback: try top-level index
+                    const subtaskIndex = this.currentTask.subtasks?.findIndex(
+                        s => s.title === this.currentSubtask.title
+                    );
+                    if (subtaskIndex !== -1 && subtaskIndex !== undefined) {
+                        Tasks.toggleSubtask(this.currentTask.id, subtaskIndex);
+                        this.showNotification('Subtask completed! Great work! 🎉');
+                    } else {
+                        this.showNotification('Session complete! 🎉');
+                    }
                 }
             } else if (this.currentTask) {
                 // Clear the saved timer state for this completed task (without subtasks)
@@ -1053,6 +1062,26 @@ const FocusMode = {
             // Delete cloud session since timer is complete
             this.deleteFocusSessionFromCloud();
         }
+    },
+
+    // Find the path to a subtask by title (recursively searches nested subtasks)
+    findSubtaskPath(subtasks, title, currentPath = []) {
+        for (let i = 0; i < subtasks.length; i++) {
+            const subtask = subtasks[i];
+            const newPath = [...currentPath, i];
+
+            if (subtask.title === title) {
+                return newPath.join('-');
+            }
+
+            if (subtask.children && subtask.children.length > 0) {
+                const foundPath = this.findSubtaskPath(subtask.children, title, newPath);
+                if (foundPath !== null) {
+                    return foundPath;
+                }
+            }
+        }
+        return null;
     },
 
     updateTimerDisplay() {
