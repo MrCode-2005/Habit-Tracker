@@ -870,11 +870,12 @@ body {
     display: flex;
     flex-direction: column;
     gap: var(--spacing-xs);
-    margin-bottom: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
     padding: var(--spacing-sm);
     background: var(--bg-primary);
     border-radius: var(--radius-md);
     border: 1px solid var(--border-color);
+    position: relative;
 }
 
 .subtask-entry-row {
@@ -889,6 +890,13 @@ body {
 
 .subtask-entry-row .btn {
     padding: var(--spacing-sm);
+}
+
+.btn-small {
+    padding: 0.375rem 0.5rem !important;
+    font-size: 0.75rem;
+    min-width: 32px;
+    height: 32px;
 }
 
 .subtask-extra-row {
@@ -908,6 +916,85 @@ body {
 
 .subtask-comment-input {
     flex: 2 !important;
+}
+
+/* Nested Subtask Styles */
+.subtask-toggle-btn {
+    background: none;
+    border: none;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.subtask-toggle-btn:hover {
+    background: var(--bg-hover);
+    color: var(--primary);
+}
+
+.subtask-toggle-btn.hidden {
+    visibility: hidden;
+    width: 0;
+    padding: 0;
+    margin: 0;
+}
+
+.subtask-toggle-btn i {
+    transition: transform var(--transition-fast);
+}
+
+.subtask-toggle-btn i.rotated {
+    transform: rotate(90deg);
+}
+
+.subtask-children {
+    margin-left: 1.5rem;
+    padding-left: var(--spacing-sm);
+    border-left: 2px solid var(--border-color);
+    margin-top: var(--spacing-xs);
+}
+
+.subtask-children.expanded {
+    animation: expandChildren var(--transition-fast) ease-out;
+}
+
+@keyframes expandChildren {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Auto-calculated duration styling */
+.subtask-duration-input.auto-calculated {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-secondary);
+    cursor: not-allowed;
+    border-style: dashed !important;
+}
+
+.add-child-btn {
+    background: rgba(99, 102, 241, 0.1) !important;
+    border: 1px solid rgba(99, 102, 241, 0.2) !important;
+    color: var(--primary) !important;
+}
+
+.add-child-btn:hover {
+    background: var(--primary) !important;
+    color: white !important;
 }
 
 /* ===================================

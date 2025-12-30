@@ -133,6 +133,19 @@
                     <h2><i class="fas fa-font"></i> Typography</h2>
                     <div class="typography-controls">
                         <div class="control-row">
+                            <label>Font Family</label>
+                            <select id="fontFamilySelect" class="font-select">
+                                <option value="system">System Default</option>
+                                <option value="inter">Inter</option>
+                                <option value="roboto">Roboto</option>
+                                <option value="poppins">Poppins</option>
+                                <option value="outfit">Outfit</option>
+                                <option value="space-grotesk">Space Grotesk</option>
+                                <option value="dm-sans">DM Sans</option>
+                                <option value="jetbrains-mono">JetBrains Mono</option>
+                            </select>
+                        </div>
+                        <div class="control-row">
                             <label>Font Size</label>
                             <div class="size-options">
                                 <button class="size-btn" data-size="small">S</button>
@@ -151,9 +164,88 @@
                     </div>
                 </section>
 
+                <!-- Advanced Effects -->
+                <section class="control-section">
+                    <h2><i class="fas fa-wand-magic-sparkles"></i> Advanced Effects</h2>
+                    <div class="effects-controls">
+                        <div class="toggle-row">
+                            <span>Gradient Background</span>
+                            <label class="switch">
+                                <input type="checkbox" id="gradientToggle">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="gradient-settings" id="gradientSettings" style="display: none;">
+                            <div class="color-row">
+                                <label>Gradient Start</label>
+                                <div class="color-input-wrapper">
+                                    <input type="color" id="gradientStart" value="#1a1a2e">
+                                    <span class="color-value" id="gradientStartValue">#1a1a2e</span>
+                                </div>
+                            </div>
+                            <div class="color-row">
+                                <label>Gradient End</label>
+                                <div class="color-input-wrapper">
+                                    <input type="color" id="gradientEnd" value="#16213e">
+                                    <span class="color-value" id="gradientEndValue">#16213e</span>
+                                </div>
+                            </div>
+                            <div class="control-row">
+                                <label>Angle: <span id="gradientAngleValue">135°</span></label>
+                                <input type="range" id="gradientAngle" min="0" max="360" value="135"
+                                    class="angle-slider">
+                            </div>
+                        </div>
+                        <div class="control-row">
+                            <label>Animation Speed</label>
+                            <div class="size-options">
+                                <button class="speed-btn" data-speed="slow">Slow</button>
+                                <button class="speed-btn active" data-speed="normal">Normal</button>
+                                <button class="speed-btn" data-speed="fast">Fast</button>
+                            </div>
+                        </div>
+                        <div class="control-row">
+                            <label>Glow Intensity: <span id="glowValue">50%</span></label>
+                            <input type="range" id="glowIntensity" min="0" max="100" value="50" class="glow-slider">
+                        </div>
+                        <div class="control-row">
+                            <label>Card Spacing</label>
+                            <div class="size-options">
+                                <button class="spacing-btn" data-spacing="compact">Compact</button>
+                                <button class="spacing-btn active" data-spacing="normal">Normal</button>
+                                <button class="spacing-btn" data-spacing="spacious">Spacious</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Custom CSS -->
+                <section class="control-section">
+                    <h2><i class="fas fa-code"></i> Custom CSS</h2>
+                    <div class="custom-css-controls">
+                        <p class="section-description">Add your own CSS to customize the app further.</p>
+                        <textarea id="customCssEditor" class="css-editor" placeholder="/* Enter custom CSS here */
+:root {
+  /* Override any CSS variable */
+}
+
+.my-custom-class {
+  /* Your styles */
+}"></textarea>
+                        <div class="css-actions">
+                            <button id="applyCssBtn" class="apply-css-btn">
+                                <i class="fas fa-check"></i> Apply CSS
+                            </button>
+                            <button id="clearCssBtn" class="clear-css-btn">
+                                <i class="fas fa-eraser"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
                 <!-- Export/Import -->
                 <section class="control-section">
-                    <h2><i class="fas fa-file-export"></i> Backup</h2>
+                    <h2><i class="fas fa-file-export"></i> Backup & Share</h2>
                     <div class="export-controls">
                         <button id="exportThemeBtn" class="export-btn">
                             <i class="fas fa-download"></i> Export Theme
@@ -162,6 +254,9 @@
                             <i class="fas fa-upload"></i> Import Theme
                             <input type="file" id="importThemeInput" accept=".json" hidden>
                         </label>
+                        <button id="copyThemeBtn" class="copy-btn">
+                            <i class="fas fa-copy"></i> Copy Theme Code
+                        </button>
                     </div>
                 </section>
             </div>
