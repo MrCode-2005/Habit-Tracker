@@ -449,13 +449,121 @@ const Tasks = {
         }
 
         if (current) {
-            current.completed = !current.completed;
+            const newState = !current.completed;
+            current.completed = newState;
+
+            // If completing a subtask that has children, complete all children too
+            if (newState && current.children && current.children.length > 0) {
+                this.setAllChildrenComplete(current, true);
+            }
+
+            // If uncompleting a subtask, also uncheck all parents up the chain
+            if (!newState) {
+                this.uncheckParentChain(task.subtasks, path);
+            }
+
+            // If completing, check if all siblings are complete -> auto-complete parent chain
+            if (newState) {
+                this.updateParentCompletionStatus(task.subtasks, path);
+            }
+
+            // Finally, check if all top-level subtasks are complete -> complete the main task
+            if (this.areAllSubtasksComplete(task.subtasks)) {
+                task.completed = true;
+            } else {
+                task.completed = false;
+            }
+
             State.saveTasks();
 
             // Sync to Supabase
             await State.syncTaskToSupabase(task);
             this.render();
         }
+    },
+
+    // Set all children (recursively) to a completion state
+    setAllChildrenComplete(subtask, completed) {
+        if (subtask.children && subtask.children.length > 0) {
+            subtask.children.forEach(child => {
+                child.completed = completed;
+                this.setAllChildrenComplete(child, completed);
+            });
+        }
+    },
+
+    // Uncheck all parents up the chain when a child is unchecked
+    uncheckParentChain(subtasks, path) {
+        // Walk up from the deepest level to the top
+        for (let depth = path.length - 1; depth >= 0; depth--) {
+            const parentPath = path.slice(0, depth);
+            if (parentPath.length === 0) {
+                // Top-level subtask
+                return;
+            }
+
+            // Get the parent at this depth
+            let parent = subtasks[parentPath[0]];
+            for (let i = 1; i < parentPath.length; i++) {
+                parent = parent.children?.[parentPath[i]];
+            }
+
+            if (parent) {
+                parent.completed = false;
+            }
+        }
+    },
+
+    // Check if all siblings are complete, and if so, mark parent as complete
+    updateParentCompletionStatus(subtasks, path) {
+        // Start from the current level and work up
+        for (let depth = path.length; depth >= 1; depth--) {
+            const currentPath = path.slice(0, depth);
+            const parentPath = path.slice(0, depth - 1);
+
+            // Get siblings at current level
+            let siblings;
+            if (parentPath.length === 0) {
+                // Top-level subtasks
+                siblings = subtasks;
+            } else {
+                // Get parent and its children
+                let parent = subtasks[parentPath[0]];
+                for (let i = 1; i < parentPath.length; i++) {
+                    parent = parent.children?.[parentPath[i]];
+                }
+                siblings = parent?.children || [];
+            }
+
+            // Check if ALL siblings at this level are complete
+            const allSiblingsComplete = siblings.every(s => this.isSubtaskFullyComplete(s));
+
+            // If all siblings complete and there's a parent, mark parent complete
+            if (allSiblingsComplete && parentPath.length > 0) {
+                let parent = subtasks[parentPath[0]];
+                for (let i = 1; i < parentPath.length; i++) {
+                    parent = parent.children?.[parentPath[i]];
+                }
+                if (parent) {
+                    parent.completed = true;
+                }
+            }
+        }
+    },
+
+    // Check if a subtask is fully complete (itself and all children)
+    isSubtaskFullyComplete(subtask) {
+        if (!subtask.completed) return false;
+        if (subtask.children && subtask.children.length > 0) {
+            return subtask.children.every(child => this.isSubtaskFullyComplete(child));
+        }
+        return true;
+    },
+
+    // Check if all subtasks (including nested) are complete
+    areAllSubtasksComplete(subtasks) {
+        if (!subtasks || subtasks.length === 0) return false;
+        return subtasks.every(subtask => this.isSubtaskFullyComplete(subtask));
     },
 
     async deleteTask(taskId) {
