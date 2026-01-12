@@ -508,6 +508,26 @@ const Auth = {
                 }
             }
 
+            // Load expenses and education fees
+            if (typeof Expenses !== 'undefined') {
+                try {
+                    // Load expenses from Supabase
+                    State.expenses = await SupabaseDB.getExpenses(userId) || [];
+                    State.saveExpenses();
+
+                    // Load education fees from Supabase
+                    State.educationFees = await SupabaseDB.getEducationFees(userId) || [];
+                    State.saveEducationFees();
+
+                    console.log('Expenses sync complete:', State.expenses.length, 'expenses,', State.educationFees.length, 'fee records');
+                } catch (expenseError) {
+                    console.warn('Expense sync skipped:', expenseError.message);
+                    // Fall back to local storage
+                    State.expenses = Storage.get('expenses') || [];
+                    State.educationFees = Storage.get('educationFees') || [];
+                }
+            }
+
             console.log('Data synced from Supabase for user:', userId);
         } catch (error) {
             console.error('Error loading user data:', error);

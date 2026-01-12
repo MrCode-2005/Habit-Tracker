@@ -542,7 +542,6 @@ const State = {
         return today.toISOString().split('T')[0];
     },
 
-    // Calculate habit streak
     calculateStreak(habitId) {
         habitId = String(habitId); // Ensure string comparison
         const habit = this.habits.find(h => String(h.id) === habitId);
@@ -603,5 +602,124 @@ const State = {
             current: currentStreak,
             longest: longestStreak
         };
+    },
+
+    // =============================================
+    // EXPENSES
+    // =============================================
+    expenses: [],
+    educationFees: [],
+
+    getExpenses() {
+        return this.expenses;
+    },
+
+    async loadExpenses() {
+        if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
+            this.expenses = await SupabaseDB.getExpenses(Auth.getUserId());
+        } else {
+            this.expenses = Storage.get('expenses') || [];
+        }
+    },
+
+    async addExpense(expense) {
+        expense.id = expense.id || 'exp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        expense.is_deleted = false;
+        this.expenses.push(expense);
+        this.saveExpenses();
+        await this.syncExpenseToSupabase(expense);
+        return expense;
+    },
+
+    async updateExpense(expenseId, updates) {
+        expenseId = String(expenseId);
+        const index = this.expenses.findIndex(e => String(e.id) === expenseId);
+        if (index !== -1) {
+            this.expenses[index] = { ...this.expenses[index], ...updates };
+            this.saveExpenses();
+            await this.syncExpenseToSupabase(this.expenses[index]);
+            return this.expenses[index];
+        }
+        return null;
+    },
+
+    async softDeleteExpense(expenseId) {
+        expenseId = String(expenseId);
+        const expense = this.expenses.find(e => String(e.id) === expenseId);
+        if (expense) {
+            expense.is_deleted = true;
+            this.saveExpenses();
+            if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
+                await SupabaseDB.softDeleteExpense(expenseId);
+            }
+        }
+    },
+
+    async clearExpenseHistory() {
+        // Remove all soft-deleted expenses permanently
+        this.expenses = this.expenses.filter(e => !e.is_deleted);
+        this.saveExpenses();
+        if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
+            await SupabaseDB.clearExpenseHistory(Auth.getUserId());
+        }
+    },
+
+    saveExpenses() {
+        Storage.set('expenses', this.expenses);
+    },
+
+    async syncExpenseToSupabase(expense) {
+        if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
+            await SupabaseDB.upsertExpense(Auth.getUserId(), expense);
+        }
+    },
+
+    // =============================================
+    // EDUCATION FEES
+    // =============================================
+    getEducationFees() {
+        return this.educationFees;
+    },
+
+    async loadEducationFees() {
+        if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
+            this.educationFees = await SupabaseDB.getEducationFees(Auth.getUserId());
+        } else {
+            this.educationFees = Storage.get('educationFees') || [];
+        }
+    },
+
+    async updateEducationFee(semester, updates) {
+        let feeData = this.educationFees.find(f => f.semester === semester);
+
+        if (feeData) {
+            // Update existing
+            Object.assign(feeData, updates);
+        } else {
+            // Create new
+            feeData = {
+                semester: semester,
+                tuition_fee: 0,
+                hostel_fee: 0,
+                tuition_paid: false,
+                hostel_paid: false,
+                ...updates
+            };
+            this.educationFees.push(feeData);
+        }
+
+        this.saveEducationFees();
+        await this.syncEducationFeeToSupabase(feeData);
+        return feeData;
+    },
+
+    saveEducationFees() {
+        Storage.set('educationFees', this.educationFees);
+    },
+
+    async syncEducationFeeToSupabase(feeData) {
+        if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
+            await SupabaseDB.upsertEducationFee(Auth.getUserId(), feeData);
+        }
     }
 };

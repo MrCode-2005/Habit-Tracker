@@ -24,6 +24,7 @@
     <link rel="stylesheet" href="styles/focus-mode.css">
     <link rel="stylesheet" href="styles/calendar.css">
     <link rel="stylesheet" href="styles/dashboard.css">
+    <link rel="stylesheet" href="styles/expenses.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Apply theme immediately to prevent flash on load -->
@@ -106,6 +107,10 @@
                     <i class="fa-solid fa-calendar"></i>
                     <span>Calendar</span>
                 </button>
+                <button class="nav-btn" data-view="expenses">
+                    <i class="fa-solid fa-wallet"></i>
+                    <span>Expenses</span>
+                </button>
             </div>
             <div class="user-menu" id="userMenu" style="display: none;">
                 <button class="user-menu-btn" id="userMenuBtn">
@@ -153,6 +158,11 @@
                     <button class="dropdown-item" id="clearHistoryBtn">
                         <i class="fa-solid fa-trash-can"></i>
                         <span>Clear History</span>
+                    </button>
+
+                    <button class="dropdown-item" id="clearExpenseHistoryBtn">
+                        <i class="fa-solid fa-eraser"></i>
+                        <span>Clear Expense History</span>
                     </button>
 
                     <div class="dropdown-divider"></div>
@@ -530,6 +540,92 @@
                 <!-- Goal cards will be inserted here -->
             </div>
         </section>
+
+        <!-- Expenses View -->
+        <section class="view" id="expenses">
+            <div class="view-header">
+                <h1>Expense & Financial Tracking</h1>
+                <button class="btn btn-primary" id="addExpenseBtn">
+                    <i class="fa-solid fa-plus"></i>
+                    Add Expense
+                </button>
+            </div>
+
+            <!-- Time Filter -->
+            <div class="expense-time-filter">
+                <label>View:</label>
+                <select id="expenseTimeFilter">
+                    <option value="today">Today</option>
+                    <option value="week">Last Week</option>
+                    <option value="month" selected>This Month</option>
+                    <option value="year">This Year</option>
+                </select>
+            </div>
+
+            <!-- Category Tabs -->
+            <div class="expense-tabs">
+                <button class="expense-tab active" data-category="all">Overview</button>
+                <button class="expense-tab" data-category="food">Food</button>
+                <button class="expense-tab" data-category="clothing">Clothing & Shopping</button>
+                <button class="expense-tab" data-category="transportation">Transportation</button>
+                <button class="expense-tab" data-category="essentials">Daily Essentials</button>
+                <button class="expense-tab" data-category="education">Education Fees</button>
+            </div>
+
+            <!-- Expense Summary Cards -->
+            <div class="expense-summary" id="expenseSummary">
+                <!-- Summary cards will be inserted here by JS -->
+            </div>
+
+            <!-- Charts Section -->
+            <div class="expense-charts" id="expenseChartsSection">
+                <div class="chart-card expense-chart-card">
+                    <h3>Food Expenses</h3>
+                    <canvas id="foodExpenseChart"></canvas>
+                </div>
+                <div class="chart-card expense-chart-card">
+                    <h3>Clothing & Personal Shopping</h3>
+                    <canvas id="clothingExpenseChart"></canvas>
+                </div>
+                <div class="chart-card expense-chart-card">
+                    <h3>Transportation</h3>
+                    <canvas id="transportExpenseChart"></canvas>
+                </div>
+                <div class="chart-card expense-chart-card">
+                    <h3>Daily Essentials</h3>
+                    <canvas id="essentialsExpenseChart"></canvas>
+                </div>
+                <div class="chart-card expense-chart-card full-width">
+                    <h3>Overall Expenses</h3>
+                    <canvas id="overallExpenseChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Recent Expenses List -->
+            <div class="expense-list-section">
+                <h2>Recent Expenses</h2>
+                <div class="expense-list" id="expenseList">
+                    <!-- Expense cards will be inserted here by JS -->
+                </div>
+            </div>
+
+            <!-- Education Fees Section (Separate, No Graphs) -->
+            <div class="education-fees-section" id="educationFeesSection" style="display: none;">
+                <h2>Education Fees</h2>
+                <p class="education-fees-subtitle">Track semester-wise tuition and hostel fees</p>
+                <div class="semester-grid" id="semesterGrid">
+                    <!-- 8 semester cards will be inserted here by JS -->
+                </div>
+            </div>
+
+            <!-- Expense History Panel -->
+            <div class="expense-history-panel" id="expenseHistoryPanel">
+                <h2>Expense History</h2>
+                <div class="history-list" id="expenseHistoryList">
+                    <!-- Soft-deleted expenses -->
+                </div>
+            </div>
+        </section>
     </main>
 
     <!-- Right Side Panel (Timer) -->
@@ -736,6 +832,62 @@
                     <button type="submit" class="btn btn-primary">Save Goal</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Modal for Add/Edit Expense -->
+    <div class="modal" id="expenseModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add Expense</h2>
+                <button class="close-modal">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+            </div>
+            <form id="expenseForm">
+                <div class="form-group">
+                    <label for="expenseAmount">Amount (₹)*</label>
+                    <input type="number" id="expenseAmount" step="0.01" min="0" required placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label for="expenseCategory">Category*</label>
+                    <select id="expenseCategory" required>
+                        <option value="">Select category...</option>
+                        <option value="food_outing">Food While Outing</option>
+                        <option value="food_online">Online Food Orders</option>
+                        <option value="clothing">Clothing & Personal Shopping</option>
+                        <option value="transportation">Transportation</option>
+                        <option value="essentials">Daily Essentials</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="expenseDate">Date*</label>
+                    <input type="date" id="expenseDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="expenseNote">Note (optional)</label>
+                    <textarea id="expenseNote" rows="2" placeholder="Add a note..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Expense</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for Expense Details (Chart Click) -->
+    <div class="modal" id="expenseDetailsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="expenseDetailsTitle">Expense Details</h2>
+                <button class="close-modal">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+            </div>
+            <div class="expense-details-content" id="expenseDetailsContent">
+                <!-- Detailed breakdown will be inserted here -->
+            </div>
         </div>
     </div>
 
@@ -1688,6 +1840,7 @@
     <script src="js/analytics.js"></script>
     <script src="js/focus-mode.js"></script>
     <script src="js/calendar.js"></script>
+    <script src="js/expenses.js"></script>
 
     <!-- Supabase Integration -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1725,7 +1878,8 @@
                     .catch((error) => {
                         console.log('Service Worker registration failed:', error);
                     });
-            }
+            });
+        }
     </script>
 </body>
 

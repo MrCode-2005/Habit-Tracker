@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     Goals.init();
     Quotes.init();
     Analytics.init();
+    Expenses.init();
 
     // Expose modules globally for onclick handlers
     window.Tasks = Tasks;
@@ -24,6 +25,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.Goals = Goals;
     window.Timer = Timer;
     window.Analytics = Analytics;
+    window.Expenses = Expenses;
 
     // Setup navigation and modals FIRST (before Auth which may be slow)
     setupNavigation();
@@ -104,6 +106,11 @@ function setupNavigation() {
             // Refresh analytics charts when switching to analytics view
             if (viewId === 'analytics') {
                 Analytics.refresh();
+            }
+
+            // Render expenses when switching to expenses view
+            if (viewId === 'expenses') {
+                Expenses.render();
             }
         });
     });

@@ -844,5 +844,129 @@ const SupabaseDB = {
             .gte('date_key', cutoffKey);
 
         if (error) console.error('Error deleting goal history by date range:', error);
+    },
+
+    // =============================================
+    // EXPENSES
+    // =============================================
+
+    async getExpenses(userId) {
+        const client = getSupabase();
+        if (!client) return [];
+
+        const { data, error } = await client
+            .from('expenses')
+            .select('*')
+            .eq('user_id', userId)
+            .order('expense_date', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching expenses:', error);
+            return [];
+        }
+        return data || [];
+    },
+
+    async upsertExpense(userId, expense) {
+        const client = getSupabase();
+        if (!client) return;
+
+        const record = {
+            id: expense.id,
+            user_id: userId,
+            amount: expense.amount,
+            category: expense.category,
+            subcategory: expense.subcategory || null,
+            expense_date: expense.expense_date,
+            note: expense.note || null,
+            is_deleted: expense.is_deleted || false
+        };
+
+        const { error } = await client
+            .from('expenses')
+            .upsert(record, { onConflict: 'id' });
+
+        if (error) console.error('Error upserting expense:', error);
+    },
+
+    async softDeleteExpense(expenseId) {
+        const client = getSupabase();
+        if (!client) return;
+
+        const { error } = await client
+            .from('expenses')
+            .update({ is_deleted: true })
+            .eq('id', expenseId);
+
+        if (error) console.error('Error soft-deleting expense:', error);
+    },
+
+    async deleteExpense(expenseId) {
+        const client = getSupabase();
+        if (!client) return;
+
+        const { error } = await client
+            .from('expenses')
+            .delete()
+            .eq('id', expenseId);
+
+        if (error) console.error('Error deleting expense:', error);
+    },
+
+    async clearExpenseHistory(userId) {
+        const client = getSupabase();
+        if (!client) return;
+
+        // Permanently delete all soft-deleted expenses
+        const { error } = await client
+            .from('expenses')
+            .delete()
+            .eq('user_id', userId)
+            .eq('is_deleted', true);
+
+        if (error) console.error('Error clearing expense history:', error);
+    },
+
+    // =============================================
+    // EDUCATION FEES
+    // =============================================
+
+    async getEducationFees(userId) {
+        const client = getSupabase();
+        if (!client) return [];
+
+        const { data, error } = await client
+            .from('education_fees')
+            .select('*')
+            .eq('user_id', userId)
+            .order('semester', { ascending: true });
+
+        if (error) {
+            console.error('Error fetching education fees:', error);
+            return [];
+        }
+        return data || [];
+    },
+
+    async upsertEducationFee(userId, feeData) {
+        const client = getSupabase();
+        if (!client) return;
+
+        const record = {
+            id: feeData.id || `edu_${userId}_${feeData.semester}`,
+            user_id: userId,
+            semester: feeData.semester,
+            tuition_fee: feeData.tuition_fee || 0,
+            hostel_fee: feeData.hostel_fee || 0,
+            tuition_paid: feeData.tuition_paid || false,
+            hostel_paid: feeData.hostel_paid || false
+        };
+
+        const { error } = await client
+            .from('education_fees')
+            .upsert(record, { onConflict: 'user_id,semester' });
+
+        if (error) console.error('Error upserting education fee:', error);
     }
 };
+

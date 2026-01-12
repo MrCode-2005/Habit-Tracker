@@ -1,0 +1,794 @@
+/* ===================================
+   Expense & Financial Habit Tracking
+   =================================== */
+
+/* Color Palette for Finance UI */
+:root {
+    --expense-food: #f59e0b;
+    --expense-food-online: #ef4444;
+    --expense-clothing: #8b5cf6;
+    --expense-transport: #3b82f6;
+    --expense-essentials: #10b981;
+    --expense-bg: linear-gradient(135deg, rgba(99, 102, 241, 0.05), rgba(16, 185, 129, 0.05));
+}
+
+/* ===================================
+   Expenses Section Layout
+   =================================== */
+#expenses {
+    padding: var(--spacing-lg);
+}
+
+#expenses .view-header {
+    margin-bottom: var(--spacing-lg);
+}
+
+/* Time Filter */
+.expense-time-filter {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.expense-time-filter label {
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.expense-time-filter select {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    cursor: pointer;
+    min-width: 150px;
+}
+
+.expense-time-filter select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* ===================================
+   Category Tabs
+   =================================== */
+.expense-tabs {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-xl);
+    flex-wrap: wrap;
+    padding: var(--spacing-sm);
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-lg);
+}
+
+.expense-tab {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+}
+
+.expense-tab:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.expense-tab.active {
+    background: var(--bg-secondary);
+    color: var(--primary);
+    box-shadow: var(--shadow-sm);
+}
+
+/* ===================================
+   Summary Cards
+   =================================== */
+.expense-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
+}
+
+.summary-card {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    transition: all var(--transition-fast);
+}
+
+.summary-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.summary-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+.summary-food .summary-icon {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--expense-food);
+}
+
+.summary-clothing .summary-icon {
+    background: rgba(139, 92, 246, 0.15);
+    color: var(--expense-clothing);
+}
+
+.summary-transport .summary-icon {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--expense-transport);
+}
+
+.summary-essentials .summary-icon {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--expense-essentials);
+}
+
+.summary-total .summary-icon {
+    background: rgba(99, 102, 241, 0.15);
+    color: var(--primary);
+}
+
+.summary-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.summary-label {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.summary-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+/* ===================================
+   Expense Charts Grid
+   =================================== */
+.expense-charts {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+.expense-chart-card {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    border: 1px solid var(--border-color);
+}
+
+.expense-chart-card h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-md);
+}
+
+.expense-chart-card canvas {
+    height: 220px !important;
+}
+
+.expense-chart-card.full-width {
+    grid-column: 1 / -1;
+}
+
+.expense-chart-card.full-width canvas {
+    height: 280px !important;
+}
+
+/* ===================================
+   Expense List Section
+   =================================== */
+.expense-list-section {
+    margin-bottom: var(--spacing-xl);
+}
+
+.expense-list-section h2 {
+    font-size: 1.125rem;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-md);
+}
+
+.expense-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.expense-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-xxl);
+    text-align: center;
+    color: var(--text-tertiary);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    border: 2px dashed var(--border-color);
+}
+
+.expense-empty i {
+    font-size: 3rem;
+    margin-bottom: var(--spacing-md);
+    opacity: 0.5;
+}
+
+.expense-empty p {
+    margin-bottom: var(--spacing-md);
+}
+
+/* ===================================
+   Expense Card
+   =================================== */
+.expense-card {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    transition: all var(--transition-fast);
+}
+
+.expense-card:hover {
+    border-color: var(--primary);
+    box-shadow: var(--shadow-sm);
+}
+
+.expense-card-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.expense-card-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.expense-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-bottom: 0.25rem;
+}
+
+.expense-category {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.expense-amount {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.expense-card-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+.expense-date i {
+    margin-right: 0.25rem;
+}
+
+.expense-note {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+}
+
+.expense-card-actions {
+    display: flex;
+    gap: var(--spacing-xs);
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+}
+
+.expense-card:hover .expense-card-actions {
+    opacity: 1;
+}
+
+.expense-action-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+}
+
+.expense-action-btn:hover {
+    background: var(--primary);
+    color: white;
+}
+
+.expense-action-delete:hover {
+    background: var(--danger);
+}
+
+/* ===================================
+   Expense History Panel
+   =================================== */
+.expense-history-panel {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    border: 1px solid var(--border-color);
+}
+
+.expense-history-panel h2 {
+    font-size: 1rem;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-md);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.expense-history-panel h2::before {
+    content: '';
+    width: 4px;
+    height: 16px;
+    background: var(--primary);
+    border-radius: 2px;
+}
+
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.history-empty {
+    text-align: center;
+    color: var(--text-tertiary);
+    font-size: 0.875rem;
+    padding: var(--spacing-lg);
+}
+
+.history-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+    opacity: 0.7;
+}
+
+.history-icon {
+    font-size: 0.875rem;
+}
+
+.history-content {
+    display: flex;
+    justify-content: space-between;
+    flex: 1;
+    font-size: 0.813rem;
+}
+
+.history-amount {
+    color: var(--text-primary);
+}
+
+.history-date {
+    color: var(--text-tertiary);
+}
+
+/* ===================================
+   Education Fees Section
+   =================================== */
+.education-fees-section {
+    margin-top: var(--spacing-xl);
+}
+
+.education-fees-section h2 {
+    font-size: 1.25rem;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.education-fees-subtitle {
+    color: var(--text-tertiary);
+    font-size: 0.875rem;
+    margin-bottom: var(--spacing-lg);
+}
+
+.semester-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--spacing-lg);
+}
+
+.semester-card {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+    transition: all var(--transition-fast);
+}
+
+.semester-card:hover {
+    border-color: var(--primary);
+    box-shadow: var(--shadow-md);
+}
+
+.semester-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.semester-header h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.semester-badge {
+    font-size: 0.688rem;
+    font-weight: 600;
+    padding: 0.25rem 0.625rem;
+    border-radius: var(--radius-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.semester-badge.complete {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--success);
+}
+
+.semester-badge.partial {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--expense-food);
+}
+
+.semester-badge.pending {
+    background: rgba(100, 116, 139, 0.15);
+    color: var(--text-tertiary);
+}
+
+.semester-content {
+    padding: var(--spacing-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.fee-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.fee-row>label:first-child {
+    flex: 1;
+}
+
+.fee-label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.25rem;
+}
+
+.fee-input-group {
+    display: flex;
+    align-items: center;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.fee-input-group .currency {
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--bg-hover);
+    color: var(--text-secondary);
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+.fee-input {
+    width: 100%;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 0.938rem;
+    font-weight: 500;
+}
+
+.fee-input:focus {
+    outline: none;
+}
+
+.fee-input::placeholder {
+    color: var(--text-tertiary);
+}
+
+/* Custom Checkbox */
+.fee-checkbox {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    cursor: pointer;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+}
+
+.fee-checkbox input {
+    display: none;
+}
+
+.fee-checkbox .checkmark {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+}
+
+.fee-checkbox .checkmark::after {
+    content: '✓';
+    font-size: 0.75rem;
+    color: white;
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+}
+
+.fee-checkbox input:checked+.checkmark {
+    background: var(--success);
+    border-color: var(--success);
+}
+
+.fee-checkbox input:checked+.checkmark::after {
+    opacity: 1;
+}
+
+.fee-checkbox .checkbox-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.fee-checkbox.paid .checkbox-label {
+    color: var(--success);
+}
+
+.fee-checkbox.unpaid .checkbox-label {
+    color: var(--text-tertiary);
+}
+
+.semester-footer {
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-tertiary);
+}
+
+.semester-total {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* ===================================
+   Expense Modal
+   =================================== */
+#expenseModal .modal-content,
+#expenseDetailsModal .modal-content {
+    max-width: 500px;
+}
+
+#expenseModal .form-group input,
+#expenseModal .form-group select,
+#expenseModal .form-group textarea {
+    width: 100%;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-size: 0.938rem;
+}
+
+#expenseModal .form-group input:focus,
+#expenseModal .form-group select:focus,
+#expenseModal .form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* Expense Details Modal */
+.expense-details-content {
+    padding: var(--spacing-lg);
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.details-category {
+    margin-bottom: var(--spacing-lg);
+}
+
+.details-category:last-child {
+    margin-bottom: 0;
+}
+
+.details-category-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.details-category-header i {
+    font-size: 0.875rem;
+}
+
+.details-total {
+    margin-left: auto;
+    font-weight: 700;
+}
+
+.details-items {
+    padding-left: var(--spacing-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.details-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    padding: var(--spacing-xs) 0;
+}
+
+.details-note {
+    color: var(--text-tertiary);
+    font-style: italic;
+}
+
+.no-details {
+    text-align: center;
+    color: var(--text-tertiary);
+    padding: var(--spacing-xl);
+}
+
+/* ===================================
+   Responsive Design
+   =================================== */
+@media (max-width: 1024px) {
+    .expense-charts {
+        grid-template-columns: 1fr;
+    }
+
+    .expense-chart-card.full-width {
+        grid-column: auto;
+    }
+}
+
+@media (max-width: 768px) {
+    .expense-tabs {
+        justify-content: center;
+    }
+
+    .expense-tab {
+        padding: var(--spacing-sm) var(--spacing-md);
+        font-size: 0.813rem;
+    }
+
+    .expense-summary {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .semester-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .fee-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .fee-checkbox {
+        justify-content: flex-start;
+    }
+
+    .expense-card {
+        flex-wrap: wrap;
+    }
+
+    .expense-card-actions {
+        opacity: 1;
+        width: 100%;
+        justify-content: flex-end;
+        margin-top: var(--spacing-sm);
+        padding-top: var(--spacing-sm);
+        border-top: 1px solid var(--border-color);
+    }
+}
+
+@media (max-width: 480px) {
+    .expense-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .expense-tabs {
+        gap: var(--spacing-xs);
+    }
+
+    .expense-tab {
+        padding: var(--spacing-xs) var(--spacing-sm);
+        font-size: 0.75rem;
+    }
+}
