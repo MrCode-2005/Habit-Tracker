@@ -522,9 +522,9 @@ const Auth = {
                     console.log('Expenses sync complete:', State.expenses.length, 'expenses,', State.educationFees.length, 'fee records');
                 } catch (expenseError) {
                     console.warn('Expense sync skipped:', expenseError.message);
-                    // Fall back to local storage
-                    State.expenses = Storage.get('expenses') || [];
-                    State.educationFees = Storage.get('educationFees') || [];
+                    // Fall back to per-user local storage
+                    State.expenses = Storage.get(`expenses_${userId}`) || [];
+                    State.educationFees = Storage.get(`educationFees_${userId}`) || [];
                 }
             }
 
@@ -541,10 +541,13 @@ const Auth = {
         State.habits = [];
         State.events = [];
         State.goals = [];
+        State.expenses = [];
+        State.educationFees = [];
         Storage.remove('tasks');
         Storage.remove('habits');
         Storage.remove('events');
         Storage.remove('goals');
+        // Note: Expenses and education fees are stored per-user, so no need to remove generic keys
         // History is NOT cleared here - it persists until explicitly cleared
     },
 

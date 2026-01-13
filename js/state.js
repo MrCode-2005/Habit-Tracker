@@ -19,18 +19,18 @@ const State = {
         this.events = Storage.get('events') || [];
         this.goals = Storage.get('goals') || [];
 
-        // Load expenses and education fees
-        this.expenses = Storage.get('expenses') || [];
-        this.educationFees = Storage.get('educationFees') || [];
-
-        // Load history from per-user keys if user was previously logged in
+        // Load expenses and education fees (per-user if logged in)
         const currentUserId = Storage.get('currentUserId');
         if (currentUserId) {
+            this.expenses = Storage.get(`expenses_${currentUserId}`) || [];
+            this.educationFees = Storage.get(`educationFees_${currentUserId}`) || [];
             // Load from per-user keys
             this.taskCompletionHistory = Storage.get(`taskCompletionHistory_${currentUserId}`) || [];
             this.habitCompletionHistory = Storage.get(`habitCompletionHistory_${currentUserId}`) || [];
             this.goalCompletionHistory = Storage.get(`goalCompletionHistory_${currentUserId}`) || [];
         } else {
+            this.expenses = Storage.get('expenses') || [];
+            this.educationFees = Storage.get('educationFees') || [];
             // Guest mode or first time - start with empty history
             this.taskCompletionHistory = [];
             this.habitCompletionHistory = [];
@@ -669,7 +669,12 @@ const State = {
     },
 
     saveExpenses() {
-        Storage.set('expenses', this.expenses);
+        const currentUserId = Storage.get('currentUserId');
+        if (currentUserId) {
+            Storage.set(`expenses_${currentUserId}`, this.expenses);
+        } else {
+            Storage.set('expenses', this.expenses);
+        }
     },
 
     async syncExpenseToSupabase(expense) {
@@ -718,7 +723,12 @@ const State = {
     },
 
     saveEducationFees() {
-        Storage.set('educationFees', this.educationFees);
+        const currentUserId = Storage.get('currentUserId');
+        if (currentUserId) {
+            Storage.set(`educationFees_${currentUserId}`, this.educationFees);
+        } else {
+            Storage.set('educationFees', this.educationFees);
+        }
     },
 
     async syncEducationFeeToSupabase(feeData) {
