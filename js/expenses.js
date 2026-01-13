@@ -1434,53 +1434,69 @@ const Expenses = {
 
         return new Promise((resolve) => {
             img.onload = () => {
-                canvas.width = img.width;
-                canvas.height = img.height;
+                // Scale up small images for better OCR
+                const scale = Math.max(1, 2000 / Math.max(img.width, img.height));
+                canvas.width = img.width * scale;
+                canvas.height = img.height * scale;
 
-                // Draw original image
-                ctx.drawImage(img, 0, 0);
+                console.log(`Image scaled by ${scale}x to ${canvas.width}x${canvas.height}`);
+
+                // Draw scaled image
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
                 // Get image data
                 const imageDataObj = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 const data = imageDataObj.data;
 
-                // Calculate average brightness to detect dark backgrounds
+                // Calculate average brightness
                 let totalBrightness = 0;
                 for (let i = 0; i < data.length; i += 4) {
-                    const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                    const brightness = (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114);
                     totalBrightness += brightness;
                 }
                 const avgBrightness = totalBrightness / (data.length / 4);
-
                 console.log('Average image brightness:', avgBrightness);
 
-                // If dark background (avg brightness < 128), invert colors
-                if (avgBrightness < 128) {
-                    console.log('Dark background detected, inverting colors...');
-                    for (let i = 0; i < data.length; i += 4) {
-                        data[i] = 255 - data[i];       // Red
-                        data[i + 1] = 255 - data[i + 1]; // Green
-                        data[i + 2] = 255 - data[i + 2]; // Blue
-                        // Alpha stays the same
-                    }
-                }
-
-                // Convert to grayscale and increase contrast
+                // Process each pixel
                 for (let i = 0; i < data.length; i += 4) {
-                    const gray = (data[i] + data[i + 1] + data[i + 2]) / 3;
-                    // Increase contrast: values below 128 become darker, above become lighter
-                    const contrast = 1.5;
-                    const adjusted = ((gray / 255 - 0.5) * contrast + 0.5) * 255;
-                    const final = Math.max(0, Math.min(255, adjusted));
-                    data[i] = final;
-                    data[i + 1] = final;
-                    data[i + 2] = final;
+                    // Convert to grayscale using luminosity method
+                    let gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+
+                    // If dark background, invert
+                    if (avgBrightness < 128) {
+                        gray = 255 - gray;
+                    }
+
+                    // Apply aggressive contrast
+                    const contrast = 2.5;
+                    gray = ((gray / 255 - 0.5) * contrast + 0.5) * 255;
+
+                    // Apply thresholding - convert to pure black or white
+                    // Use adaptive threshold based on local brightness
+                    const threshold = avgBrightness < 128 ? 100 : 160;
+                    gray = gray > threshold ? 255 : 0;
+
+                    data[i] = gray;
+                    data[i + 1] = gray;
+                    data[i + 2] = gray;
                 }
 
                 ctx.putImageData(imageDataObj, 0, 0);
 
+                // Apply slight blur to reduce noise, then sharpen
+                ctx.filter = 'blur(0.5px)';
+                ctx.drawImage(canvas, 0, 0);
+                ctx.filter = 'none';
+
                 const processedDataUrl = canvas.toDataURL('image/png');
-                console.log('Image preprocessed successfully');
+                console.log('Image preprocessed with binarization');
+
+                // Also show the processed image in preview for debugging
+                const preview = document.getElementById('receiptPreviewImage');
+                if (preview) {
+                    preview.src = processedDataUrl;
+                }
+
                 resolve(processedDataUrl);
             };
 
