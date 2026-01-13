@@ -1472,125 +1472,94 @@ const Expenses = {
         const fees = [];
         const lines = text.split('\n');
 
-        // Common patterns for Indian fee receipts
-        const semesterPatterns = [
-            /semester\s*[:-]?\s*(\d)/i,
-            /sem\s*[:-]?\s*(\d)/i,
-            /(\d)(st|nd|rd|th)\s*sem/i,
-            /sem[^\d]*(\d)/i
-        ];
+        console.log('Parsing OCR text:', text);
 
-        const tuitionPatterns = [
-            /tuition\s*(?:fee)?[:\s]*[₹Rs.]*\s*([\d,]+)/i,
-            /admission\s*fee[:\s]*[₹Rs.]*\s*([\d,]+)/i,
-            /course\s*fee[:\s]*[₹Rs.]*\s*([\d,]+)/i,
-            /academic\s*fee[:\s]*[₹Rs.]*\s*([\d,]+)/i
-        ];
+        // Pattern 1: "1st SEMESTER FEE ₹311,845" or "1ST SEM FEE 311845"
+        const semesterFeePattern = /(\d)(st|nd|rd|th)\s*(?:semester|sem)?\s*(?:fee)?[:\s]*[₹Rs.]*\s*([\d,]+)/gi;
 
-        const hostelPatterns = [
-            /hostel\s*(?:fee)?[:\s]*[₹Rs.]*\s*([\d,]+)/i,
-            /mess\s*(?:fee)?[:\s]*[₹Rs.]*\s*([\d,]+)/i,
-            /accommodation[:\s]*[₹Rs.]*\s*([\d,]+)/i,
-            /boarding[:\s]*[₹Rs.]*\s*([\d,]+)/i
-        ];
+        // Pattern 2: "Semester 1 Fee: ₹311,845"
+        const semesterFeePattern2 = /semester\s*(\d)[:\s]*(?:fee)?[:\s]*[₹Rs.]*\s*([\d,]+)/gi;
 
-        // Try to find semester-wise fees
-        let currentSemester = null;
-        let currentTuition = 0;
-        let currentHostel = 0;
+        // Try all patterns on the full text
+        let match;
+        const foundFees = new Map(); // Use Map to deduplicate by semester
 
-        for (const line of lines) {
-            // Check for semester number
-            for (const pattern of semesterPatterns) {
-                const match = line.match(pattern);
-                if (match) {
-                    // Save previous semester if exists
-                    if (currentSemester !== null && (currentTuition > 0 || currentHostel > 0)) {
-                        fees.push({
-                            semester: currentSemester,
-                            tuition_fee: currentTuition,
-                            hostel_fee: currentHostel
-                        });
-                    }
-                    currentSemester = parseInt(match[1]);
-                    currentTuition = 0;
-                    currentHostel = 0;
-                    break;
-                }
+        // Try pattern 1
+        while ((match = semesterFeePattern.exec(text)) !== null) {
+            const semester = parseInt(match[1]);
+            const amount = parseInt(match[3].replace(/,/g, ''));
+            if (semester >= 1 && semester <= 8 && !isNaN(amount) && amount > 1000) {
+                foundFees.set(semester, { semester, tuition_fee: amount, hostel_fee: 0 });
             }
+        }
 
-            // Check for tuition fee
-            for (const pattern of tuitionPatterns) {
-                const match = line.match(pattern);
-                if (match) {
-                    const amount = parseInt(match[1].replace(/,/g, ''));
-                    if (!isNaN(amount) && amount > 0) {
-                        currentTuition = Math.max(currentTuition, amount);
-                    }
-                    break;
-                }
-            }
-
-            // Check for hostel fee
-            for (const pattern of hostelPatterns) {
-                const match = line.match(pattern);
-                if (match) {
-                    const amount = parseInt(match[1].replace(/,/g, ''));
-                    if (!isNaN(amount) && amount > 0) {
-                        currentHostel = Math.max(currentHostel, amount);
-                    }
-                    break;
+        // Try pattern 2
+        while ((match = semesterFeePattern2.exec(text)) !== null) {
+            const semester = parseInt(match[1]);
+            const amount = parseInt(match[2].replace(/,/g, ''));
+            if (semester >= 1 && semester <= 8 && !isNaN(amount) && amount > 1000) {
+                if (!foundFees.has(semester)) {
+                    foundFees.set(semester, { semester, tuition_fee: amount, hostel_fee: 0 });
                 }
             }
         }
 
-        // Save last semester
-        if (currentSemester !== null && (currentTuition > 0 || currentHostel > 0)) {
-            fees.push({
-                semester: currentSemester,
-                tuition_fee: currentTuition,
-                hostel_fee: currentHostel
-            });
+        // If still no results, try line-by-line parsing for tabular data
+        if (foundFees.size === 0) {
+            for (const line of lines) {
+                // Look for lines with semester indicators and amounts
+                const lineMatch = line.match(/(\d)\s*(?:st|nd|rd|th)?\s*(?:semester|sem)/i);
+                const amountMatch = line.match(/[₹Rs.]?\s*([\d,]{4,})/);
+
+                if (lineMatch && amountMatch) {
+                    const semester = parseInt(lineMatch[1]);
+                    const amount = parseInt(amountMatch[1].replace(/,/g, ''));
+                    if (semester >= 1 && semester <= 8 && !isNaN(amount) && amount > 1000) {
+                        foundFees.set(semester, { semester, tuition_fee: amount, hostel_fee: 0 });
+                    }
+                }
+            }
         }
 
-        // If no semester-specific fees found, try to find total amounts
+        // Convert Map to array and sort by semester
+        foundFees.forEach(fee => fees.push(fee));
+        fees.sort((a, b) => a.semester - b.semester);
+
+        console.log('Parsed fees:', fees);
+
+        // If still no semester-specific fees found, try to find any large amounts
         if (fees.length === 0) {
-            let tuitionTotal = 0;
-            let hostelTotal = 0;
-
-            // Look for any fee amounts in the text
-            const amountPattern = /[₹Rs.]\s*([\d,]+)/g;
-            let match;
             const amounts = [];
+            const amountPattern = /[₹Rs.]?\s*([\d,]{5,})/g;
 
             while ((match = amountPattern.exec(text)) !== null) {
                 const amount = parseInt(match[1].replace(/,/g, ''));
-                if (!isNaN(amount) && amount > 1000) { // Ignore small amounts
+                if (!isNaN(amount) && amount > 10000 && amount < 10000000) {
                     amounts.push(amount);
                 }
             }
 
-            // Also look for amount patterns without currency symbol
-            const plainAmountPattern = /\b(\d{4,})\b/g;
-            while ((match = plainAmountPattern.exec(text)) !== null) {
-                const amount = parseInt(match[1]);
-                if (!isNaN(amount) && amount > 1000 && amount < 1000000) {
-                    amounts.push(amount);
-                }
-            }
+            // Remove duplicates and sort
+            const uniqueAmounts = [...new Set(amounts)].sort((a, b) => b - a);
 
-            if (amounts.length > 0) {
-                // Take the largest amount as tuition, second largest as hostel
-                amounts.sort((a, b) => b - a);
-                tuitionTotal = amounts[0] || 0;
-                hostelTotal = amounts[1] || 0;
-
-                // Assume semester 1 if no semester info found
-                fees.push({
-                    semester: 1,
-                    tuition_fee: tuitionTotal,
-                    hostel_fee: hostelTotal
+            // Try to map amounts to semesters if we have 8 or fewer
+            if (uniqueAmounts.length > 0 && uniqueAmounts.length <= 8) {
+                uniqueAmounts.forEach((amount, index) => {
+                    fees.push({
+                        semester: index + 1,
+                        tuition_fee: amount,
+                        hostel_fee: 0
+                    });
                 });
+            } else if (uniqueAmounts.length > 0) {
+                // Just take first 8 as semester fees
+                for (let i = 0; i < Math.min(8, uniqueAmounts.length); i++) {
+                    fees.push({
+                        semester: i + 1,
+                        tuition_fee: uniqueAmounts[i],
+                        hostel_fee: 0
+                    });
+                }
             }
         }
 
