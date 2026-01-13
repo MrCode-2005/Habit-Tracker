@@ -1260,8 +1260,14 @@ const Expenses = {
     uploadedFile: null,
 
     showUploadReceiptModal() {
+        console.log('showUploadReceiptModal called');
         const modal = document.getElementById('uploadReceiptModal');
-        if (!modal) return;
+        console.log('uploadReceiptModal element:', modal);
+        if (!modal) {
+            console.error('uploadReceiptModal not found in DOM!');
+            alert('Upload modal not found. Please refresh the page.');
+            return;
+        }
 
         // Reset state
         this.extractedFeeData = [];
