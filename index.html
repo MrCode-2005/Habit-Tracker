@@ -27,6 +27,11 @@
     <link rel="stylesheet" href="styles/expenses.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+    <!-- Tesseract.js for OCR -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <!-- PDF.js for PDF parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
     <!-- Apply theme immediately to prevent flash on load -->
     <script>
         (function () {
@@ -611,8 +616,16 @@
 
             <!-- Education Fees Section (Separate, No Graphs) -->
             <div class="education-fees-section" id="educationFeesSection" style="display: none;">
-                <h2>Education Fees</h2>
-                <p class="education-fees-subtitle">Track semester-wise tuition and hostel fees</p>
+                <div class="education-fees-header">
+                    <div>
+                        <h2>Education Fees</h2>
+                        <p class="education-fees-subtitle">Track semester-wise tuition and hostel fees</p>
+                    </div>
+                    <button class="btn btn-primary" id="uploadFeeReceiptBtn"
+                        onclick="Expenses.showUploadReceiptModal()">
+                        <i class="fa-solid fa-file-import"></i> Upload Receipt
+                    </button>
+                </div>
                 <div class="semester-grid" id="semesterGrid">
                     <!-- 8 semester cards will be inserted here by JS -->
                 </div>
@@ -1004,6 +1017,76 @@
                     <button type="button" class="btn btn-danger" id="confirmClearExpensesBtn"
                         onclick="Expenses.confirmClearHistory()">
                         <i class="fa-solid fa-trash"></i> Delete Selected
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Upload Fee Receipt (OCR) -->
+    <div class="modal" id="uploadReceiptModal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-file-import"></i> Upload Fee Receipt</h2>
+                <button class="close-modal">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" style="padding: var(--spacing-lg);">
+                <p style="color: var(--text-secondary); margin-bottom: var(--spacing-lg);">
+                    Upload a fee receipt (PDF or image) to automatically extract semester-wise tuition and hostel fees.
+                </p>
+
+                <!-- File Upload Area -->
+                <div class="upload-drop-zone" id="uploadDropZone"
+                    onclick="document.getElementById('receiptFileInput').click()">
+                    <input type="file" id="receiptFileInput" accept="image/*,.pdf" style="display: none;"
+                        onchange="Expenses.handleReceiptUpload(event)">
+                    <div class="upload-icon">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                    </div>
+                    <p class="upload-text">Drag & drop or click to upload</p>
+                    <p class="upload-hint">Supports: JPG, PNG, PDF</p>
+                </div>
+
+                <!-- Preview Area -->
+                <div class="upload-preview" id="uploadPreview" style="display: none;">
+                    <img id="receiptPreviewImage" src="" alt="Receipt Preview"
+                        style="max-width: 100%; max-height: 200px; border-radius: 8px;">
+                    <button class="btn btn-sm btn-secondary" onclick="Expenses.clearUpload()"
+                        style="margin-top: 0.5rem;">
+                        <i class="fa-solid fa-times"></i> Remove
+                    </button>
+                </div>
+
+                <!-- Processing Status -->
+                <div class="ocr-processing" id="ocrProcessing" style="display: none;">
+                    <div class="processing-spinner"></div>
+                    <p id="ocrStatus">Reading document...</p>
+                </div>
+
+                <!-- Extracted Fees Preview -->
+                <div class="extracted-fees" id="extractedFees" style="display: none;">
+                    <h3 style="margin-bottom: 1rem; color: var(--text-primary);">
+                        <i class="fa-solid fa-check-circle" style="color: var(--success);"></i> Fees Extracted
+                    </h3>
+                    <div class="extracted-fees-grid" id="extractedFeesGrid">
+                        <!-- Extracted semester fees will be shown here -->
+                    </div>
+                    <div
+                        style="background: rgba(99, 102, 241, 0.1); border-radius: 8px; padding: 0.75rem; margin-top: 1rem;">
+                        <p style="color: var(--primary); font-size: 0.85rem; margin: 0;">
+                            <i class="fa-solid fa-info-circle"></i>
+                            Review the extracted fees before applying. You can edit any values manually.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="modal-actions" style="margin-top: 1.5rem;">
+                    <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="applyExtractedFeesBtn"
+                        onclick="Expenses.applyExtractedFees()" disabled>
+                        <i class="fa-solid fa-check"></i> Apply Fees
                     </button>
                 </div>
             </div>

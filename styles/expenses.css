@@ -842,3 +842,162 @@
 .expense-clear-preview-item .cat-icon {
     margin-right: 0.5rem;
 }
+
+/* ===================================
+   Education Fees Header
+   =================================== */
+.education-fees-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--spacing-lg);
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.education-fees-header h2 {
+    font-size: 1.25rem;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+/* ===================================
+   File Upload Modal
+   =================================== */
+.upload-drop-zone {
+    border: 2px dashed var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    background: var(--bg-tertiary);
+}
+
+.upload-drop-zone:hover,
+.upload-drop-zone.dragover {
+    border-color: var(--primary);
+    background: rgba(99, 102, 241, 0.05);
+}
+
+.upload-drop-zone .upload-icon {
+    font-size: 3rem;
+    color: var(--primary);
+    margin-bottom: 1rem;
+}
+
+.upload-drop-zone .upload-text {
+    font-size: 1rem;
+    color: var(--text-primary);
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.upload-drop-zone .upload-hint {
+    font-size: 0.813rem;
+    color: var(--text-tertiary);
+}
+
+.upload-preview {
+    text-align: center;
+    padding: 1rem;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-lg);
+    margin-top: 1rem;
+}
+
+/* OCR Processing */
+.ocr-processing {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem;
+    text-align: center;
+}
+
+.processing-spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid var(--border-color);
+    border-top: 4px solid var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.ocr-processing p {
+    color: var(--text-secondary);
+    font-size: 0.938rem;
+}
+
+/* Extracted Fees */
+.extracted-fees {
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    margin-top: 1rem;
+}
+
+.extracted-fees-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 0.75rem;
+}
+
+.extracted-fee-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+}
+
+.extracted-fee-item .fee-semester {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+}
+
+.extracted-fee-item .fee-values {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.813rem;
+}
+
+.extracted-fee-item .fee-value {
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-sm);
+}
+
+.extracted-fee-item .tuition-value {
+    background: rgba(99, 102, 241, 0.15);
+    color: var(--primary);
+}
+
+.extracted-fee-item .hostel-value {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--success);
+}
+
+.extracted-fee-item input {
+    width: 80px;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    text-align: right;
+}

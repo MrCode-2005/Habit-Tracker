@@ -1245,6 +1245,333 @@ const Expenses = {
         if (this.initialized) {
             this.render();
         }
+    },
+
+    // ===================================
+    // OCR Fee Extraction
+    // ===================================
+    extractedFeeData: [],
+    uploadedFile: null,
+
+    showUploadReceiptModal() {
+        const modal = document.getElementById('uploadReceiptModal');
+        if (!modal) return;
+
+        // Reset state
+        this.extractedFeeData = [];
+        this.uploadedFile = null;
+
+        // Reset UI
+        document.getElementById('uploadDropZone').style.display = 'block';
+        document.getElementById('uploadPreview').style.display = 'none';
+        document.getElementById('ocrProcessing').style.display = 'none';
+        document.getElementById('extractedFees').style.display = 'none';
+        document.getElementById('receiptFileInput').value = '';
+        document.getElementById('applyExtractedFeesBtn').disabled = true;
+
+        // Setup drag and drop
+        const dropZone = document.getElementById('uploadDropZone');
+        dropZone.ondragover = (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        };
+        dropZone.ondragleave = () => dropZone.classList.remove('dragover');
+        dropZone.ondrop = (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                this.processFile(e.dataTransfer.files[0]);
+            }
+        };
+
+        modal.classList.add('active');
+    },
+
+    handleReceiptUpload(event) {
+        const file = event.target.files[0];
+        if (file) {
+            this.processFile(file);
+        }
+    },
+
+    async processFile(file) {
+        this.uploadedFile = file;
+
+        document.getElementById('uploadDropZone').style.display = 'none';
+        document.getElementById('ocrProcessing').style.display = 'flex';
+        document.getElementById('ocrStatus').textContent = 'Preparing document...';
+
+        try {
+            let imageData;
+
+            if (file.type === 'application/pdf') {
+                // Handle PDF
+                document.getElementById('ocrStatus').textContent = 'Converting PDF...';
+                imageData = await this.convertPdfToImage(file);
+            } else {
+                // Handle image
+                imageData = await this.readFileAsDataURL(file);
+            }
+
+            // Show preview
+            document.getElementById('receiptPreviewImage').src = imageData;
+            document.getElementById('uploadPreview').style.display = 'block';
+
+            // Run OCR
+            document.getElementById('ocrStatus').textContent = 'Reading document with OCR...';
+            const text = await this.runOCR(imageData);
+
+            // Parse fees from text
+            document.getElementById('ocrStatus').textContent = 'Extracting fee information...';
+            const fees = this.parseFees(text);
+
+            if (fees.length > 0) {
+                this.extractedFeeData = fees;
+                this.displayExtractedFees(fees);
+                document.getElementById('applyExtractedFeesBtn').disabled = false;
+            } else {
+                throw new Error('Could not extract fee information from the document');
+            }
+
+            document.getElementById('ocrProcessing').style.display = 'none';
+            document.getElementById('extractedFees').style.display = 'block';
+
+        } catch (error) {
+            console.error('OCR Error:', error);
+            document.getElementById('ocrProcessing').style.display = 'none';
+            document.getElementById('uploadDropZone').style.display = 'block';
+
+            if (typeof Toast !== 'undefined') {
+                Toast.error('Failed to extract fees: ' + error.message);
+            }
+        }
+    },
+
+    readFileAsDataURL(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    },
+
+    async convertPdfToImage(file) {
+        // Use PDF.js to convert first page to canvas
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const page = await pdf.getPage(1);
+
+        const scale = 2; // Higher scale for better OCR
+        const viewport = page.getViewport({ scale });
+
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        await page.render({ canvasContext: context, viewport }).promise;
+
+        return canvas.toDataURL('image/png');
+    },
+
+    async runOCR(imageData) {
+        // Use Tesseract.js for OCR
+        const worker = await Tesseract.createWorker('eng');
+
+        const { data: { text } } = await worker.recognize(imageData);
+        await worker.terminate();
+
+        console.log('OCR Result:', text);
+        return text;
+    },
+
+    parseFees(text) {
+        const fees = [];
+        const lines = text.split('\n');
+
+        // Common patterns for Indian fee receipts
+        const semesterPatterns = [
+            /semester\s*[:-]?\s*(\d)/i,
+            /sem\s*[:-]?\s*(\d)/i,
+            /(\d)(st|nd|rd|th)\s*sem/i,
+            /sem[^\d]*(\d)/i
+        ];
+
+        const tuitionPatterns = [
+            /tuition\s*(?:fee)?[:\s]*[₹Rs.]*\s*([\d,]+)/i,
+            /admission\s*fee[:\s]*[₹Rs.]*\s*([\d,]+)/i,
+            /course\s*fee[:\s]*[₹Rs.]*\s*([\d,]+)/i,
+            /academic\s*fee[:\s]*[₹Rs.]*\s*([\d,]+)/i
+        ];
+
+        const hostelPatterns = [
+            /hostel\s*(?:fee)?[:\s]*[₹Rs.]*\s*([\d,]+)/i,
+            /mess\s*(?:fee)?[:\s]*[₹Rs.]*\s*([\d,]+)/i,
+            /accommodation[:\s]*[₹Rs.]*\s*([\d,]+)/i,
+            /boarding[:\s]*[₹Rs.]*\s*([\d,]+)/i
+        ];
+
+        // Try to find semester-wise fees
+        let currentSemester = null;
+        let currentTuition = 0;
+        let currentHostel = 0;
+
+        for (const line of lines) {
+            // Check for semester number
+            for (const pattern of semesterPatterns) {
+                const match = line.match(pattern);
+                if (match) {
+                    // Save previous semester if exists
+                    if (currentSemester !== null && (currentTuition > 0 || currentHostel > 0)) {
+                        fees.push({
+                            semester: currentSemester,
+                            tuition_fee: currentTuition,
+                            hostel_fee: currentHostel
+                        });
+                    }
+                    currentSemester = parseInt(match[1]);
+                    currentTuition = 0;
+                    currentHostel = 0;
+                    break;
+                }
+            }
+
+            // Check for tuition fee
+            for (const pattern of tuitionPatterns) {
+                const match = line.match(pattern);
+                if (match) {
+                    const amount = parseInt(match[1].replace(/,/g, ''));
+                    if (!isNaN(amount) && amount > 0) {
+                        currentTuition = Math.max(currentTuition, amount);
+                    }
+                    break;
+                }
+            }
+
+            // Check for hostel fee
+            for (const pattern of hostelPatterns) {
+                const match = line.match(pattern);
+                if (match) {
+                    const amount = parseInt(match[1].replace(/,/g, ''));
+                    if (!isNaN(amount) && amount > 0) {
+                        currentHostel = Math.max(currentHostel, amount);
+                    }
+                    break;
+                }
+            }
+        }
+
+        // Save last semester
+        if (currentSemester !== null && (currentTuition > 0 || currentHostel > 0)) {
+            fees.push({
+                semester: currentSemester,
+                tuition_fee: currentTuition,
+                hostel_fee: currentHostel
+            });
+        }
+
+        // If no semester-specific fees found, try to find total amounts
+        if (fees.length === 0) {
+            let tuitionTotal = 0;
+            let hostelTotal = 0;
+
+            // Look for any fee amounts in the text
+            const amountPattern = /[₹Rs.]\s*([\d,]+)/g;
+            let match;
+            const amounts = [];
+
+            while ((match = amountPattern.exec(text)) !== null) {
+                const amount = parseInt(match[1].replace(/,/g, ''));
+                if (!isNaN(amount) && amount > 1000) { // Ignore small amounts
+                    amounts.push(amount);
+                }
+            }
+
+            // Also look for amount patterns without currency symbol
+            const plainAmountPattern = /\b(\d{4,})\b/g;
+            while ((match = plainAmountPattern.exec(text)) !== null) {
+                const amount = parseInt(match[1]);
+                if (!isNaN(amount) && amount > 1000 && amount < 1000000) {
+                    amounts.push(amount);
+                }
+            }
+
+            if (amounts.length > 0) {
+                // Take the largest amount as tuition, second largest as hostel
+                amounts.sort((a, b) => b - a);
+                tuitionTotal = amounts[0] || 0;
+                hostelTotal = amounts[1] || 0;
+
+                // Assume semester 1 if no semester info found
+                fees.push({
+                    semester: 1,
+                    tuition_fee: tuitionTotal,
+                    hostel_fee: hostelTotal
+                });
+            }
+        }
+
+        return fees;
+    },
+
+    displayExtractedFees(fees) {
+        const grid = document.getElementById('extractedFeesGrid');
+        if (!grid) return;
+
+        grid.innerHTML = fees.map(fee => `
+            <div class="extracted-fee-item">
+                <span class="fee-semester">Semester ${fee.semester}</span>
+                <div class="fee-values">
+                    <span class="fee-value tuition-value">
+                        Tuition: ₹<input type="number" value="${fee.tuition_fee}" 
+                            onchange="Expenses.updateExtractedFee(${fee.semester}, 'tuition_fee', this.value)">
+                    </span>
+                    <span class="fee-value hostel-value">
+                        Hostel: ₹<input type="number" value="${fee.hostel_fee}" 
+                            onchange="Expenses.updateExtractedFee(${fee.semester}, 'hostel_fee', this.value)">
+                    </span>
+                </div>
+            </div>
+        `).join('');
+    },
+
+    updateExtractedFee(semester, field, value) {
+        const fee = this.extractedFeeData.find(f => f.semester === semester);
+        if (fee) {
+            fee[field] = parseFloat(value) || 0;
+        }
+    },
+
+    async applyExtractedFees() {
+        for (const fee of this.extractedFeeData) {
+            await State.updateEducationFee(fee.semester, {
+                tuition_fee: fee.tuition_fee,
+                hostel_fee: fee.hostel_fee
+            });
+        }
+
+        // Close modal
+        const modal = document.getElementById('uploadReceiptModal');
+        if (modal) modal.classList.remove('active');
+
+        // Refresh UI
+        this.renderEducationFees();
+
+        if (typeof Toast !== 'undefined') {
+            Toast.show(`Applied fees for ${this.extractedFeeData.length} semester(s)`, 'success');
+        }
+    },
+
+    clearUpload() {
+        this.uploadedFile = null;
+        this.extractedFeeData = [];
+
+        document.getElementById('uploadDropZone').style.display = 'block';
+        document.getElementById('uploadPreview').style.display = 'none';
+        document.getElementById('extractedFees').style.display = 'none';
+        document.getElementById('receiptFileInput').value = '';
+        document.getElementById('applyExtractedFeesBtn').disabled = true;
     }
 };
 
