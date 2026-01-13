@@ -1684,25 +1684,42 @@ const Expenses = {
             }
         }
 
-        // Fallback: Extract all amounts in fee range
-        if (foundFees.size === 0) {
-            console.log('Pattern matching failed, extracting amounts...');
+        // Fallback: If we didn't find all 8 semesters, extract all amounts in fee range
+        if (foundFees.size < 8) {
+            console.log(`Only found ${foundFees.size} semesters, extracting all amounts...`);
             const amounts = [];
             const allNumbers = text.match(/[\d,]{5,}/g) || [];
 
             for (const num of allNumbers) {
                 const amount = parseInt(num.replace(/,/g, ''));
-                if (amount >= 100000 && amount <= 500000) {
+                // Semester fees typically range from 100k-400k
+                if (amount >= 100000 && amount <= 400000) {
                     amounts.push(amount);
                 }
             }
 
-            const uniqueAmounts = [...new Set(amounts)].slice(0, 8);
-            console.log('Fallback amounts:', uniqueAmounts);
+            // Get unique amounts and assign to missing semesters
+            const uniqueAmounts = [...new Set(amounts)];
+            console.log('All amounts in range:', uniqueAmounts);
 
-            uniqueAmounts.forEach((amount, index) => {
-                foundFees.set(index + 1, { semester: index + 1, tuition_fee: amount, hostel_fee: 0 });
-            });
+            // If we have enough unique amounts, map them to semesters 1-8
+            if (uniqueAmounts.length >= 8) {
+                // Clear and use extracted amounts in order
+                foundFees.clear();
+                uniqueAmounts.slice(0, 8).forEach((amount, index) => {
+                    foundFees.set(index + 1, { semester: index + 1, tuition_fee: amount, hostel_fee: 0 });
+                });
+            } else if (uniqueAmounts.length > foundFees.size) {
+                // Add missing semesters
+                let semNum = 1;
+                for (const amount of uniqueAmounts) {
+                    while (foundFees.has(semNum) && semNum <= 8) semNum++;
+                    if (semNum <= 8 && !Array.from(foundFees.values()).some(f => f.tuition_fee === amount)) {
+                        foundFees.set(semNum, { semester: semNum, tuition_fee: amount, hostel_fee: 0 });
+                        semNum++;
+                    }
+                }
+            }
         }
 
         // Convert to array and sort
