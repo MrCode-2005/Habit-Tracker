@@ -1684,13 +1684,14 @@ const Expenses = {
                 // Look for amount - check this line and next few lines
                 let amount = null;
                 for (let j = i; j < Math.min(i + 3, lines.length); j++) {
-                    // Extract any 6-digit number (with or without commas)
-                    const amtMatches = lines[j].match(/[\d,]{5,}/g);
+                    // Multiple patterns for amounts
+                    const amtMatches = lines[j].match(/[\d,\.]{5,}/g);
                     if (amtMatches) {
                         for (const m of amtMatches) {
-                            const potentialAmt = parseInt(m.replace(/,/g, ''));
-                            // Semester fees are typically 100k-500k
-                            if (potentialAmt >= 100000 && potentialAmt <= 500000) {
+                            const cleaned = m.replace(/[,\.]/g, '');
+                            const potentialAmt = parseInt(cleaned);
+                            // Widen range: 50k-500k for semester fees
+                            if (potentialAmt >= 50000 && potentialAmt <= 500000) {
                                 amount = potentialAmt;
                                 break;
                             }
@@ -1710,13 +1711,23 @@ const Expenses = {
         if (foundFees.size < 8) {
             console.log(`Only found ${foundFees.size} semesters, extracting all amounts...`);
             const amounts = [];
-            const allNumbers = text.match(/[\d,]{5,}/g) || [];
 
-            for (const num of allNumbers) {
-                const amount = parseInt(num.replace(/,/g, ''));
-                // Semester fees typically range from 100k-400k
-                if (amount >= 100000 && amount <= 400000) {
-                    amounts.push(amount);
+            // Try multiple regex patterns
+            const patterns = [
+                /[\d,\.]{6,}/g,  // 6+ digits with commas/dots
+                /\d{6}/g,        // Plain 6 digits
+                /\d{3},\d{3}/g,  // Format like 311,846
+            ];
+
+            for (const pattern of patterns) {
+                const matches = text.match(pattern) || [];
+                for (const m of matches) {
+                    const cleaned = m.replace(/[,\.]/g, '');
+                    const amount = parseInt(cleaned);
+                    // Widen range: 50k-500k
+                    if (amount >= 50000 && amount <= 500000) {
+                        amounts.push(amount);
+                    }
                 }
             }
 
