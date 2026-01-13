@@ -1548,43 +1548,96 @@ const Expenses = {
     },
 
     async runOCR(imageData) {
-        // Check if Tesseract is available
-        if (typeof Tesseract === 'undefined') {
-            console.error('Tesseract.js not loaded');
-            throw new Error('Tesseract.js library not loaded. Please refresh the page.');
-        }
+        console.log('Starting OCR...');
+        document.getElementById('ocrStatus').textContent = 'Analyzing document...';
 
-        console.log('Starting OCR with Tesseract.js...');
-        document.getElementById('ocrStatus').textContent = 'Initializing OCR engine...';
-
+        // Try OCR.space API first (better for stylized documents)
         try {
-            // Tesseract.js v5 simpler API - use recognize directly
-            const result = await Tesseract.recognize(imageData, 'eng', {
-                logger: m => {
-                    console.log('Tesseract:', m.status, m.progress);
-                    if (m.status === 'recognizing text') {
-                        const pct = Math.round(m.progress * 100);
-                        document.getElementById('ocrStatus').textContent = `Reading document... ${pct}%`;
-                    } else if (m.status === 'loading language traineddata') {
-                        document.getElementById('ocrStatus').textContent = 'Loading language data...';
-                    }
-                }
-            });
-
-            const text = result.data.text;
-            console.log('=== OCR RESULT ===');
-            console.log(text);
-            console.log('==================');
-
-            if (!text || text.trim().length === 0) {
-                throw new Error('No text could be extracted from the image');
+            const text = await this.runOCRSpace(imageData);
+            if (text && text.trim().length > 50) {
+                return text;
             }
-
-            return text;
+            console.log('OCR.space returned insufficient text, trying Tesseract...');
         } catch (e) {
-            console.error('Tesseract error:', e);
-            throw new Error('OCR failed: ' + e.message);
+            console.warn('OCR.space failed, falling back to Tesseract:', e.message);
         }
+
+        // Fallback to Tesseract.js
+        return await this.runTesseractOCR(imageData);
+    },
+
+    async runOCRSpace(imageData) {
+        // OCR.space free API - 25,000 requests/month
+        const apiKey = 'K85553309988957'; // Free API key
+
+        document.getElementById('ocrStatus').textContent = 'Processing with cloud OCR...';
+
+        // Convert base64 to proper format
+        const base64Data = imageData.replace(/^data:image\/(png|jpeg|jpg);base64,/, '');
+
+        const formData = new FormData();
+        formData.append('apikey', apiKey);
+        formData.append('base64Image', 'data:image/png;base64,' + base64Data);
+        formData.append('language', 'eng');
+        formData.append('isOverlayRequired', 'false');
+        formData.append('detectOrientation', 'true');
+        formData.append('scale', 'true');
+        formData.append('OCREngine', '2'); // Engine 2 is better for stylized text
+
+        const response = await fetch('https://api.ocr.space/parse/image', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error(`OCR.space API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('OCR.space response:', data);
+
+        if (data.IsErroredOnProcessing) {
+            throw new Error(data.ErrorMessage || 'OCR.space processing error');
+        }
+
+        if (data.ParsedResults && data.ParsedResults.length > 0) {
+            const text = data.ParsedResults[0].ParsedText;
+            console.log('=== OCR.space RESULT ===');
+            console.log(text);
+            console.log('========================');
+            return text;
+        }
+
+        throw new Error('No text extracted by OCR.space');
+    },
+
+    async runTesseractOCR(imageData) {
+        if (typeof Tesseract === 'undefined') {
+            throw new Error('Tesseract.js library not loaded');
+        }
+
+        console.log('Using Tesseract.js fallback...');
+        document.getElementById('ocrStatus').textContent = 'Using local OCR engine...';
+
+        const result = await Tesseract.recognize(imageData, 'eng', {
+            logger: m => {
+                if (m.status === 'recognizing text') {
+                    const pct = Math.round(m.progress * 100);
+                    document.getElementById('ocrStatus').textContent = `Reading document... ${pct}%`;
+                }
+            }
+        });
+
+        const text = result.data.text;
+        console.log('=== Tesseract RESULT ===');
+        console.log(text);
+        console.log('========================');
+
+        if (!text || text.trim().length === 0) {
+            throw new Error('No text could be extracted');
+        }
+
+        return text;
     },
 
     parseFees(text) {
