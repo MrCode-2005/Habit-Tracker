@@ -550,12 +550,21 @@
 
 .fee-input {
     width: 100%;
+    min-width: 100px;
     padding: var(--spacing-sm) var(--spacing-md);
     border: none;
     background: transparent;
     color: var(--text-primary);
     font-size: 0.938rem;
     font-weight: 500;
+    /* Hide number input spinners */
+    -moz-appearance: textfield;
+}
+
+.fee-input::-webkit-outer-spin-button,
+.fee-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
 
 .fee-input:focus {
