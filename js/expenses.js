@@ -1345,11 +1345,65 @@ const Expenses = {
         } catch (error) {
             console.error('OCR Error:', error);
             document.getElementById('ocrProcessing').style.display = 'none';
-            document.getElementById('uploadDropZone').style.display = 'block';
 
-            if (typeof Toast !== 'undefined') {
-                Toast.error('Failed to extract fees: ' + error.message);
-            }
+            // Show manual entry option as fallback
+            this.showManualEntryFallback(error.message);
+        }
+    },
+
+    showManualEntryFallback(errorMessage) {
+        // Create manual entry form when OCR fails
+        const extractedDiv = document.getElementById('extractedFees');
+        if (!extractedDiv) return;
+
+        // Create default fees for manual entry (8 semesters)
+        this.extractedFeeData = [];
+        for (let i = 1; i <= 8; i++) {
+            this.extractedFeeData.push({
+                semester: i,
+                tuition_fee: 0,
+                hostel_fee: 0
+            });
+        }
+
+        const grid = document.getElementById('extractedFeesGrid');
+        if (grid) {
+            grid.innerHTML = `
+                <div style="grid-column: 1 / -1; margin-bottom: 1rem;">
+                    <p style="color: var(--warning); margin-bottom: 0.5rem;">
+                        <i class="fa-solid fa-triangle-exclamation"></i> 
+                        OCR could not extract fees automatically. Please enter the fees manually:
+                    </p>
+                    <p style="color: var(--text-tertiary); font-size: 0.813rem;">
+                        ${errorMessage || 'The document format may not be recognized'}
+                    </p>
+                </div>
+                ${this.extractedFeeData.map(fee => `
+                    <div class="extracted-fee-item">
+                        <span class="fee-semester">Semester ${fee.semester}</span>
+                        <div class="fee-values">
+                            <span class="fee-value tuition-value">
+                                Tuition: ₹<input type="number" value="${fee.tuition_fee}" placeholder="0"
+                                    onchange="Expenses.updateExtractedFee(${fee.semester}, 'tuition_fee', this.value)">
+                            </span>
+                            <span class="fee-value hostel-value">
+                                Hostel: ₹<input type="number" value="${fee.hostel_fee}" placeholder="0"
+                                    onchange="Expenses.updateExtractedFee(${fee.semester}, 'hostel_fee', this.value)">
+                            </span>
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        document.getElementById('uploadDropZone').style.display = 'none';
+        document.getElementById('extractedFees').style.display = 'block';
+        document.getElementById('applyExtractedFeesBtn').disabled = false;
+
+        // Update header to show it's manual entry
+        const header = extractedDiv.querySelector('h3');
+        if (header) {
+            header.innerHTML = '<i class="fa-solid fa-keyboard" style="color: var(--warning);"></i> Manual Entry';
         }
     },
 
@@ -1382,14 +1436,36 @@ const Expenses = {
     },
 
     async runOCR(imageData) {
-        // Use Tesseract.js for OCR
-        const worker = await Tesseract.createWorker('eng');
+        // Check if Tesseract is available
+        if (typeof Tesseract === 'undefined') {
+            throw new Error('Tesseract.js library not loaded');
+        }
 
-        const { data: { text } } = await worker.recognize(imageData);
-        await worker.terminate();
+        try {
+            // Use Tesseract.js v5 API
+            const worker = await Tesseract.createWorker('eng', 1, {
+                logger: m => {
+                    if (m.status === 'recognizing text') {
+                        const pct = Math.round(m.progress * 100);
+                        document.getElementById('ocrStatus').textContent = `Reading document... ${pct}%`;
+                    }
+                }
+            });
 
-        console.log('OCR Result:', text);
-        return text;
+            const { data: { text } } = await worker.recognize(imageData);
+            await worker.terminate();
+
+            console.log('OCR Result:', text);
+
+            if (!text || text.trim().length === 0) {
+                throw new Error('No text could be extracted from the image');
+            }
+
+            return text;
+        } catch (e) {
+            console.error('Tesseract error:', e);
+            throw new Error('OCR processing failed: ' + e.message);
+        }
     },
 
     parseFees(text) {
