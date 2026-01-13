@@ -21,7 +21,6 @@ const State = {
 
         // Load expenses and education fees (per-user if logged in)
         const currentUserId = Storage.get('currentUserId');
-        console.log('State.init - currentUserId:', currentUserId);
 
         if (currentUserId) {
             this.expenses = Storage.get(`expenses_${currentUserId}`) || [];
@@ -30,7 +29,6 @@ const State = {
             this.taskCompletionHistory = Storage.get(`taskCompletionHistory_${currentUserId}`) || [];
             this.habitCompletionHistory = Storage.get(`habitCompletionHistory_${currentUserId}`) || [];
             this.goalCompletionHistory = Storage.get(`goalCompletionHistory_${currentUserId}`) || [];
-            console.log('State.init - loaded expenses for user:', this.expenses.length);
         } else {
             this.expenses = Storage.get('expenses') || [];
             this.educationFees = Storage.get('educationFees') || [];
@@ -38,7 +36,6 @@ const State = {
             this.taskCompletionHistory = [];
             this.habitCompletionHistory = [];
             this.goalCompletionHistory = [];
-            console.log('State.init - guest mode, expenses:', this.expenses.length);
         }
 
         // Clean up old data (tasks older than 7 days)

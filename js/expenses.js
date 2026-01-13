@@ -141,8 +141,6 @@ const Expenses = {
             this.currentTimeFilter = timeFilter.value;
         }
 
-        console.log('Expenses.render() called, filter:', this.currentTimeFilter, 'expenses:', State.getExpenses().length);
-
         await this.renderSummaryCards();
         this.renderExpenses();
         this.renderCharts();
@@ -156,8 +154,6 @@ const Expenses = {
         const expenses = State.getExpenses();
         const dateRange = this.getDateRange();
 
-        console.log('renderSummaryCards - expenses:', expenses.length, 'dateRange:', dateRange);
-
         // Calculate totals by category group
         const totals = {
             food: 0,
@@ -168,11 +164,7 @@ const Expenses = {
 
         expenses.forEach(exp => {
             if (exp.is_deleted) return;
-
-            const inRange = this.isInDateRange(exp.expense_date, dateRange);
-            console.log('Expense:', exp.expense_date, 'amount:', exp.amount, 'category:', exp.category, 'inRange:', inRange);
-
-            if (!inRange) return;
+            if (!this.isInDateRange(exp.expense_date, dateRange)) return;
 
             const amount = parseFloat(exp.amount) || 0;
             if (exp.category === 'food_outing' || exp.category === 'food_online') {
@@ -361,7 +353,7 @@ const Expenses = {
         this.renderOverallChart();
     },
 
-    getChartData(categories, includeDeleted = true) {
+    getChartData(categories, includeDeleted = false) {
         const expenses = State.getExpenses();
         const dateRange = this.getDateRange();
         const labels = this.getDateLabels();
@@ -373,7 +365,7 @@ const Expenses = {
         });
 
         expenses.forEach(exp => {
-            // Include deleted expenses for graph stability
+            // Exclude deleted expenses by default (set includeDeleted=true if needed)
             if (!includeDeleted && exp.is_deleted) return;
             if (!categories.includes(exp.category)) return;
             if (!this.isInDateRange(exp.expense_date, dateRange)) return;
