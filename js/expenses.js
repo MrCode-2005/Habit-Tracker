@@ -1726,35 +1726,57 @@ const Expenses = {
         // Split into lines for better parsing
         const lines = text.split(/[\n\r]+/).map(l => l.trim()).filter(l => l.length > 0);
 
-        // Look for semester fee patterns
+        // Look for semester fee patterns using multiple regex patterns
         for (let i = 0; i < lines.length; i++) {
-            const line = lines[i].toUpperCase();
+            const line = lines[i];
+            const upperLine = line.toUpperCase();
 
-            // Pattern: "1ST SEMESTER FEE" or "1ST SEMESTER FEES"
-            const semMatch = line.match(/(\d)\s*(?:ST|ND|RD|TH)\s*SEMESTER\s*FEE/i);
-            if (semMatch) {
-                const semester = parseInt(semMatch[1]);
+            let semester = null;
 
-                // Look for amount - check this line and next few lines
+            // Pattern 1: "1ST SEMESTER FEE" or "1ST SEM FEE"
+            let semMatch = upperLine.match(/(\d)\s*(?:ST|ND|RD|TH)\s*(?:SEMESTER|SEM)/i);
+            if (semMatch) semester = parseInt(semMatch[1]);
+
+            // Pattern 2: "SEMESTER 1" or "SEM 1"
+            if (!semester) {
+                semMatch = upperLine.match(/(?:SEMESTER|SEM)\s*[:.]?\s*(\d)/i);
+                if (semMatch) semester = parseInt(semMatch[1]);
+            }
+
+            if (semester && semester >= 1 && semester <= 8) {
+                // Look for amount in this line and nearby lines
                 let amount = null;
-                for (let j = i; j < Math.min(i + 3, lines.length); j++) {
-                    // Multiple patterns for amounts
-                    const amtMatches = lines[j].match(/[\d,\.]{5,}/g);
-                    if (amtMatches) {
-                        for (const m of amtMatches) {
+
+                // Check current line first
+                const amountsInLine = line.match(/[\d,\.]{5,}/g) || [];
+                for (const m of amountsInLine) {
+                    const cleaned = m.replace(/[,\.]/g, '');
+                    const potentialAmt = parseInt(cleaned);
+                    if (potentialAmt >= 50000 && potentialAmt <= 500000) {
+                        amount = potentialAmt;
+                        break;
+                    }
+                }
+
+                // If no amount, check surrounding lines (before and after)
+                if (!amount) {
+                    for (let j = Math.max(0, i - 2); j < Math.min(i + 3, lines.length); j++) {
+                        if (j === i) continue;
+                        const nearbyLine = lines[j];
+                        const nearbyAmounts = nearbyLine.match(/[\d,\.]{5,}/g) || [];
+                        for (const m of nearbyAmounts) {
                             const cleaned = m.replace(/[,\.]/g, '');
                             const potentialAmt = parseInt(cleaned);
-                            // Widen range: 50k-500k for semester fees
                             if (potentialAmt >= 50000 && potentialAmt <= 500000) {
                                 amount = potentialAmt;
                                 break;
                             }
                         }
+                        if (amount) break;
                     }
-                    if (amount) break;
                 }
 
-                if (semester >= 1 && semester <= 8 && amount) {
+                if (amount) {
                     console.log(`Found: Semester ${semester} = ₹${amount}`);
                     foundFees.set(semester, { semester, tuition_fee: amount, hostel_fee: 0 });
                 }
