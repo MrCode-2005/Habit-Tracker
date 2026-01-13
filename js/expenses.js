@@ -1434,12 +1434,13 @@ const Expenses = {
 
         return new Promise((resolve) => {
             img.onload = () => {
-                // Scale up small images for better OCR
-                const scale = Math.max(1, 2000 / Math.max(img.width, img.height));
-                canvas.width = img.width * scale;
-                canvas.height = img.height * scale;
+                // Scale up small images for better OCR, but cap at 1200px to avoid slow processing
+                const maxDim = Math.max(img.width, img.height);
+                const scale = maxDim < 800 ? Math.min(1.5, 1200 / maxDim) : 1;
+                canvas.width = Math.round(img.width * scale);
+                canvas.height = Math.round(img.height * scale);
 
-                console.log(`Image scaled by ${scale}x to ${canvas.width}x${canvas.height}`);
+                console.log(`Image: ${img.width}x${img.height}, scale: ${scale}x, output: ${canvas.width}x${canvas.height}`);
 
                 // Draw scaled image
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
