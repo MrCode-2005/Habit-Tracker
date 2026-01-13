@@ -1642,93 +1642,74 @@ const Expenses = {
 
     parseFees(text) {
         const fees = [];
-
-        console.log('=== OCR TEXT START ===');
-        console.log(text);
-        console.log('=== OCR TEXT END ===');
-
-        // Normalize text - remove extra whitespace
-        const normalizedText = text.replace(/\s+/g, ' ').toUpperCase();
-
-        // Multiple patterns for different formats
         const foundFees = new Map();
 
-        // Pattern 1: "1ST SEMESTER FEES ₹311,846" (user's format)
-        const pattern1 = /(\d)(?:ST|ND|RD|TH)\s*SEMESTER\s*FEES?\s*[₹Rs.]*\s*([\d,]+)/gi;
-        let match;
-        while ((match = pattern1.exec(normalizedText)) !== null) {
-            const semester = parseInt(match[1]);
-            const amount = parseInt(match[2].replace(/,/g, ''));
-            if (semester >= 1 && semester <= 8 && amount > 10000) {
-                console.log(`Pattern 1 match: Semester ${semester}, Amount ${amount}`);
-                foundFees.set(semester, { semester, tuition_fee: amount, hostel_fee: 0 });
-            }
-        }
+        console.log('=== PARSING OCR TEXT ===');
+        console.log(text);
 
-        // Pattern 2: "SEMESTER 1 FEES ₹311,846"
-        if (foundFees.size === 0) {
-            const pattern2 = /SEMESTER\s*(\d)\s*FEES?\s*[₹Rs.]*\s*([\d,]+)/gi;
-            while ((match = pattern2.exec(normalizedText)) !== null) {
-                const semester = parseInt(match[1]);
-                const amount = parseInt(match[2].replace(/,/g, ''));
-                if (semester >= 1 && semester <= 8 && amount > 10000) {
-                    console.log(`Pattern 2 match: Semester ${semester}, Amount ${amount}`);
+        // Split into lines for better parsing
+        const lines = text.split(/[\n\r]+/).map(l => l.trim()).filter(l => l.length > 0);
+
+        // Look for semester fee patterns
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].toUpperCase();
+
+            // Pattern: "1ST SEMESTER FEE" or "1ST SEMESTER FEES"
+            const semMatch = line.match(/(\d)\s*(?:ST|ND|RD|TH)\s*SEMESTER\s*FEE/i);
+            if (semMatch) {
+                const semester = parseInt(semMatch[1]);
+
+                // Look for amount - check this line and next few lines
+                let amount = null;
+                for (let j = i; j < Math.min(i + 3, lines.length); j++) {
+                    // Extract any 6-digit number (with or without commas)
+                    const amtMatches = lines[j].match(/[\d,]{5,}/g);
+                    if (amtMatches) {
+                        for (const m of amtMatches) {
+                            const potentialAmt = parseInt(m.replace(/,/g, ''));
+                            // Semester fees are typically 100k-500k
+                            if (potentialAmt >= 100000 && potentialAmt <= 500000) {
+                                amount = potentialAmt;
+                                break;
+                            }
+                        }
+                    }
+                    if (amount) break;
+                }
+
+                if (semester >= 1 && semester <= 8 && amount) {
+                    console.log(`Found: Semester ${semester} = ₹${amount}`);
                     foundFees.set(semester, { semester, tuition_fee: amount, hostel_fee: 0 });
                 }
             }
         }
 
-        // Pattern 3: More flexible - look for ordinal + semester near an amount
+        // Fallback: Extract all amounts in fee range
         if (foundFees.size === 0) {
-            const lines = text.split(/[\n\r]+/);
-            for (const line of lines) {
-                const upperLine = line.toUpperCase();
-                const semMatch = upperLine.match(/(\d)(?:ST|ND|RD|TH)\s*SEMESTER/);
-                const amountMatch = line.match(/[₹Rs.]?\s*([\d,]{5,})/);
-
-                if (semMatch && amountMatch) {
-                    const semester = parseInt(semMatch[1]);
-                    const amount = parseInt(amountMatch[1].replace(/,/g, ''));
-                    if (semester >= 1 && semester <= 8 && amount > 10000) {
-                        console.log(`Pattern 3 match: Semester ${semester}, Amount ${amount}`);
-                        foundFees.set(semester, { semester, tuition_fee: amount, hostel_fee: 0 });
-                    }
-                }
-            }
-        }
-
-        // Convert Map to array
-        foundFees.forEach(fee => fees.push(fee));
-        fees.sort((a, b) => a.semester - b.semester);
-
-        console.log('Parsed fees result:', fees);
-
-        // Fallback: If still nothing, extract all amounts > 100000
-        if (fees.length === 0) {
+            console.log('Pattern matching failed, extracting amounts...');
             const amounts = [];
-            const amountPattern = /[₹Rs.]?\s*([\d,]{6,})/g;
+            const allNumbers = text.match(/[\d,]{5,}/g) || [];
 
-            while ((match = amountPattern.exec(text)) !== null) {
-                const amount = parseInt(match[1].replace(/,/g, ''));
-                if (!isNaN(amount) && amount > 100000 && amount < 1000000) {
+            for (const num of allNumbers) {
+                const amount = parseInt(num.replace(/,/g, ''));
+                if (amount >= 100000 && amount <= 500000) {
                     amounts.push(amount);
                 }
             }
 
-            // Remove duplicates
-            const uniqueAmounts = [...new Set(amounts)];
-            console.log('Fallback amounts found:', uniqueAmounts);
+            const uniqueAmounts = [...new Set(amounts)].slice(0, 8);
+            console.log('Fallback amounts:', uniqueAmounts);
 
-            // Map to semesters
-            uniqueAmounts.slice(0, 8).forEach((amount, index) => {
-                fees.push({
-                    semester: index + 1,
-                    tuition_fee: amount,
-                    hostel_fee: 0
-                });
+            uniqueAmounts.forEach((amount, index) => {
+                foundFees.set(index + 1, { semester: index + 1, tuition_fee: amount, hostel_fee: 0 });
             });
         }
 
+        // Convert to array and sort
+        foundFees.forEach(fee => fees.push(fee));
+        fees.sort((a, b) => a.semester - b.semester);
+
+        console.log('Final parsed fees:', fees);
         return fees;
     },
 
