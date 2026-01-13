@@ -1783,29 +1783,34 @@ const Expenses = {
         // Fallback: If we didn't find all 8 semesters, extract all amounts in fee range
         if (foundFees.size < 8) {
             console.log(`Only found ${foundFees.size} semesters, extracting all amounts...`);
-            const amounts = [];
 
-            // Try multiple regex patterns
+            // More aggressive patterns including ₹ symbol
             const patterns = [
-                /[\d,\.]{6,}/g,  // 6+ digits with commas/dots
-                /\d{6}/g,        // Plain 6 digits
-                /\d{3},\d{3}/g,  // Format like 311,846
+                /₹\s*([\d,\.]+)/g,   // ₹311,846 format
+                /Rs\.?\s*([\d,\.]+)/gi,  // Rs. 311,846 format
+                /INR\s*([\d,\.]+)/gi,    // INR 311,846 format
+                /([\d]{1,3}[,\.][\d]{3})/g,  // 311,846 or 311.846
+                /([\d]{5,7})/g,        // Plain 5-7 digit numbers
             ];
 
+            const allMatches = new Set();
             for (const pattern of patterns) {
-                const matches = text.match(pattern) || [];
-                for (const m of matches) {
-                    const cleaned = m.replace(/[,\.]/g, '');
+                let match;
+                const regex = new RegExp(pattern);
+                const testText = text;
+                while ((match = regex.exec(testText)) !== null) {
+                    const numStr = match[1] || match[0];
+                    const cleaned = numStr.replace(/[,\.₹\s]/g, '');
                     const amount = parseInt(cleaned);
-                    // Widen range: 50k-500k
-                    if (amount >= 50000 && amount <= 500000) {
-                        amounts.push(amount);
+                    // Very wide range: 10k-1M to catch everything
+                    if (amount >= 10000 && amount <= 1000000) {
+                        allMatches.add(amount);
                     }
                 }
             }
 
             // Get unique amounts and assign to missing semesters
-            const uniqueAmounts = [...new Set(amounts)];
+            const uniqueAmounts = [...allMatches];
             console.log('All amounts in range:', uniqueAmounts);
 
             // If we have enough unique amounts, map them to semesters 1-8
