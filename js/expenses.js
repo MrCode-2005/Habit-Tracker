@@ -1549,33 +1549,30 @@ const Expenses = {
 
         let allText = '';
 
-        // Try Google Cloud Vision API first (most accurate)
+        // Use OCR.space as primary (Google Vision blocked due to referrer restrictions)
         try {
-            document.getElementById('ocrStatus').textContent = 'Using Google Vision API...';
-            const gvText = await this.runGoogleVision(imageData);
-            if (gvText && gvText.length > 50) {
-                console.log('=== GOOGLE VISION RESULT ===');
-                console.log(gvText);
-                console.log('============================');
-                allText = gvText;
+            document.getElementById('ocrStatus').textContent = 'Using OCR.space Engine 2...';
+            const ocrSpaceText = await this.runOCRSpace(imageData, '2');
+            console.log('=== OCR.SPACE RESULT ===');
+            console.log(ocrSpaceText);
+            console.log('========================');
+            if (ocrSpaceText && ocrSpaceText.length > 50) {
+                allText = ocrSpaceText;
             }
         } catch (e) {
-            console.warn('Google Vision failed:', e.message);
+            console.warn('OCR.space Engine 2 failed:', e.message);
         }
 
-        // Fallback to OCR.space
+        // Try OCR.space Engine 1 if Engine 2 didn't work well
         if (!allText || allText.length < 100) {
             try {
-                document.getElementById('ocrStatus').textContent = 'Using OCR.space API...';
-                const ocrSpaceText = await this.runOCRSpace(imageData, '2');
-                console.log('=== OCR.SPACE RESULT ===');
-                console.log(ocrSpaceText);
-                console.log('========================');
-                if (ocrSpaceText && ocrSpaceText.length > allText.length) {
-                    allText = ocrSpaceText;
+                document.getElementById('ocrStatus').textContent = 'Using OCR.space Engine 1...';
+                const text2 = await this.runOCRSpace(imageData, '1');
+                if (text2 && text2.length > allText.length) {
+                    allText = text2;
                 }
             } catch (e) {
-                console.warn('OCR.space failed:', e.message);
+                console.warn('OCR.space Engine 1 failed:', e.message);
             }
         }
 
