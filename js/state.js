@@ -672,7 +672,6 @@ const State = {
     saveExpenses() {
         const currentUserId = Storage.get('currentUserId');
         const key = currentUserId ? `expenses_${currentUserId}` : 'expenses';
-        console.log('saveExpenses - saving', this.expenses.length, 'expenses to key:', key);
         Storage.set(key, this.expenses);
     },
 
