@@ -872,9 +872,191 @@ const Expenses = {
     },
 
     // ===================================
-    // Clear History
+    // Clear History (Advanced)
     // ===================================
+    clearCategory: 'all',
+    clearTimeRange: 'today',
+
     showClearHistoryConfirm() {
+        const modal = document.getElementById('clearExpenseHistoryModal');
+        if (!modal) {
+            // Fallback to simple confirm if modal not found
+            this.simpleClearHistory();
+            return;
+        }
+
+        // Reset filters
+        this.clearCategory = 'all';
+        this.clearTimeRange = 'today';
+
+        // Reset UI
+        document.querySelectorAll('.expense-filter-tab').forEach(tab => {
+            tab.classList.remove('active');
+            if (tab.dataset.category === 'all') tab.classList.add('active');
+        });
+
+        document.querySelectorAll('input[name="expenseTimeRange"]').forEach(radio => {
+            radio.checked = radio.value === 'today';
+        });
+
+        document.getElementById('expenseCustomDaysGroup').style.display = 'none';
+
+        // Update preview
+        this.updateClearPreview();
+
+        // Show modal
+        modal.classList.add('active');
+    },
+
+    setClearCategory(category) {
+        this.clearCategory = category;
+
+        // Update tab styling
+        document.querySelectorAll('.expense-filter-tab').forEach(tab => {
+            tab.classList.remove('active');
+            if (tab.dataset.category === category) tab.classList.add('active');
+        });
+
+        this.updateClearPreview();
+    },
+
+    setClearTimeRange(range) {
+        this.clearTimeRange = range;
+
+        // Show/hide custom days input
+        const customGroup = document.getElementById('expenseCustomDaysGroup');
+        if (customGroup) {
+            customGroup.style.display = range === 'custom' ? 'block' : 'none';
+        }
+
+        this.updateClearPreview();
+    },
+
+    getClearDateRange() {
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        switch (this.clearTimeRange) {
+            case 'today':
+                return { start: today, end: new Date(today.getTime() + 86400000 - 1) };
+            case '7':
+                const week = new Date(today);
+                week.setDate(week.getDate() - 7);
+                return { start: week, end: now };
+            case '30':
+                const month = new Date(today);
+                month.setDate(month.getDate() - 30);
+                return { start: month, end: now };
+            case 'custom':
+                const customDays = parseInt(document.getElementById('expenseCustomDays')?.value) || 7;
+                const custom = new Date(today);
+                custom.setDate(custom.getDate() - customDays);
+                return { start: custom, end: now };
+            case 'all':
+                return { start: new Date(0), end: now };
+            default:
+                return { start: today, end: now };
+        }
+    },
+
+    getExpensesToClear() {
+        const expenses = State.getExpenses();
+        const dateRange = this.getClearDateRange();
+
+        return expenses.filter(exp => {
+            // Filter by category
+            if (this.clearCategory !== 'all') {
+                if (this.clearCategory === 'food') {
+                    if (exp.category !== 'food_outing' && exp.category !== 'food_online') return false;
+                } else {
+                    if (exp.category !== this.clearCategory) return false;
+                }
+            }
+
+            // Filter by date range
+            const expDate = new Date(exp.expense_date);
+            if (expDate < dateRange.start || expDate > dateRange.end) return false;
+
+            return true;
+        });
+    },
+
+    updateClearPreview() {
+        const expenses = this.getExpensesToClear();
+        const countEl = document.getElementById('expenseClearCount');
+        const amountEl = document.getElementById('expenseClearAmount');
+        const listEl = document.getElementById('expenseClearList');
+        const confirmBtn = document.getElementById('confirmClearExpensesBtn');
+
+        const totalAmount = expenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+
+        if (countEl) countEl.textContent = `${expenses.length} item${expenses.length !== 1 ? 's' : ''}`;
+        if (amountEl) amountEl.textContent = `₹${this.formatAmount(totalAmount)}`;
+        if (confirmBtn) confirmBtn.disabled = expenses.length === 0;
+
+        if (listEl) {
+            if (expenses.length === 0) {
+                listEl.innerHTML = '<p style="color: var(--text-tertiary); text-align: center;">No expenses match the selected filters</p>';
+            } else {
+                // Show up to 10 items preview
+                const previewItems = expenses.slice(0, 10);
+                listEl.innerHTML = previewItems.map(exp => {
+                    const cat = this.categories[exp.category];
+                    const date = new Date(exp.expense_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+                    return `
+                        <div class="expense-clear-preview-item">
+                            <span><i class="fa-solid ${cat.icon} cat-icon" style="color: ${cat.color}"></i>${cat.name}</span>
+                            <span>₹${this.formatAmount(exp.amount)} • ${date}</span>
+                        </div>
+                    `;
+                }).join('');
+
+                if (expenses.length > 10) {
+                    listEl.innerHTML += `<p style="color: var(--text-tertiary); text-align: center; margin-top: 0.5rem;">...and ${expenses.length - 10} more</p>`;
+                }
+            }
+        }
+    },
+
+    async confirmClearHistory() {
+        const expenses = this.getExpensesToClear();
+
+        if (expenses.length === 0) {
+            if (typeof Toast !== 'undefined') {
+                Toast.show('No expenses to delete', 'info');
+            }
+            return;
+        }
+
+        // Delete each expense permanently
+        for (const exp of expenses) {
+            // Remove from State.expenses array
+            State.expenses = State.expenses.filter(e => e.id !== exp.id);
+        }
+
+        // Save to localStorage
+        State.saveExpenses();
+
+        // Sync with Supabase
+        if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
+            for (const exp of expenses) {
+                await SupabaseDB.deleteExpense(exp.id);
+            }
+        }
+
+        // Close modal and refresh
+        const modal = document.getElementById('clearExpenseHistoryModal');
+        if (modal) modal.classList.remove('active');
+
+        if (typeof Toast !== 'undefined') {
+            Toast.show(`${expenses.length} expense${expenses.length !== 1 ? 's' : ''} deleted`, 'success');
+        }
+
+        this.render();
+    },
+
+    simpleClearHistory() {
+        // Fallback simple clear (deletes all soft-deleted expenses)
         const deletedCount = State.getExpenses().filter(e => e.is_deleted).length;
 
         if (deletedCount === 0) {

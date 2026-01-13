@@ -891,6 +891,125 @@
         </div>
     </div>
 
+    <!-- Modal for Clear Expense History -->
+    <div class="modal" id="clearExpenseHistoryModal">
+        <div class="modal-content" style="max-width: 550px;">
+            <div class="modal-header">
+                <h2>Clear Expense History</h2>
+                <button class="close-modal">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" style="padding: var(--spacing-lg);">
+                <p style="color: var(--text-secondary); margin-bottom: var(--spacing-lg);">
+                    Permanently delete expenses. This will recalculate expense graphs.
+                </p>
+
+                <!-- Category Filter Tabs -->
+                <div class="form-group">
+                    <label>Category</label>
+                    <div class="expense-category-tabs"
+                        style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem;">
+                        <button class="expense-filter-tab active" data-category="all"
+                            onclick="Expenses.setClearCategory('all')">
+                            <i class="fa-solid fa-layer-group"></i> All
+                        </button>
+                        <button class="expense-filter-tab" data-category="food"
+                            onclick="Expenses.setClearCategory('food')">
+                            <i class="fa-solid fa-utensils"></i> Food
+                        </button>
+                        <button class="expense-filter-tab" data-category="clothing"
+                            onclick="Expenses.setClearCategory('clothing')">
+                            <i class="fa-solid fa-shirt"></i> Clothing
+                        </button>
+                        <button class="expense-filter-tab" data-category="transportation"
+                            onclick="Expenses.setClearCategory('transportation')">
+                            <i class="fa-solid fa-car"></i> Transport
+                        </button>
+                        <button class="expense-filter-tab" data-category="essentials"
+                            onclick="Expenses.setClearCategory('essentials')">
+                            <i class="fa-solid fa-basket-shopping"></i> Essentials
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Time Range Options -->
+                <div class="form-group">
+                    <label>Time Range</label>
+                    <div class="time-range-options" style="margin-top: 0.5rem;">
+                        <label class="radio-option">
+                            <input type="radio" name="expenseTimeRange" value="today" checked
+                                onchange="Expenses.setClearTimeRange('today')">
+                            <span>Today</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="expenseTimeRange" value="7"
+                                onchange="Expenses.setClearTimeRange('7')">
+                            <span>Last 7 days</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="expenseTimeRange" value="30"
+                                onchange="Expenses.setClearTimeRange('30')">
+                            <span>Last 30 days</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="expenseTimeRange" value="custom"
+                                onchange="Expenses.setClearTimeRange('custom')">
+                            <span>Custom days</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="expenseTimeRange" value="all"
+                                onchange="Expenses.setClearTimeRange('all')">
+                            <span>All time</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Custom Days Input -->
+                <div class="form-group" id="expenseCustomDaysGroup" style="display: none;">
+                    <label for="expenseCustomDays">Number of days</label>
+                    <input type="number" id="expenseCustomDays" min="1" max="365" placeholder="Enter number of days"
+                        onchange="Expenses.updateClearPreview()">
+                </div>
+
+                <!-- Preview -->
+                <div class="expense-clear-preview" id="expenseClearPreview"
+                    style="background: var(--bg-tertiary); border-radius: 12px; padding: 1rem; margin: 1rem 0;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span style="font-weight: 600;">Expenses to be deleted:</span>
+                        <span id="expenseClearCount" style="color: var(--danger);">0 items</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="font-weight: 600;">Total amount:</span>
+                        <span id="expenseClearAmount" style="color: var(--danger);">₹0.00</span>
+                    </div>
+                    <div id="expenseClearList"
+                        style="max-height: 150px; overflow-y: auto; margin-top: 0.75rem; font-size: 0.85rem;">
+                        <!-- Preview items will be shown here -->
+                    </div>
+                </div>
+
+                <!-- Warning -->
+                <div
+                    style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem;">
+                    <p style="color: #ef4444; font-size: 0.85rem; margin: 0;">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <strong>Warning:</strong> This action cannot be undone. Deleted expenses will be permanently
+                        removed and graphs will be recalculated.
+                    </p>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmClearExpensesBtn"
+                        onclick="Expenses.confirmClearHistory()">
+                        <i class="fa-solid fa-trash"></i> Delete Selected
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Focus Mode (Full Page Timer) -->
     <div class="focus-mode" id="focusMode">
         <!-- Animated Background -->
