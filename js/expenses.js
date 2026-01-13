@@ -1336,7 +1336,13 @@ const Expenses = {
                 this.displayExtractedFees(fees);
                 document.getElementById('applyExtractedFeesBtn').disabled = false;
             } else {
-                throw new Error('Could not extract fee information from the document');
+                // Try to extract all amounts and let user select
+                const amounts = this.extractAllAmounts(text);
+                if (amounts.length > 0) {
+                    this.showAmountSelection(amounts, text);
+                } else {
+                    throw new Error('Could not find any amounts in the document');
+                }
             }
 
             document.getElementById('ocrProcessing').style.display = 'none';
@@ -1564,6 +1570,77 @@ const Expenses = {
         }
 
         return fees;
+    },
+
+    extractAllAmounts(text) {
+        const amounts = [];
+        // Match amounts with or without currency symbol
+        const patterns = [
+            /₹\s*([\d,]+)/g,
+            /Rs\.?\s*([\d,]+)/g,
+            /\b(\d{4,7})\b/g  // 4-7 digit numbers (typical fee range)
+        ];
+
+        for (const pattern of patterns) {
+            let match;
+            while ((match = pattern.exec(text)) !== null) {
+                const amount = parseInt(match[1].replace(/,/g, ''));
+                // Only include amounts in reasonable fee range (10k to 10 million)
+                if (!isNaN(amount) && amount >= 10000 && amount <= 10000000) {
+                    amounts.push(amount);
+                }
+            }
+        }
+
+        // Remove duplicates and sort descending
+        return [...new Set(amounts)].sort((a, b) => b - a);
+    },
+
+    showAmountSelection(amounts, ocrText) {
+        const grid = document.getElementById('extractedFeesGrid');
+        if (!grid) return;
+
+        console.log('OCR text:', ocrText);
+        console.log('Found amounts:', amounts);
+
+        // Take up to 8 largest amounts for semester fees (skip very large totals)
+        const semesterAmounts = amounts.slice(0, 8);
+
+        // Create fee data from amounts
+        this.extractedFeeData = semesterAmounts.map((amount, index) => ({
+            semester: index + 1,
+            tuition_fee: amount,
+            hostel_fee: 0
+        }));
+
+        grid.innerHTML = `
+            <div style="grid-column: 1 / -1; margin-bottom: 1rem;">
+                <p style="color: var(--primary); margin-bottom: 0.5rem;">
+                    <i class="fa-solid fa-coins"></i> 
+                    Found ${amounts.length} amounts in the document
+                </p>
+                <p style="color: var(--text-tertiary); font-size: 0.813rem;">
+                    The top ${semesterAmounts.length} amounts have been mapped to semesters. You can edit the values below:
+                </p>
+            </div>
+            ${this.extractedFeeData.map(fee => `
+                <div class="extracted-fee-item">
+                    <span class="fee-semester">Semester ${fee.semester}</span>
+                    <div class="fee-values">
+                        <span class="fee-value tuition-value">
+                            Tuition: ₹<input type="number" value="${fee.tuition_fee}" placeholder="0"
+                                onchange="Expenses.updateExtractedFee(${fee.semester}, 'tuition_fee', this.value)">
+                        </span>
+                        <span class="fee-value hostel-value">
+                            Hostel: ₹<input type="number" value="${fee.hostel_fee}" placeholder="0"
+                                onchange="Expenses.updateExtractedFee(${fee.semester}, 'hostel_fee', this.value)">
+                        </span>
+                    </div>
+                </div>
+            `).join('')}
+        `;
+
+        document.getElementById('applyExtractedFeesBtn').disabled = false;
     },
 
     displayExtractedFees(fees) {
