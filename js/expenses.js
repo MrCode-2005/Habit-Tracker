@@ -1450,24 +1450,31 @@ const Expenses = {
     async runOCR(imageData) {
         // Check if Tesseract is available
         if (typeof Tesseract === 'undefined') {
-            throw new Error('Tesseract.js library not loaded');
+            console.error('Tesseract.js not loaded');
+            throw new Error('Tesseract.js library not loaded. Please refresh the page.');
         }
 
+        console.log('Starting OCR with Tesseract.js...');
+        document.getElementById('ocrStatus').textContent = 'Initializing OCR engine...';
+
         try {
-            // Use Tesseract.js v5 API
-            const worker = await Tesseract.createWorker('eng', 1, {
+            // Tesseract.js v5 simpler API - use recognize directly
+            const result = await Tesseract.recognize(imageData, 'eng', {
                 logger: m => {
+                    console.log('Tesseract:', m.status, m.progress);
                     if (m.status === 'recognizing text') {
                         const pct = Math.round(m.progress * 100);
                         document.getElementById('ocrStatus').textContent = `Reading document... ${pct}%`;
+                    } else if (m.status === 'loading language traineddata') {
+                        document.getElementById('ocrStatus').textContent = 'Loading language data...';
                     }
                 }
             });
 
-            const { data: { text } } = await worker.recognize(imageData);
-            await worker.terminate();
-
-            console.log('OCR Result:', text);
+            const text = result.data.text;
+            console.log('=== OCR RESULT ===');
+            console.log(text);
+            console.log('==================');
 
             if (!text || text.trim().length === 0) {
                 throw new Error('No text could be extracted from the image');
@@ -1476,7 +1483,7 @@ const Expenses = {
             return text;
         } catch (e) {
             console.error('Tesseract error:', e);
-            throw new Error('OCR processing failed: ' + e.message);
+            throw new Error('OCR failed: ' + e.message);
         }
     },
 
