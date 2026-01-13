@@ -1329,9 +1329,13 @@ const Expenses = {
             document.getElementById('receiptPreviewImage').src = imageData;
             document.getElementById('uploadPreview').style.display = 'block';
 
+            // Preprocess image for better OCR (invert colors if dark background)
+            document.getElementById('ocrStatus').textContent = 'Preprocessing image...';
+            const processedImage = await this.preprocessImage(imageData);
+
             // Run OCR
             document.getElementById('ocrStatus').textContent = 'Reading document with OCR...';
-            const text = await this.runOCR(imageData);
+            const text = await this.runOCR(processedImage);
 
             // Parse fees from text
             document.getElementById('ocrStatus').textContent = 'Extracting fee information...';
@@ -1417,6 +1421,73 @@ const Expenses = {
         if (header) {
             header.innerHTML = '<i class="fa-solid fa-keyboard" style="color: var(--warning);"></i> Manual Entry';
         }
+    },
+
+    async preprocessImage(imageData) {
+        // Create canvas for image processing
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+
+        return new Promise((resolve) => {
+            img.onload = () => {
+                canvas.width = img.width;
+                canvas.height = img.height;
+
+                // Draw original image
+                ctx.drawImage(img, 0, 0);
+
+                // Get image data
+                const imageDataObj = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageDataObj.data;
+
+                // Calculate average brightness to detect dark backgrounds
+                let totalBrightness = 0;
+                for (let i = 0; i < data.length; i += 4) {
+                    const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                    totalBrightness += brightness;
+                }
+                const avgBrightness = totalBrightness / (data.length / 4);
+
+                console.log('Average image brightness:', avgBrightness);
+
+                // If dark background (avg brightness < 128), invert colors
+                if (avgBrightness < 128) {
+                    console.log('Dark background detected, inverting colors...');
+                    for (let i = 0; i < data.length; i += 4) {
+                        data[i] = 255 - data[i];       // Red
+                        data[i + 1] = 255 - data[i + 1]; // Green
+                        data[i + 2] = 255 - data[i + 2]; // Blue
+                        // Alpha stays the same
+                    }
+                }
+
+                // Convert to grayscale and increase contrast
+                for (let i = 0; i < data.length; i += 4) {
+                    const gray = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                    // Increase contrast: values below 128 become darker, above become lighter
+                    const contrast = 1.5;
+                    const adjusted = ((gray / 255 - 0.5) * contrast + 0.5) * 255;
+                    const final = Math.max(0, Math.min(255, adjusted));
+                    data[i] = final;
+                    data[i + 1] = final;
+                    data[i + 2] = final;
+                }
+
+                ctx.putImageData(imageDataObj, 0, 0);
+
+                const processedDataUrl = canvas.toDataURL('image/png');
+                console.log('Image preprocessed successfully');
+                resolve(processedDataUrl);
+            };
+
+            img.onerror = () => {
+                console.warn('Image preprocessing failed, using original');
+                resolve(imageData);
+            };
+
+            img.src = imageData;
+        });
     },
 
     readFileAsDataURL(file) {
