@@ -520,11 +520,23 @@ const Auth = {
                     State.saveEducationFees();
 
                     console.log('Expenses sync complete:', State.expenses.length, 'expenses,', State.educationFees.length, 'fee records');
+
+                    // Re-render expenses view if it's active
+                    const expensesView = document.getElementById('expenses');
+                    if (expensesView && expensesView.classList.contains('active')) {
+                        Expenses.render();
+                    }
                 } catch (expenseError) {
                     console.warn('Expense sync skipped:', expenseError.message);
                     // Fall back to per-user local storage
                     State.expenses = Storage.get(`expenses_${userId}`) || [];
                     State.educationFees = Storage.get(`educationFees_${userId}`) || [];
+
+                    // Still render with local data
+                    const expensesView = document.getElementById('expenses');
+                    if (expensesView && expensesView.classList.contains('active')) {
+                        Expenses.render();
+                    }
                 }
             }
 
