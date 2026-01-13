@@ -19,6 +19,10 @@ const State = {
         this.events = Storage.get('events') || [];
         this.goals = Storage.get('goals') || [];
 
+        // Load expenses and education fees
+        this.expenses = Storage.get('expenses') || [];
+        this.educationFees = Storage.get('educationFees') || [];
+
         // Load history from per-user keys if user was previously logged in
         const currentUserId = Storage.get('currentUserId');
         if (currentUserId) {
