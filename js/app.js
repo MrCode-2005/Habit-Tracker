@@ -78,6 +78,11 @@ function setupNavigation() {
             if (savedView === 'analytics') {
                 setTimeout(() => Analytics.refresh(), 100);
             }
+
+            // Render expenses if that was the saved view
+            if (savedView === 'expenses') {
+                setTimeout(() => Expenses.render(), 100);
+            }
         }
     }
 

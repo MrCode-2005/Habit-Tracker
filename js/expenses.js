@@ -57,8 +57,22 @@ const Expenses = {
     init() {
         if (this.initialized) return;
 
+        // Read current time filter from dropdown
+        const timeFilter = document.getElementById('expenseTimeFilter');
+        if (timeFilter) {
+            this.currentTimeFilter = timeFilter.value;
+        }
+
         this.bindEvents();
         this.initialized = true;
+
+        // Check if expenses view is currently active (e.g., after page reload)
+        const expensesView = document.getElementById('expenses');
+        if (expensesView && expensesView.classList.contains('active')) {
+            // Delay render to ensure DOM is fully ready
+            setTimeout(() => this.render(), 100);
+        }
+
         console.log('Expenses module initialized');
     },
 
