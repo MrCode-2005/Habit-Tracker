@@ -1353,6 +1353,7 @@ const Expenses = {
                 } else {
                     // No amounts found - show manual entry directly (don't throw error)
                     console.log('No amounts found in OCR text, showing manual entry...');
+                    document.getElementById('ocrProcessing').style.display = 'none';
                     this.showManualEntryFallback('OCR could not detect fee amounts. The document may have stylized text that is difficult to read.');
                     return; // Exit early, manual entry is shown
                 }
