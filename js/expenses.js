@@ -1547,26 +1547,46 @@ const Expenses = {
         console.log('Starting OCR...');
         document.getElementById('ocrStatus').textContent = 'Analyzing document...';
 
-        // Try OCR.space API first (better for stylized documents)
+        // Try multiple OCR approaches
+        let bestText = '';
+
+        // Approach 1: OCR.space with original image, Engine 1 (tables)
         try {
-            const text = await this.runOCRSpace(imageData);
-            if (text && text.trim().length > 50) {
-                return text;
-            }
-            console.log('OCR.space returned insufficient text, trying Tesseract...');
-        } catch (e) {
-            console.warn('OCR.space failed, falling back to Tesseract:', e.message);
+            document.getElementById('ocrStatus').textContent = 'Cloud OCR (attempt 1)...';
+            const text1 = await this.runOCRSpace(imageData, '1');
+            if (text1 && text1.length > bestText.length) bestText = text1;
+        } catch (e) { console.warn('Engine 1 failed:', e.message); }
+
+        // Approach 2: OCR.space with original image, Engine 2 (stylized)
+        try {
+            document.getElementById('ocrStatus').textContent = 'Cloud OCR (attempt 2)...';
+            const text2 = await this.runOCRSpace(imageData, '2');
+            if (text2 && text2.length > bestText.length) bestText = text2;
+        } catch (e) { console.warn('Engine 2 failed:', e.message); }
+
+        // Approach 3: Preprocessed image with OCR.space
+        if (!bestText || bestText.length < 200) {
+            try {
+                document.getElementById('ocrStatus').textContent = 'Preprocessing image...';
+                const processed = await this.preprocessImage(imageData);
+                document.getElementById('ocrStatus').textContent = 'Cloud OCR (preprocessed)...';
+                const text3 = await this.runOCRSpace(processed, '1');
+                if (text3 && text3.length > bestText.length) bestText = text3;
+            } catch (e) { console.warn('Preprocessed OCR failed:', e.message); }
         }
 
-        // Fallback to Tesseract.js
+        if (bestText && bestText.trim().length > 50) {
+            console.log('Best OCR result length:', bestText.length);
+            return bestText;
+        }
+
+        // Final fallback: Tesseract.js
         return await this.runTesseractOCR(imageData);
     },
 
-    async runOCRSpace(imageData) {
+    async runOCRSpace(imageData, engine = '1') {
         // OCR.space free API - 25,000 requests/month
         const apiKey = 'K85553309988957'; // Free API key
-
-        document.getElementById('ocrStatus').textContent = 'Processing with cloud OCR...';
 
         // Convert base64 to proper format
         const base64Data = imageData.replace(/^data:image\/(png|jpeg|jpg);base64,/, '');
@@ -1578,8 +1598,8 @@ const Expenses = {
         formData.append('isOverlayRequired', 'false');
         formData.append('detectOrientation', 'true');
         formData.append('scale', 'true');
-        formData.append('isTable', 'true'); // Enable table recognition
-        formData.append('OCREngine', '1'); // Engine 1 is better for tables
+        formData.append('isTable', 'true');
+        formData.append('OCREngine', engine);
 
         const response = await fetch('https://api.ocr.space/parse/image', {
             method: 'POST',
