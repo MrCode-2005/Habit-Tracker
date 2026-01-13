@@ -1582,7 +1582,8 @@ const Expenses = {
         formData.append('isOverlayRequired', 'false');
         formData.append('detectOrientation', 'true');
         formData.append('scale', 'true');
-        formData.append('OCREngine', '2'); // Engine 2 is better for stylized text
+        formData.append('isTable', 'true'); // Enable table recognition
+        formData.append('OCREngine', '1'); // Engine 1 is better for tables
 
         const response = await fetch('https://api.ocr.space/parse/image', {
             method: 'POST',
