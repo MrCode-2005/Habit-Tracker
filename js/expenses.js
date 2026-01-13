@@ -1482,97 +1482,91 @@ const Expenses = {
 
     parseFees(text) {
         const fees = [];
-        const lines = text.split('\n');
 
-        console.log('Parsing OCR text:', text);
+        console.log('=== OCR TEXT START ===');
+        console.log(text);
+        console.log('=== OCR TEXT END ===');
 
-        // Pattern 1: "1st SEMESTER FEE ₹311,845" or "1ST SEM FEE 311845"
-        const semesterFeePattern = /(\d)(st|nd|rd|th)\s*(?:semester|sem)?\s*(?:fee)?[:\s]*[₹Rs.]*\s*([\d,]+)/gi;
+        // Normalize text - remove extra whitespace
+        const normalizedText = text.replace(/\s+/g, ' ').toUpperCase();
 
-        // Pattern 2: "Semester 1 Fee: ₹311,845"
-        const semesterFeePattern2 = /semester\s*(\d)[:\s]*(?:fee)?[:\s]*[₹Rs.]*\s*([\d,]+)/gi;
+        // Multiple patterns for different formats
+        const foundFees = new Map();
 
-        // Try all patterns on the full text
+        // Pattern 1: "1ST SEMESTER FEES ₹311,846" (user's format)
+        const pattern1 = /(\d)(?:ST|ND|RD|TH)\s*SEMESTER\s*FEES?\s*[₹Rs.]*\s*([\d,]+)/gi;
         let match;
-        const foundFees = new Map(); // Use Map to deduplicate by semester
-
-        // Try pattern 1
-        while ((match = semesterFeePattern.exec(text)) !== null) {
+        while ((match = pattern1.exec(normalizedText)) !== null) {
             const semester = parseInt(match[1]);
-            const amount = parseInt(match[3].replace(/,/g, ''));
-            if (semester >= 1 && semester <= 8 && !isNaN(amount) && amount > 1000) {
+            const amount = parseInt(match[2].replace(/,/g, ''));
+            if (semester >= 1 && semester <= 8 && amount > 10000) {
+                console.log(`Pattern 1 match: Semester ${semester}, Amount ${amount}`);
                 foundFees.set(semester, { semester, tuition_fee: amount, hostel_fee: 0 });
             }
         }
 
-        // Try pattern 2
-        while ((match = semesterFeePattern2.exec(text)) !== null) {
-            const semester = parseInt(match[1]);
-            const amount = parseInt(match[2].replace(/,/g, ''));
-            if (semester >= 1 && semester <= 8 && !isNaN(amount) && amount > 1000) {
-                if (!foundFees.has(semester)) {
+        // Pattern 2: "SEMESTER 1 FEES ₹311,846"
+        if (foundFees.size === 0) {
+            const pattern2 = /SEMESTER\s*(\d)\s*FEES?\s*[₹Rs.]*\s*([\d,]+)/gi;
+            while ((match = pattern2.exec(normalizedText)) !== null) {
+                const semester = parseInt(match[1]);
+                const amount = parseInt(match[2].replace(/,/g, ''));
+                if (semester >= 1 && semester <= 8 && amount > 10000) {
+                    console.log(`Pattern 2 match: Semester ${semester}, Amount ${amount}`);
                     foundFees.set(semester, { semester, tuition_fee: amount, hostel_fee: 0 });
                 }
             }
         }
 
-        // If still no results, try line-by-line parsing for tabular data
+        // Pattern 3: More flexible - look for ordinal + semester near an amount
         if (foundFees.size === 0) {
+            const lines = text.split(/[\n\r]+/);
             for (const line of lines) {
-                // Look for lines with semester indicators and amounts
-                const lineMatch = line.match(/(\d)\s*(?:st|nd|rd|th)?\s*(?:semester|sem)/i);
-                const amountMatch = line.match(/[₹Rs.]?\s*([\d,]{4,})/);
+                const upperLine = line.toUpperCase();
+                const semMatch = upperLine.match(/(\d)(?:ST|ND|RD|TH)\s*SEMESTER/);
+                const amountMatch = line.match(/[₹Rs.]?\s*([\d,]{5,})/);
 
-                if (lineMatch && amountMatch) {
-                    const semester = parseInt(lineMatch[1]);
+                if (semMatch && amountMatch) {
+                    const semester = parseInt(semMatch[1]);
                     const amount = parseInt(amountMatch[1].replace(/,/g, ''));
-                    if (semester >= 1 && semester <= 8 && !isNaN(amount) && amount > 1000) {
+                    if (semester >= 1 && semester <= 8 && amount > 10000) {
+                        console.log(`Pattern 3 match: Semester ${semester}, Amount ${amount}`);
                         foundFees.set(semester, { semester, tuition_fee: amount, hostel_fee: 0 });
                     }
                 }
             }
         }
 
-        // Convert Map to array and sort by semester
+        // Convert Map to array
         foundFees.forEach(fee => fees.push(fee));
         fees.sort((a, b) => a.semester - b.semester);
 
-        console.log('Parsed fees:', fees);
+        console.log('Parsed fees result:', fees);
 
-        // If still no semester-specific fees found, try to find any large amounts
+        // Fallback: If still nothing, extract all amounts > 100000
         if (fees.length === 0) {
             const amounts = [];
-            const amountPattern = /[₹Rs.]?\s*([\d,]{5,})/g;
+            const amountPattern = /[₹Rs.]?\s*([\d,]{6,})/g;
 
             while ((match = amountPattern.exec(text)) !== null) {
                 const amount = parseInt(match[1].replace(/,/g, ''));
-                if (!isNaN(amount) && amount > 10000 && amount < 10000000) {
+                if (!isNaN(amount) && amount > 100000 && amount < 1000000) {
                     amounts.push(amount);
                 }
             }
 
-            // Remove duplicates and sort
-            const uniqueAmounts = [...new Set(amounts)].sort((a, b) => b - a);
+            // Remove duplicates
+            const uniqueAmounts = [...new Set(amounts)];
+            console.log('Fallback amounts found:', uniqueAmounts);
 
-            // Try to map amounts to semesters if we have 8 or fewer
-            if (uniqueAmounts.length > 0 && uniqueAmounts.length <= 8) {
-                uniqueAmounts.forEach((amount, index) => {
-                    fees.push({
-                        semester: index + 1,
-                        tuition_fee: amount,
-                        hostel_fee: 0
-                    });
+            // Map to semesters
+            uniqueAmounts.slice(0, 8).forEach((amount, index) => {
+                fees.push({
+                    semester: index + 1,
+                    tuition_fee: amount,
+                    hostel_fee: 0
                 });
-            } else if (uniqueAmounts.length > 0) {
-                // Just take first 8 as semester fees
-                for (let i = 0; i < Math.min(8, uniqueAmounts.length); i++) {
-                    fees.push({
-                        semester: i + 1,
-                        tuition_fee: uniqueAmounts[i],
-                        hostel_fee: 0
-                    });
-                }
-            }
+            });
         }
 
         return fees;
