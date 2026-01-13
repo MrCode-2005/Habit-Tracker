@@ -21,6 +21,8 @@ const State = {
 
         // Load expenses and education fees (per-user if logged in)
         const currentUserId = Storage.get('currentUserId');
+        console.log('State.init - currentUserId:', currentUserId);
+
         if (currentUserId) {
             this.expenses = Storage.get(`expenses_${currentUserId}`) || [];
             this.educationFees = Storage.get(`educationFees_${currentUserId}`) || [];
@@ -28,6 +30,7 @@ const State = {
             this.taskCompletionHistory = Storage.get(`taskCompletionHistory_${currentUserId}`) || [];
             this.habitCompletionHistory = Storage.get(`habitCompletionHistory_${currentUserId}`) || [];
             this.goalCompletionHistory = Storage.get(`goalCompletionHistory_${currentUserId}`) || [];
+            console.log('State.init - loaded expenses for user:', this.expenses.length);
         } else {
             this.expenses = Storage.get('expenses') || [];
             this.educationFees = Storage.get('educationFees') || [];
@@ -35,6 +38,7 @@ const State = {
             this.taskCompletionHistory = [];
             this.habitCompletionHistory = [];
             this.goalCompletionHistory = [];
+            console.log('State.init - guest mode, expenses:', this.expenses.length);
         }
 
         // Clean up old data (tasks older than 7 days)
@@ -670,11 +674,9 @@ const State = {
 
     saveExpenses() {
         const currentUserId = Storage.get('currentUserId');
-        if (currentUserId) {
-            Storage.set(`expenses_${currentUserId}`, this.expenses);
-        } else {
-            Storage.set('expenses', this.expenses);
-        }
+        const key = currentUserId ? `expenses_${currentUserId}` : 'expenses';
+        console.log('saveExpenses - saving', this.expenses.length, 'expenses to key:', key);
+        Storage.set(key, this.expenses);
     },
 
     async syncExpenseToSupabase(expense) {
