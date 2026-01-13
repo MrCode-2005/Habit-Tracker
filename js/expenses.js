@@ -1329,13 +1329,9 @@ const Expenses = {
             document.getElementById('receiptPreviewImage').src = imageData;
             document.getElementById('uploadPreview').style.display = 'block';
 
-            // Preprocess image for better OCR (invert colors if dark background)
-            document.getElementById('ocrStatus').textContent = 'Preprocessing image...';
-            const processedImage = await this.preprocessImage(imageData);
-
-            // Run OCR
+            // Run OCR - send ORIGINAL image (OCR.space handles dark images well)
             document.getElementById('ocrStatus').textContent = 'Reading document with OCR...';
-            const text = await this.runOCR(processedImage);
+            const text = await this.runOCR(imageData);
 
             // Parse fees from text
             document.getElementById('ocrStatus').textContent = 'Extracting fee information...';
@@ -1618,9 +1614,14 @@ const Expenses = {
         }
 
         console.log('Using Tesseract.js fallback...');
+        document.getElementById('ocrStatus').textContent = 'Preprocessing for local OCR...';
+
+        // Preprocess image for Tesseract (it needs dark text on light background)
+        const processedImage = await this.preprocessImage(imageData);
+
         document.getElementById('ocrStatus').textContent = 'Using local OCR engine...';
 
-        const result = await Tesseract.recognize(imageData, 'eng', {
+        const result = await Tesseract.recognize(processedImage, 'eng', {
             logger: m => {
                 if (m.status === 'recognizing text') {
                     const pct = Math.round(m.progress * 100);
