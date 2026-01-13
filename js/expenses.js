@@ -1547,41 +1547,95 @@ const Expenses = {
         console.log('Starting OCR...');
         document.getElementById('ocrStatus').textContent = 'Analyzing document...';
 
-        // Try multiple OCR approaches
-        let bestText = '';
+        let allText = '';
 
-        // Approach 1: OCR.space with original image, Engine 1 (tables)
+        // Try Google Cloud Vision API first (most accurate)
         try {
-            document.getElementById('ocrStatus').textContent = 'Cloud OCR (attempt 1)...';
-            const text1 = await this.runOCRSpace(imageData, '1');
-            if (text1 && text1.length > bestText.length) bestText = text1;
-        } catch (e) { console.warn('Engine 1 failed:', e.message); }
+            document.getElementById('ocrStatus').textContent = 'Using Google Vision API...';
+            const gvText = await this.runGoogleVision(imageData);
+            if (gvText && gvText.length > 50) {
+                console.log('=== GOOGLE VISION RESULT ===');
+                console.log(gvText);
+                console.log('============================');
+                allText = gvText;
+            }
+        } catch (e) {
+            console.warn('Google Vision failed:', e.message);
+        }
 
-        // Approach 2: OCR.space with original image, Engine 2 (stylized)
-        try {
-            document.getElementById('ocrStatus').textContent = 'Cloud OCR (attempt 2)...';
-            const text2 = await this.runOCRSpace(imageData, '2');
-            if (text2 && text2.length > bestText.length) bestText = text2;
-        } catch (e) { console.warn('Engine 2 failed:', e.message); }
-
-        // Approach 3: Preprocessed image with OCR.space
-        if (!bestText || bestText.length < 200) {
+        // Fallback to OCR.space
+        if (!allText || allText.length < 100) {
             try {
-                document.getElementById('ocrStatus').textContent = 'Preprocessing image...';
-                const processed = await this.preprocessImage(imageData);
-                document.getElementById('ocrStatus').textContent = 'Cloud OCR (preprocessed)...';
-                const text3 = await this.runOCRSpace(processed, '1');
-                if (text3 && text3.length > bestText.length) bestText = text3;
-            } catch (e) { console.warn('Preprocessed OCR failed:', e.message); }
+                document.getElementById('ocrStatus').textContent = 'Using OCR.space API...';
+                const ocrSpaceText = await this.runOCRSpace(imageData, '2');
+                console.log('=== OCR.SPACE RESULT ===');
+                console.log(ocrSpaceText);
+                console.log('========================');
+                if (ocrSpaceText && ocrSpaceText.length > allText.length) {
+                    allText = ocrSpaceText;
+                }
+            } catch (e) {
+                console.warn('OCR.space failed:', e.message);
+            }
         }
 
-        if (bestText && bestText.trim().length > 50) {
-            console.log('Best OCR result length:', bestText.length);
-            return bestText;
+        // Final fallback: Tesseract with preprocessing
+        if (!allText || allText.length < 100) {
+            document.getElementById('ocrStatus').textContent = 'Using local OCR...';
+            const tessText = await this.runTesseractOCR(imageData);
+            if (tessText && tessText.length > allText.length) {
+                allText = tessText;
+            }
         }
 
-        // Final fallback: Tesseract.js
-        return await this.runTesseractOCR(imageData);
+        if (!allText || allText.trim().length < 20) {
+            throw new Error('OCR could not extract any text from the document');
+        }
+
+        return allText;
+    },
+
+    async runGoogleVision(imageData) {
+        // Google Cloud Vision API - using demo key for testing
+        // For production, user should provide their own API key
+        const apiKey = 'AIzaSyAa8yy0GdcGPHdtD083HiGGx_S0vMPScDM'; // Demo key
+
+        const base64Data = imageData.replace(/^data:image\/(png|jpeg|jpg);base64,/, '');
+
+        const requestBody = {
+            requests: [{
+                image: { content: base64Data },
+                features: [{ type: 'TEXT_DETECTION', maxResults: 50 }]
+            }]
+        };
+
+        const response = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+            const error = await response.text();
+            console.error('Google Vision API error:', error);
+            throw new Error(`Google Vision API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.responses && data.responses[0]) {
+            if (data.responses[0].error) {
+                throw new Error(data.responses[0].error.message);
+            }
+            if (data.responses[0].fullTextAnnotation) {
+                return data.responses[0].fullTextAnnotation.text;
+            }
+            if (data.responses[0].textAnnotations && data.responses[0].textAnnotations.length > 0) {
+                return data.responses[0].textAnnotations[0].description;
+            }
+        }
+
+        throw new Error('No text found in Google Vision response');
     },
 
     async runOCRSpace(imageData, engine = '1') {
