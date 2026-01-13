@@ -1371,6 +1371,14 @@ const Expenses = {
         }
     },
 
+    skipToManualEntry() {
+        // Directly show manual entry without running OCR
+        document.getElementById('uploadDropZone').style.display = 'none';
+        document.getElementById('skipOcrBtn').style.display = 'none';
+        document.getElementById('ocrProcessing').style.display = 'none';
+        this.showManualEntryFallback('Manual entry selected');
+    },
+
     showManualEntryFallback(errorMessage) {
         // Create manual entry form when OCR fails
         const extractedDiv = document.getElementById('extractedFees');

@@ -1049,6 +1049,12 @@
                     <p class="upload-hint">Supports: JPG, PNG, PDF</p>
                 </div>
 
+                <!-- Skip OCR Option -->
+                <button type="button" class="btn btn-sm btn-secondary" id="skipOcrBtn"
+                    onclick="Expenses.skipToManualEntry()" style="margin-top: 1rem; width: 100%;">
+                    <i class="fa-solid fa-keyboard"></i> Skip to Manual Entry
+                </button>
+
                 <!-- Preview Area -->
                 <div class="upload-preview" id="uploadPreview" style="display: none;">
                     <img id="receiptPreviewImage" src="" alt="Receipt Preview"
