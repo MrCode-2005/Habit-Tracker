@@ -17,6 +17,8 @@ const FocusMode = {
 
     // Break settings
     breakDuration: 5 * 60, // 5 minutes default
+    savedTaskRemainingSeconds: 0, // Save task time before break
+    savedTaskTotalSeconds: 0, // Save total task seconds before break
 
     // Quote rotation
     quoteInterval: null,
@@ -1145,38 +1147,73 @@ const FocusMode = {
 
     // Break mode
     toggleBreakMode() {
-        this.isBreakMode = !this.isBreakMode;
         this.pauseTimer();
 
         const focusMode = document.getElementById('focusMode');
         const breakBtn = document.getElementById('focusBreakBtn');
         const durationSelector = document.querySelector('.break-duration-selector');
 
-        if (this.isBreakMode) {
+        if (!this.isBreakMode) {
+            // Entering break mode - save current task time FIRST
+            this.savedTaskRemainingSeconds = this.remainingSeconds;
+            this.savedTaskTotalSeconds = this.totalSeconds;
+            console.log(`Saved task time before break: ${this.savedTaskRemainingSeconds}s remaining`);
+
+            this.isBreakMode = true;
             focusMode?.classList.add('break-mode');
             breakBtn?.classList.add('active');
             durationSelector?.classList.add('active');
             this.remainingSeconds = this.breakDuration;
             this.totalSeconds = this.breakDuration;
         } else {
+            // Exiting break mode - restore saved task time
+            this.isBreakMode = false;
             focusMode?.classList.remove('break-mode');
             breakBtn?.classList.remove('active');
             durationSelector?.classList.remove('active');
-            // Restore original task time
-            let hours = 0, minutes = 0;
-            if (this.currentSubtask) {
-                hours = this.currentSubtask.hours || 0;
-                minutes = this.currentSubtask.minutes || 0;
-            } else if (this.currentTask) {
-                hours = this.currentTask.hours || 0;
-                minutes = this.currentTask.minutes || 0;
+
+            // Restore the saved remaining time from before the break
+            if (this.savedTaskRemainingSeconds > 0) {
+                this.remainingSeconds = this.savedTaskRemainingSeconds;
+                this.totalSeconds = this.savedTaskTotalSeconds;
+                console.log(`Restored task time after break: ${this.remainingSeconds}s remaining`);
+            } else {
+                // Fallback: try to get from subtaskTimerStates
+                let timerKey;
+                if (this.currentSubtask && this.currentTask) {
+                    timerKey = `${this.currentTask.id}_${this.currentSubtask.title}`;
+                } else if (this.currentTask) {
+                    timerKey = `${this.currentTask.id}_main`;
+                }
+
+                const savedState = timerKey ? this.subtaskTimerStates[timerKey] : null;
+                if (savedState && savedState.remainingSeconds > 0) {
+                    this.remainingSeconds = savedState.remainingSeconds;
+                    this.totalSeconds = savedState.totalSeconds;
+                    console.log(`Restored task time from persisted state: ${this.remainingSeconds}s remaining`);
+                } else {
+                    // Last resort: reset to full task duration
+                    let hours = 0, minutes = 0;
+                    if (this.currentSubtask) {
+                        if (this.currentSubtask.duration !== undefined) {
+                            this.totalSeconds = this.currentSubtask.duration * 60;
+                        } else {
+                            hours = this.currentSubtask.hours || 0;
+                            minutes = this.currentSubtask.minutes || 0;
+                            this.totalSeconds = (hours * 60 + minutes) * 60;
+                        }
+                    } else if (this.currentTask) {
+                        hours = this.currentTask.hours || 0;
+                        minutes = this.currentTask.minutes || 0;
+                        this.totalSeconds = (hours * 60 + minutes) * 60;
+                    }
+                    this.remainingSeconds = this.totalSeconds;
+                }
             }
-            this.totalSeconds = (hours * 60 + minutes) * 60;
-            this.remainingSeconds = this.totalSeconds;
         }
 
         this.updateTimerDisplay();
-        this.updateProgress(1);
+        this.updateProgress(this.remainingSeconds / this.totalSeconds);
     },
 
     setBreakDuration(minutes) {
