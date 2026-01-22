@@ -91,3 +91,4 @@ CREATE TRIGGER update_expenses_updated_at BEFORE UPDATE ON expenses
 
 CREATE TRIGGER update_education_fees_updated_at BEFORE UPDATE ON education_fees
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+ 

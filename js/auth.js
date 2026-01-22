@@ -15,16 +15,34 @@ const Auth = {
             return;
         }
 
-        // Listen for auth changes
+        // Setup auth modal handlers first (before any async operations)
+        this.setupAuthModals();
+
+        // Flag to track if we've handled initial auth state
+        let initialAuthHandled = false;
+
+        // Listen for auth changes - this is the single source of truth for auth UI
         client.auth.onAuthStateChange(async (event, session) => {
             console.log('Auth state change:', event, session?.user?.email);
 
-            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
                 if (session) {
                     this.currentUser = session.user;
                     this.showAuthenticatedUI();
                     // Load data in background, don't block
                     this.loadUserData().catch(err => console.error('Error loading user data:', err));
+                }
+            } else if (event === 'INITIAL_SESSION') {
+                initialAuthHandled = true;
+                if (session) {
+                    this.currentUser = session.user;
+                    this.showAuthenticatedUI();
+                    // Load data in background, don't block
+                    this.loadUserData().catch(err => console.error('Error loading user data:', err));
+                } else {
+                    // No session on page load - show login
+                    console.log('No initial session found, showing login UI');
+                    this.showLoginUI();
                 }
             } else if (event === 'SIGNED_OUT') {
                 this.currentUser = null;
@@ -32,31 +50,31 @@ const Auth = {
             }
         });
 
-        // Explicitly check for existing session with timeout
-        try {
-            const sessionPromise = client.auth.getSession();
-            const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Session check timed out')), 5000)
-            );
+        // Give the auth state change listener a moment to fire
+        // This handles the case where INITIAL_SESSION event fires immediately
+        await new Promise(resolve => setTimeout(resolve, 100));
 
-            const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]);
-            console.log('getSession result:', session?.user?.email, error);
+        // Fallback: If INITIAL_SESSION didn't fire within timeout, check session manually
+        if (!initialAuthHandled) {
+            console.log('INITIAL_SESSION did not fire, checking session manually');
+            try {
+                const { data: { session }, error } = await client.auth.getSession();
+                console.log('Manual getSession result:', session?.user?.email, error);
 
-            if (session) {
-                this.currentUser = session.user;
-                this.showAuthenticatedUI();
-                // Load data in background, don't block UI
-                this.loadUserData().catch(err => console.error('Error loading user data:', err));
-            } else {
+                if (session) {
+                    this.currentUser = session.user;
+                    this.showAuthenticatedUI();
+                    this.loadUserData().catch(err => console.error('Error loading user data:', err));
+                } else if (!initialAuthHandled) {
+                    // Only show login if INITIAL_SESSION hasn't handled it
+                    this.showLoginUI();
+                }
+            } catch (error) {
+                console.error('Error getting session:', error);
                 this.showLoginUI();
             }
-        } catch (error) {
-            console.error('Error getting session:', error);
-            this.showLoginUI();
         }
 
-        // Setup auth modal handlers
-        this.setupAuthModals();
         this.isInitialized = true;
     },
 
