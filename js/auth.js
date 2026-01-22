@@ -19,7 +19,7 @@ const Auth = {
         client.auth.onAuthStateChange(async (event, session) => {
             console.log('Auth state change:', event, session?.user?.email);
 
-            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
                 if (session) {
                     this.currentUser = session.user;
                     this.showAuthenticatedUI();
