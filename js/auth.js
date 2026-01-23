@@ -5,13 +5,16 @@ const Auth = {
     isProcessingOAuth: false,  // Flag to prevent login UI during OAuth
 
     async init() {
-        // CRITICAL: Check for OAuth callback BEFORE initializing Supabase!
+        // CRITICAL: Save OAuth tokens BEFORE initializing Supabase!
         // Supabase's createClient() with detectSessionInUrl:true immediately clears the URL hash
-        const isOAuthCallback = window.location.hash.includes('access_token') ||
-            window.location.search.includes('code=');
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+        const isOAuthCallback = accessToken || window.location.search.includes('code=');
 
         if (isOAuthCallback) {
             console.log('OAuth callback detected BEFORE Supabase init');
+            console.log('Access token found:', !!accessToken);
             this.isProcessingOAuth = true;
         }
 
@@ -24,6 +27,26 @@ const Auth = {
             this.showMainApp();
             this.isInitialized = true;
             return;
+        }
+
+        // If we have OAuth tokens saved, try to set the session manually
+        if (accessToken && refreshToken) {
+            console.log('Manually setting session from URL tokens...');
+            try {
+                const { data, error } = await client.auth.setSession({
+                    access_token: accessToken,
+                    refresh_token: refreshToken
+                });
+                if (error) {
+                    console.error('Error setting session:', error);
+                } else {
+                    console.log('Session set successfully:', data?.user?.email);
+                    // Clean up URL
+                    window.history.replaceState(null, '', window.location.pathname);
+                }
+            } catch (err) {
+                console.error('Failed to set session:', err);
+            }
         }
 
         if (isOAuthCallback) {
