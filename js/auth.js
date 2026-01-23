@@ -15,6 +15,17 @@ const Auth = {
             return;
         }
 
+        // Check if this is an OAuth callback (URL contains access_token in hash)
+        const isOAuthCallback = window.location.hash.includes('access_token') ||
+            window.location.search.includes('code=');
+
+        if (isOAuthCallback) {
+            console.log('OAuth callback detected, processing...');
+            // Give Supabase time to process the OAuth callback
+            // The library will parse the URL and create a session automatically
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
+
         // Setup auth modal handlers first (before any async operations)
         this.setupAuthModals();
 
@@ -146,7 +157,11 @@ const Auth = {
             const { data, error } = await client.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    redirectTo: window.location.origin
+                    redirectTo: window.location.origin,
+                    skipBrowserRedirect: false,
+                    queryParams: {
+                        prompt: 'select_account'  // Always show account picker
+                    }
                 }
             });
 

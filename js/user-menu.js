@@ -191,8 +191,10 @@ const UserMenu = {
                         provider: 'google',
                         options: {
                             redirectTo: window.location.origin,
+                            skipBrowserRedirect: false,
                             queryParams: {
-                                login_hint: switchingEmail  // Auto-select this account in Google
+                                login_hint: switchingEmail,  // Auto-select this account in Google
+                                prompt: 'select_account'     // Force account picker to appear
                             }
                         }
                     });
