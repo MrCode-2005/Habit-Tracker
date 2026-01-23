@@ -388,6 +388,13 @@ const Calendar = {
                 dayCell.classList.add('has-events');
             }
 
+            // Check for Indian national holiday
+            const holiday = typeof Holidays !== 'undefined' ? Holidays.getHolidayForDate(dateStr) : null;
+            if (holiday) {
+                dayCell.classList.add('is-holiday');
+                dayCell.setAttribute('data-holiday', holiday);
+            }
+
             // Build event dots HTML with overflow indicator
             let eventDotsHtml = '';
             if (dayEvents.length > 0) {
@@ -399,15 +406,20 @@ const Calendar = {
                 eventDotsHtml = `<div class="event-dots">${visibleDots}${moreIndicator}</div>`;
             }
 
+            // Build holiday indicator HTML
+            const holidayHtml = holiday ?
+                `<span class="holiday-indicator" title="${holiday}" aria-label="${holiday}"></span>` : '';
+
             dayCell.innerHTML = `
                 <span class="day-number">${day}</span>
+                ${holidayHtml}
                 ${eventDotsHtml}
             `;
 
             // Accessibility attributes
             dayCell.setAttribute('role', 'gridcell');
             dayCell.setAttribute('tabindex', '0');
-            dayCell.setAttribute('aria-label', `${monthNames[month]} ${day}, ${year}${dayEvents.length > 0 ? `, ${dayEvents.length} event${dayEvents.length > 1 ? 's' : ''}` : ''}`);
+            dayCell.setAttribute('aria-label', `${monthNames[month]} ${day}, ${year}${holiday ? `, ${holiday}` : ''}${dayEvents.length > 0 ? `, ${dayEvents.length} event${dayEvents.length > 1 ? 's' : ''}` : ''}`);
 
             dayCell.onclick = () => this.onDayClick(dateStr, dayEvents);
 
