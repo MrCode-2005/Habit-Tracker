@@ -2,6 +2,7 @@
 const Auth = {
     currentUser: null,
     isInitialized: false,
+    isProcessingOAuth: false,  // Flag to prevent login UI during OAuth
 
     async init() {
         // Initialize Supabase client
@@ -15,78 +16,126 @@ const Auth = {
             return;
         }
 
-        // Check if this is an OAuth callback (URL contains access_token in hash)
+        // Check if this is an OAuth callback (URL contains access_token in hash or code in search)
         const isOAuthCallback = window.location.hash.includes('access_token') ||
             window.location.search.includes('code=');
 
         if (isOAuthCallback) {
-            console.log('OAuth callback detected, processing...');
-            // Give Supabase time to process the OAuth callback
-            // The library will parse the URL and create a session automatically
-            await new Promise(resolve => setTimeout(resolve, 500));
+            console.log('OAuth callback detected, waiting for session...');
+            this.isProcessingOAuth = true;
+
+            // Show a loading state instead of login modal
+            this.showLoadingState();
+
+            // Clean up URL hash after Supabase processes it (prevents issues on refresh)
+            // We'll do this after getting the session
         }
 
         // Setup auth modal handlers first (before any async operations)
         this.setupAuthModals();
 
-        // Flag to track if we've handled initial auth state
-        let initialAuthHandled = false;
+        // Promise that resolves when we get a definitive auth state
+        let authResolved = false;
+        const authPromise = new Promise((resolve) => {
+            // Listen for auth changes - this is the single source of truth for auth UI
+            client.auth.onAuthStateChange(async (event, session) => {
+                console.log('Auth state change:', event, session?.user?.email);
 
-        // Listen for auth changes - this is the single source of truth for auth UI
-        client.auth.onAuthStateChange(async (event, session) => {
-            console.log('Auth state change:', event, session?.user?.email);
+                if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                    if (session) {
+                        this.isProcessingOAuth = false;
+                        this.currentUser = session.user;
+                        this.showAuthenticatedUI();
+                        // Load data in background, don't block
+                        this.loadUserData().catch(err => console.error('Error loading user data:', err));
+                        authResolved = true;
+                        resolve('authenticated');
 
-            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-                if (session) {
-                    this.currentUser = session.user;
-                    this.showAuthenticatedUI();
-                    // Load data in background, don't block
-                    this.loadUserData().catch(err => console.error('Error loading user data:', err));
-                }
-            } else if (event === 'INITIAL_SESSION') {
-                initialAuthHandled = true;
-                if (session) {
-                    this.currentUser = session.user;
-                    this.showAuthenticatedUI();
-                    // Load data in background, don't block
-                    this.loadUserData().catch(err => console.error('Error loading user data:', err));
-                } else {
-                    // No session on page load - show login
-                    console.log('No initial session found, showing login UI');
+                        // Clean up URL hash after successful OAuth
+                        if (window.location.hash.includes('access_token')) {
+                            window.history.replaceState(null, '', window.location.pathname);
+                        }
+                    }
+                } else if (event === 'INITIAL_SESSION') {
+                    if (session) {
+                        this.isProcessingOAuth = false;
+                        this.currentUser = session.user;
+                        this.showAuthenticatedUI();
+                        this.loadUserData().catch(err => console.error('Error loading user data:', err));
+                        authResolved = true;
+                        resolve('authenticated');
+                    } else if (!this.isProcessingOAuth) {
+                        // Only show login if we're NOT processing OAuth
+                        console.log('No initial session found, showing login UI');
+                        this.showLoginUI();
+                        authResolved = true;
+                        resolve('unauthenticated');
+                    }
+                    // If isProcessingOAuth is true, we wait for SIGNED_IN event instead
+                } else if (event === 'SIGNED_OUT') {
+                    this.isProcessingOAuth = false;
+                    this.currentUser = null;
                     this.showLoginUI();
+                    authResolved = true;
+                    resolve('signed_out');
                 }
-            } else if (event === 'SIGNED_OUT') {
-                this.currentUser = null;
-                this.showLoginUI();
-            }
+            });
         });
 
-        // Give the auth state change listener a moment to fire
-        // This handles the case where INITIAL_SESSION event fires immediately
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // If OAuth callback, wait longer for the session to be established
+        if (isOAuthCallback) {
+            const timeout = new Promise((resolve) => {
+                setTimeout(() => {
+                    if (!authResolved) {
+                        console.log('OAuth timeout - checking session manually');
+                        resolve('timeout');
+                    }
+                }, 3000);  // 3 second timeout for OAuth
+            });
 
-        // Fallback: If INITIAL_SESSION didn't fire within timeout, check session manually
-        if (!initialAuthHandled) {
-            console.log('INITIAL_SESSION did not fire, checking session manually');
-            try {
-                const { data: { session }, error } = await client.auth.getSession();
-                console.log('Manual getSession result:', session?.user?.email, error);
+            const result = await Promise.race([authPromise, timeout]);
 
+            if (result === 'timeout') {
+                // OAuth timed out, check session manually
+                this.isProcessingOAuth = false;
+                const { data: { session } } = await client.auth.getSession();
                 if (session) {
                     this.currentUser = session.user;
                     this.showAuthenticatedUI();
                     this.loadUserData().catch(err => console.error('Error loading user data:', err));
-                } else if (!initialAuthHandled) {
-                    // Only show login if INITIAL_SESSION hasn't handled it
+                } else {
+                    console.log('OAuth failed or timed out, showing login UI');
                     this.showLoginUI();
                 }
-            } catch (error) {
-                console.error('Error getting session:', error);
-                this.showLoginUI();
+            }
+        } else {
+            // Not OAuth callback - wait a short time for INITIAL_SESSION
+            await new Promise(resolve => setTimeout(resolve, 200));
+
+            if (!authResolved) {
+                console.log('Auth state not resolved, checking session manually');
+                const { data: { session } } = await client.auth.getSession();
+                if (session) {
+                    this.currentUser = session.user;
+                    this.showAuthenticatedUI();
+                    this.loadUserData().catch(err => console.error('Error loading user data:', err));
+                } else {
+                    this.showLoginUI();
+                }
             }
         }
 
         this.isInitialized = true;
+    },
+
+    showLoadingState() {
+        // Hide login modal if visible
+        const loginModal = document.getElementById('loginModal');
+        if (loginModal) {
+            loginModal.classList.remove('active');
+        }
+        // Main content can stay visible but disabled
+        console.log('Showing loading state during OAuth...');
     },
 
     setupAuthModals() {

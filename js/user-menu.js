@@ -162,6 +162,16 @@ const UserMenu = {
 
         const switchingEmail = account.email;
 
+        // Check if this is a Google account (Gmail address)
+        const isGoogleAccount = switchingEmail.includes('@gmail.com') || account.provider === 'google';
+
+        // For Google accounts, set the OAuth processing flag BEFORE signing out
+        // This prevents the login modal from showing during the switch
+        if (isGoogleAccount && typeof Auth !== 'undefined') {
+            Auth.isProcessingOAuth = true;
+            console.log('Switching to Google account, OAuth flag set');
+        }
+
         // Log out current user first
         if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
             const client = getSupabase();
@@ -179,9 +189,7 @@ const UserMenu = {
         const userMenu = document.getElementById('userMenu');
         if (userMenu) userMenu.style.display = 'none';
 
-        // Check if this is a Google account (Gmail address)
-        const isGoogleAccount = switchingEmail.includes('@gmail.com') || account.provider === 'google';
-
+        // isGoogleAccount already declared above
         if (isGoogleAccount) {
             // Use Google OAuth with login_hint for seamless switch
             const client = getSupabase();
