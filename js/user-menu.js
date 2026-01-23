@@ -142,16 +142,47 @@ const UserMenu = {
         }
     },
 
-    // Save current account to list
-    saveCurrentAccount(email) {
+    // Save current account to list (with session tokens for instant switching)
+    async saveCurrentAccount(email) {
         const savedAccounts = Storage.get('savedAccounts') || [];
+        const client = getSupabase();
 
-        // Check if already exists
-        const exists = savedAccounts.find(a => a.email === email);
-        if (!exists) {
-            savedAccounts.push({ email, addedAt: new Date().toISOString() });
-            Storage.set('savedAccounts', savedAccounts);
+        // Get current session to store tokens
+        let sessionData = null;
+        if (client) {
+            try {
+                const { data: { session } } = await client.auth.getSession();
+                if (session) {
+                    sessionData = {
+                        access_token: session.access_token,
+                        refresh_token: session.refresh_token,
+                        provider: session.user?.app_metadata?.provider || 'email'
+                    };
+                }
+            } catch (err) {
+                console.log('Could not get session for storage:', err);
+            }
         }
+
+        // Check if already exists - update tokens if so
+        const existingIndex = savedAccounts.findIndex(a => a.email === email);
+        if (existingIndex >= 0) {
+            // Update existing account with fresh tokens
+            savedAccounts[existingIndex] = {
+                ...savedAccounts[existingIndex],
+                ...sessionData,
+                lastUsed: new Date().toISOString()
+            };
+        } else {
+            // Add new account
+            savedAccounts.push({
+                email,
+                ...sessionData,
+                addedAt: new Date().toISOString(),
+                lastUsed: new Date().toISOString()
+            });
+        }
+        Storage.set('savedAccounts', savedAccounts);
     },
 
     // Switch to different account
@@ -161,56 +192,74 @@ const UserMenu = {
         document.getElementById('userMenuBtn')?.classList.remove('active');
 
         const switchingEmail = account.email;
+        const client = getSupabase();
 
-        // Check if this is a Google account (Gmail address)
+        // Check if we have stored tokens for this account
+        if (account.access_token && account.refresh_token && client) {
+            console.log('Attempting instant switch using stored tokens...');
+
+            // Try to restore the session using stored tokens
+            try {
+                const { data, error } = await client.auth.setSession({
+                    access_token: account.access_token,
+                    refresh_token: account.refresh_token
+                });
+
+                if (!error && data?.session) {
+                    console.log('Session restored successfully:', data.session.user?.email);
+
+                    // Update Auth module
+                    if (typeof Auth !== 'undefined') {
+                        Auth.currentUser = data.session.user;
+                        Auth.showAuthenticatedUI();
+                        Auth.loadUserData().catch(err => console.error('Error loading user data:', err));
+                    }
+
+                    // Update the stored tokens with fresh ones
+                    this.updateStoredTokens(switchingEmail, data.session);
+
+                    // Reload the accounts list
+                    this.loadSavedAccounts();
+                    return; // Success - instant switch complete!
+                } else {
+                    console.log('Token restoration failed:', error?.message);
+                    // Clear expired tokens
+                    this.clearStoredTokens(switchingEmail);
+                }
+            } catch (err) {
+                console.error('Error restoring session:', err);
+                // Clear invalid tokens
+                this.clearStoredTokens(switchingEmail);
+            }
+        }
+
+        // Fallback: Need to re-authenticate
+        console.log('No valid stored tokens, falling back to authentication...');
+
+        // Check if this is a Google account
         const isGoogleAccount = switchingEmail.includes('@gmail.com') || account.provider === 'google';
 
-        // For Google accounts, set the OAuth processing flag BEFORE signing out
-        // This prevents the login modal from showing during the switch
-        if (isGoogleAccount && typeof Auth !== 'undefined') {
-            Auth.isProcessingOAuth = true;
-            console.log('Switching to Google account, OAuth flag set');
-        }
-
-        // Log out current user first
-        if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
-            const client = getSupabase();
-            if (client) {
-                try {
-                    await client.auth.signOut();
-                } catch (error) {
-                    console.log('Logout during switch:', error);
-                }
+        if (isGoogleAccount && client) {
+            // Set OAuth flag to prevent login modal flash
+            if (typeof Auth !== 'undefined') {
+                Auth.isProcessingOAuth = true;
             }
-            Auth.currentUser = null;
-        }
 
-        // Hide user menu
-        const userMenu = document.getElementById('userMenu');
-        if (userMenu) userMenu.style.display = 'none';
-
-        // isGoogleAccount already declared above
-        if (isGoogleAccount) {
-            // Use Google OAuth with login_hint for seamless switch
-            const client = getSupabase();
-            if (client) {
-                try {
-                    await client.auth.signInWithOAuth({
-                        provider: 'google',
-                        options: {
-                            redirectTo: window.location.origin,
-                            skipBrowserRedirect: false,
-                            queryParams: {
-                                login_hint: switchingEmail,  // Auto-select this account in Google
-                                prompt: 'select_account'     // Force account picker to appear
-                            }
+            try {
+                await client.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: {
+                        redirectTo: window.location.origin,
+                        skipBrowserRedirect: false,
+                        queryParams: {
+                            login_hint: switchingEmail,
+                            prompt: 'none'  // Try to skip account picker
                         }
-                    });
-                    // User will be redirected to Google, then back
-                    return;
-                } catch (error) {
-                    console.error('Google switch error:', error);
-                }
+                    }
+                });
+                return;
+            } catch (error) {
+                console.error('Google switch error:', error);
             }
         }
 
@@ -228,6 +277,29 @@ const UserMenu = {
                     setTimeout(() => loginPassword.focus(), 100);
                 }
             }
+        }
+    },
+
+    // Update stored tokens for an account
+    updateStoredTokens(email, session) {
+        const savedAccounts = Storage.get('savedAccounts') || [];
+        const index = savedAccounts.findIndex(a => a.email === email);
+        if (index >= 0 && session) {
+            savedAccounts[index].access_token = session.access_token;
+            savedAccounts[index].refresh_token = session.refresh_token;
+            savedAccounts[index].lastUsed = new Date().toISOString();
+            Storage.set('savedAccounts', savedAccounts);
+        }
+    },
+
+    // Clear stored tokens for an account (when they expire)
+    clearStoredTokens(email) {
+        const savedAccounts = Storage.get('savedAccounts') || [];
+        const index = savedAccounts.findIndex(a => a.email === email);
+        if (index >= 0) {
+            delete savedAccounts[index].access_token;
+            delete savedAccounts[index].refresh_token;
+            Storage.set('savedAccounts', savedAccounts);
         }
     },
 
