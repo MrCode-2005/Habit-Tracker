@@ -5,7 +5,17 @@ const Auth = {
     isProcessingOAuth: false,  // Flag to prevent login UI during OAuth
 
     async init() {
-        // Initialize Supabase client
+        // CRITICAL: Check for OAuth callback BEFORE initializing Supabase!
+        // Supabase's createClient() with detectSessionInUrl:true immediately clears the URL hash
+        const isOAuthCallback = window.location.hash.includes('access_token') ||
+            window.location.search.includes('code=');
+
+        if (isOAuthCallback) {
+            console.log('OAuth callback detected BEFORE Supabase init');
+            this.isProcessingOAuth = true;
+        }
+
+        // Initialize Supabase client (this may clear the URL hash)
         await initSupabase();
 
         const client = getSupabase();
@@ -16,19 +26,10 @@ const Auth = {
             return;
         }
 
-        // Check if this is an OAuth callback (URL contains access_token in hash or code in search)
-        const isOAuthCallback = window.location.hash.includes('access_token') ||
-            window.location.search.includes('code=');
-
         if (isOAuthCallback) {
-            console.log('OAuth callback detected, waiting for session...');
-            this.isProcessingOAuth = true;
-
+            console.log('OAuth callback - showing loading state...');
             // Show a loading state instead of login modal
             this.showLoadingState();
-
-            // Clean up URL hash after Supabase processes it (prevents issues on refresh)
-            // We'll do this after getting the session
         }
 
         // Setup auth modal handlers first (before any async operations)
@@ -73,11 +74,15 @@ const Auth = {
                     }
                     // If isProcessingOAuth is true, we wait for SIGNED_IN event instead
                 } else if (event === 'SIGNED_OUT') {
-                    this.isProcessingOAuth = false;
-                    this.currentUser = null;
-                    this.showLoginUI();
-                    authResolved = true;
-                    resolve('signed_out');
+                    // Only show login if we're NOT processing OAuth (e.g., account switch)
+                    if (!this.isProcessingOAuth) {
+                        this.currentUser = null;
+                        this.showLoginUI();
+                        authResolved = true;
+                        resolve('signed_out');
+                    } else {
+                        console.log('SIGNED_OUT during OAuth processing, waiting for new sign-in...');
+                    }
                 }
             });
         });
