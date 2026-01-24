@@ -48,7 +48,7 @@ const Expenses = {
 
     // Current state
     currentTab: 'all',
-    currentTimeFilter: 'month',
+    currentTimeFilter: 'week',
     initialized: false,
 
     // ===================================
