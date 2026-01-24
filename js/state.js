@@ -23,7 +23,26 @@ const State = {
         const currentUserId = Storage.get('currentUserId');
 
         if (currentUserId) {
-            this.expenses = Storage.get(`expenses_${currentUserId}`) || [];
+            // Load user-specific expenses
+            let userExpenses = Storage.get(`expenses_${currentUserId}`) || [];
+
+            // Migrate any expenses from guest key (generic 'expenses') to user key
+            const guestExpenses = Storage.get('expenses') || [];
+            if (guestExpenses.length > 0) {
+                // Merge guest expenses with user expenses, avoiding duplicates
+                const existingIds = new Set(userExpenses.map(e => e.id));
+                for (const guestExp of guestExpenses) {
+                    if (!existingIds.has(guestExp.id)) {
+                        userExpenses.push(guestExp);
+                    }
+                }
+                // Clear guest key after migration
+                Storage.remove('expenses');
+                // Save merged expenses to user key
+                Storage.set(`expenses_${currentUserId}`, userExpenses);
+            }
+
+            this.expenses = userExpenses;
             this.educationFees = Storage.get(`educationFees_${currentUserId}`) || [];
             // Load from per-user keys
             this.taskCompletionHistory = Storage.get(`taskCompletionHistory_${currentUserId}`) || [];
@@ -671,8 +690,14 @@ const State = {
 
     saveExpenses() {
         const currentUserId = Storage.get('currentUserId');
-        const key = currentUserId ? `expenses_${currentUserId}` : 'expenses';
-        Storage.set(key, this.expenses);
+        if (currentUserId) {
+            // Save to user-specific key
+            Storage.set(`expenses_${currentUserId}`, this.expenses);
+        } else {
+            // Guest mode - save to generic key
+            Storage.set('expenses', this.expenses);
+        }
+        console.log('Expenses saved:', this.expenses.length, 'items');
     },
 
     async syncExpenseToSupabase(expense) {
