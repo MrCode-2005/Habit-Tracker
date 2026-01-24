@@ -292,30 +292,36 @@ const Expenses = {
         const container = document.getElementById('expenseHistoryList');
         if (!container) return;
 
-        const deletedExpenses = State.getExpenses().filter(e => e.is_deleted);
+        // Show ALL expenses (not just deleted ones) in history
+        const allExpenses = State.getExpenses();
 
-        if (deletedExpenses.length === 0) {
-            container.innerHTML = '<p class="history-empty">No deleted expenses</p>';
+        if (allExpenses.length === 0) {
+            container.innerHTML = '<p class="history-empty">No expenses recorded yet</p>';
             return;
         }
 
-        // Sort by date descending
-        deletedExpenses.sort((a, b) => new Date(b.expense_date) - new Date(a.expense_date));
+        // Sort by date descending (most recent first)
+        const sortedExpenses = [...allExpenses].sort((a, b) => new Date(b.expense_date) - new Date(a.expense_date));
 
-        container.innerHTML = deletedExpenses.map(exp => {
+        container.innerHTML = sortedExpenses.map(exp => {
             const cat = this.categories[exp.category];
+            if (!cat) return ''; // Skip if category not found
             const date = new Date(exp.expense_date);
             const dateStr = date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+            const deletedClass = exp.is_deleted ? 'history-item-deleted' : '';
+            const note = exp.note ? `<span class="history-note">${exp.note}</span>` : '';
 
             return `
-                <div class="history-item">
+                <div class="history-item ${deletedClass}" data-id="${exp.id}">
                     <div class="history-icon" style="color: ${cat.color}">
                         <i class="fa-solid ${cat.icon}"></i>
                     </div>
                     <div class="history-content">
                         <span class="history-amount">₹${this.formatAmount(exp.amount)}</span>
                         <span class="history-date">${dateStr}</span>
+                        ${note}
                     </div>
+                    ${exp.is_deleted ? '<span class="history-deleted-badge">Deleted</span>' : ''}
                 </div>
             `;
         }).join('');
