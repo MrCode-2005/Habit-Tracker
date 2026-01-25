@@ -181,6 +181,7 @@ const Expenses = {
         this.renderExpenses();
         this.renderCharts();
         this.renderEducationFees();
+        this.renderExpenseHistory(); // Render history on page load
     },
 
     async renderSummaryCards() {
