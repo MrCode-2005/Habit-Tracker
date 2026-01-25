@@ -51,6 +51,11 @@ const Expenses = {
     currentTimeFilter: 'week',
     initialized: false,
 
+    // History filter state
+    historyTimeFilter: 'week',
+    historyCategoryFilter: 'all',
+    historyCustomDays: 30,
+
     // ===================================
     // Initialization
     // ===================================
@@ -129,6 +134,37 @@ const Expenses = {
                 });
             }
         });
+
+        // History time filter
+        const historyTimeFilter = document.getElementById('historyTimeFilter');
+        if (historyTimeFilter) {
+            historyTimeFilter.addEventListener('change', (e) => {
+                this.historyTimeFilter = e.target.value;
+                const customDaysInput = document.getElementById('historyCustomDays');
+                if (customDaysInput) {
+                    customDaysInput.style.display = e.target.value === 'custom' ? 'inline-block' : 'none';
+                }
+                this.renderExpenseHistory();
+            });
+        }
+
+        // History category filter
+        const historyCategoryFilter = document.getElementById('historyCategoryFilter');
+        if (historyCategoryFilter) {
+            historyCategoryFilter.addEventListener('change', (e) => {
+                this.historyCategoryFilter = e.target.value;
+                this.renderExpenseHistory();
+            });
+        }
+
+        // History custom days input
+        const historyCustomDays = document.getElementById('historyCustomDays');
+        if (historyCustomDays) {
+            historyCustomDays.addEventListener('change', (e) => {
+                this.historyCustomDays = parseInt(e.target.value) || 30;
+                this.renderExpenseHistory();
+            });
+        }
     },
 
     // ===================================
@@ -290,24 +326,51 @@ const Expenses = {
 
     renderExpenseHistory() {
         const container = document.getElementById('expenseHistoryList');
+        const statsEl = document.getElementById('historyStats');
         if (!container) return;
 
-        // Show ALL expenses (not just deleted ones) in history
-        const allExpenses = State.getExpenses();
+        // Get ALL expenses (both active and deleted)
+        let expenses = State.getExpenses();
 
-        if (allExpenses.length === 0) {
-            container.innerHTML = '<p class="history-empty">No expenses recorded yet</p>';
+        // Apply time filter
+        const timeRange = this.getHistoryDateRange();
+        expenses = expenses.filter(exp => {
+            const expDate = new Date(exp.expense_date);
+            const normalizedDate = new Date(expDate.getFullYear(), expDate.getMonth(), expDate.getDate());
+            return normalizedDate >= timeRange.start && normalizedDate <= timeRange.end;
+        });
+
+        // Apply category filter
+        if (this.historyCategoryFilter !== 'all') {
+            if (this.historyCategoryFilter === 'food') {
+                expenses = expenses.filter(exp => exp.category === 'food_outing' || exp.category === 'food_online');
+            } else {
+                expenses = expenses.filter(exp => exp.category === this.historyCategoryFilter);
+            }
+        }
+
+        // Update stats
+        const totalAmount = expenses.reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
+        if (statsEl) {
+            statsEl.innerHTML = `
+                <span class="history-count">${expenses.length} expense${expenses.length !== 1 ? 's' : ''}</span>
+                <span class="history-total">₹${this.formatAmount(totalAmount)}</span>
+            `;
+        }
+
+        if (expenses.length === 0) {
+            container.innerHTML = '<p class="history-empty">No expenses found for the selected filters</p>';
             return;
         }
 
         // Sort by date descending (most recent first)
-        const sortedExpenses = [...allExpenses].sort((a, b) => new Date(b.expense_date) - new Date(a.expense_date));
+        const sortedExpenses = [...expenses].sort((a, b) => new Date(b.expense_date) - new Date(a.expense_date));
 
         container.innerHTML = sortedExpenses.map(exp => {
             const cat = this.categories[exp.category];
             if (!cat) return ''; // Skip if category not found
             const date = new Date(exp.expense_date);
-            const dateStr = date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+            const dateStr = date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
             const deletedClass = exp.is_deleted ? 'history-item-deleted' : '';
             const note = exp.note ? `<span class="history-note">${exp.note}</span>` : '';
 
@@ -317,14 +380,43 @@ const Expenses = {
                         <i class="fa-solid ${cat.icon}"></i>
                     </div>
                     <div class="history-content">
-                        <span class="history-amount">₹${this.formatAmount(exp.amount)}</span>
-                        <span class="history-date">${dateStr}</span>
-                        ${note}
+                        <div class="history-main">
+                            <span class="history-category">${cat.name}</span>
+                            <span class="history-amount">₹${this.formatAmount(exp.amount)}</span>
+                        </div>
+                        <div class="history-meta">
+                            <span class="history-date">${dateStr}</span>
+                            ${note}
+                        </div>
                     </div>
                     ${exp.is_deleted ? '<span class="history-deleted-badge">Deleted</span>' : ''}
                 </div>
             `;
         }).join('');
+    },
+
+    getHistoryDateRange() {
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        switch (this.historyTimeFilter) {
+            case 'today':
+                return { start: today, end: today };
+            case 'week':
+                const weekStart = new Date(today);
+                weekStart.setDate(weekStart.getDate() - 7);
+                return { start: weekStart, end: today };
+            case 'month':
+                const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+                return { start: monthStart, end: today };
+            case 'custom':
+                const customStart = new Date(today);
+                customStart.setDate(customStart.getDate() - this.historyCustomDays);
+                return { start: customStart, end: today };
+            case 'all':
+            default:
+                return { start: new Date(0), end: today };
+        }
     },
 
     showCategorySection(category) {

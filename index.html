@@ -633,9 +633,48 @@
 
             <!-- Expense History Panel -->
             <div class="expense-history-panel" id="expenseHistoryPanel">
-                <h2>Expense History</h2>
+                <div class="history-panel-header">
+                    <h2>Expense History</h2>
+                </div>
+
+                <!-- History Filters -->
+                <div class="history-filters">
+                    <!-- Time Filter -->
+                    <div class="history-filter-group">
+                        <label>Time:</label>
+                        <select id="historyTimeFilter">
+                            <option value="all">All Time</option>
+                            <option value="today">Today</option>
+                            <option value="week" selected>Last Week</option>
+                            <option value="month">This Month</option>
+                            <option value="custom">Custom Days</option>
+                        </select>
+                        <input type="number" id="historyCustomDays" class="history-custom-days" min="1" max="365"
+                            value="30" placeholder="Days" style="display: none;">
+                    </div>
+
+                    <!-- Category Filter -->
+                    <div class="history-filter-group">
+                        <label>Category:</label>
+                        <select id="historyCategoryFilter">
+                            <option value="all">All Categories</option>
+                            <option value="food">Food</option>
+                            <option value="clothing">Clothing & Shopping</option>
+                            <option value="transportation">Transportation</option>
+                            <option value="essentials">Daily Essentials</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- History Stats -->
+                <div class="history-stats" id="historyStats">
+                    <span class="history-count">0 expenses</span>
+                    <span class="history-total">₹0.00</span>
+                </div>
+
+                <!-- Expense List -->
                 <div class="history-list" id="expenseHistoryList">
-                    <!-- Soft-deleted expenses -->
+                    <!-- All expenses will be displayed here -->
                 </div>
             </div>
         </section>
