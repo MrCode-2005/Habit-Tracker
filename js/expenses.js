@@ -48,11 +48,11 @@ const Expenses = {
 
     // Current state
     currentTab: 'all',
-    currentTimeFilter: 'week',
+    currentTimeFilter: 'month',
     initialized: false,
 
     // History filter state
-    historyTimeFilter: 'week',
+    historyTimeFilter: 'month',
     historyCategoryFilter: 'all',
     historyCustomDays: 30,
 
