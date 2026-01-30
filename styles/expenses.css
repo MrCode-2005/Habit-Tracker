@@ -53,6 +53,36 @@
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
+.set-default-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--bg-secondary);
+    color: var(--text-tertiary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.set-default-btn:hover {
+    border-color: var(--warning);
+    color: var(--warning);
+    background: rgba(245, 158, 11, 0.1);
+}
+
+.set-default-btn.active {
+    border-color: var(--warning);
+    color: var(--warning);
+    background: rgba(245, 158, 11, 0.15);
+}
+
+.set-default-btn i {
+    font-size: 0.75rem;
+}
+
 /* ===================================
    Category Tabs
    =================================== */
@@ -1149,4 +1179,37 @@
     color: var(--text-primary);
     font-size: 0.875rem;
     text-align: right;
+}
+
+/* ===================================
+   Toast Notifications
+   =================================== */
+.expense-toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    padding: 0.75rem 1.25rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    z-index: 10000;
+    opacity: 0;
+    transition: all 0.3s ease;
+    font-size: 0.875rem;
+}
+
+.expense-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.expense-toast i {
+    color: var(--success);
+    font-size: 1rem;
 }

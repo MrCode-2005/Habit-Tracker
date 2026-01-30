@@ -62,11 +62,24 @@ const Expenses = {
     init() {
         if (this.initialized) return;
 
-        // Read current time filter from dropdown
+        // Load saved default time filter from localStorage
+        const savedDefaultFilter = Storage.get('expenseDefaultTimeFilter');
+        if (savedDefaultFilter) {
+            this.currentTimeFilter = savedDefaultFilter;
+            this.historyTimeFilter = savedDefaultFilter;
+        }
+
+        // Set dropdown value and mark star if it's the saved default
         const timeFilter = document.getElementById('expenseTimeFilter');
         if (timeFilter) {
+            if (savedDefaultFilter) {
+                timeFilter.value = savedDefaultFilter;
+            }
             this.currentTimeFilter = timeFilter.value;
         }
+
+        // Update star button state
+        this.updateDefaultButtonState();
 
         this.bindEvents();
         this.initialized = true;
@@ -79,6 +92,22 @@ const Expenses = {
         }
 
         console.log('Expenses module initialized');
+    },
+
+    updateDefaultButtonState() {
+        const savedDefaultFilter = Storage.get('expenseDefaultTimeFilter');
+        const currentFilter = document.getElementById('expenseTimeFilter')?.value;
+        const setDefaultBtn = document.getElementById('setDefaultTimeFilter');
+
+        if (setDefaultBtn) {
+            if (savedDefaultFilter && savedDefaultFilter === currentFilter) {
+                setDefaultBtn.classList.add('active');
+                setDefaultBtn.title = 'This is your default view';
+            } else {
+                setDefaultBtn.classList.remove('active');
+                setDefaultBtn.title = 'Set as default view';
+            }
+        }
     },
 
     bindEvents() {
@@ -101,6 +130,30 @@ const Expenses = {
                 this.currentTimeFilter = e.target.value;
                 this.renderCharts();
                 this.renderExpenses();
+                this.renderSummaryCards();
+                this.updateDefaultButtonState();
+            });
+        }
+
+        // Set default time filter button
+        const setDefaultBtn = document.getElementById('setDefaultTimeFilter');
+        if (setDefaultBtn) {
+            setDefaultBtn.addEventListener('click', () => {
+                const currentFilter = document.getElementById('expenseTimeFilter')?.value;
+                if (currentFilter) {
+                    Storage.set('expenseDefaultTimeFilter', currentFilter);
+                    this.updateDefaultButtonState();
+
+                    // Show feedback
+                    const filterLabels = {
+                        'today': 'Today',
+                        'week': 'Last Week',
+                        'month': 'This Month',
+                        'year': 'This Year'
+                    };
+                    const label = filterLabels[currentFilter] || currentFilter;
+                    this.showToast(`Default view set to "${label}"`);
+                }
             });
         }
 
@@ -2068,6 +2121,35 @@ const Expenses = {
         document.getElementById('extractedFees').style.display = 'none';
         document.getElementById('receiptFileInput').value = '';
         document.getElementById('applyExtractedFeesBtn').disabled = true;
+    },
+
+    // Helper function to show toast notifications
+    showToast(message, duration = 2000) {
+        // Remove any existing toast
+        const existingToast = document.querySelector('.expense-toast');
+        if (existingToast) {
+            existingToast.remove();
+        }
+
+        // Create toast element
+        const toast = document.createElement('div');
+        toast.className = 'expense-toast';
+        toast.innerHTML = `
+            <i class="fa-solid fa-check-circle"></i>
+            <span>${message}</span>
+        `;
+        document.body.appendChild(toast);
+
+        // Trigger animation
+        requestAnimationFrame(() => {
+            toast.classList.add('show');
+        });
+
+        // Remove after duration
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
     }
 };
 
