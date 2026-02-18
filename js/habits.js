@@ -98,16 +98,23 @@ const Habits = {
                 </div>
             </div>
             <div class="habit-actions">
-                <button class="task-action-btn" onclick="Habits.showHabitModal('${habit.id}')">
+                <button class="task-action-btn" onclick="Habits.showHabitModal('${habit.id}')" aria-label="Edit habit">
                     <i class="fa-solid fa-edit"></i> Edit
                 </button>
-                <button class="task-action-btn" onclick="Habits.deleteHabit('${habit.id}')">
+                <button class="task-action-btn" onclick="Habits.showProgress('${habit.id}')" aria-label="View habit progress">
+                    <i class="fa-solid fa-chart-simple"></i> Progress
+                </button>
+                <button class="task-action-btn" onclick="Habits.deleteHabit('${habit.id}')" aria-label="Delete habit">
                     <i class="fa-solid fa-trash"></i> Delete
                 </button>
             </div>
         `;
 
         return div;
+    },
+
+    showProgress(habitId) {
+        HabitProgress.show(habitId);
     },
 
     async toggleToday(habitId) {
@@ -117,6 +124,16 @@ const Habits = {
             await State.syncHabitToSupabase(habit);
         }
         this.render();
+
+        // Refresh progress view if active
+        if (typeof HabitProgress !== 'undefined') {
+            HabitProgress.refresh();
+        }
+
+        // Refresh analytics if active
+        if (typeof Analytics !== 'undefined' && document.getElementById('analytics').classList.contains('active')) {
+            Analytics.refresh();
+        }
     },
 
     async deleteHabit(habitId) {
@@ -127,6 +144,11 @@ const Habits = {
             await State.deleteHabitFromSupabase(habitId);
             Toast.success('Habit deleted');
             this.render();
+
+            // Refresh analytics if active
+            if (typeof Analytics !== 'undefined' && document.getElementById('analytics').classList.contains('active')) {
+                Analytics.refresh();
+            }
         }
     }
 };

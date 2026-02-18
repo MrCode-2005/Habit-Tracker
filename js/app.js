@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     Quotes.init();
     Analytics.init();
     Expenses.init();
+    HabitProgress.init();
 
     // Expose modules globally for onclick handlers
     window.Tasks = Tasks;
@@ -26,6 +27,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.Timer = Timer;
     window.Analytics = Analytics;
     window.Expenses = Expenses;
+    window.Heatmap = Heatmap;
+    window.HabitProgress = HabitProgress;
 
     // Setup navigation and modals FIRST (before Auth which may be slow)
     setupNavigation();

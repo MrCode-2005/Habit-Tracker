@@ -280,6 +280,13 @@
             </div>
         </section>
 
+        <!-- Habit Progress View (NEW) -->
+        <section class="view" id="habitProgress">
+            <div id="habitProgressContent">
+                <!-- Rendered dynamically by HabitProgress.render() -->
+            </div>
+        </section>
+
         <!-- Analytics View -->
         <section class="view" id="analytics">
             <div class="view-header">
@@ -319,6 +326,14 @@
                     <h3>Monthly Completion Trend</h3>
                     <canvas id="habitMonthlyChart"></canvas>
                 </div>
+            </div>
+
+            <!-- Overall Habit Progress Heatmap (NEW) -->
+            <h2 style="margin: 2.5rem 0 1rem 0; font-size: 1.25rem; color: var(--text-primary);">
+                Overall Habit Progress
+            </h2>
+            <div id="analyticsHeatmapContainer" class="chart-card" style="width: 100%; overflow-x: auto;">
+                <!-- Rendered dynamically by Analytics.renderOverallHeatmap() -->
             </div>
 
             <!-- Productivity Insights -->
@@ -2077,6 +2092,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
     <!-- App Scripts -->
+    <link rel="stylesheet" href="styles/heatmap.css">
     <script src="js/storage.js"></script>
     <script src="js/toast.js"></script>
     <script src="js/theme.js"></script>
@@ -2101,6 +2117,10 @@
 
     <!-- Theme Loader (apply saved customizations) -->
     <script src="js/theme-loader.js"></script>
+
+    <!-- Heatmap & Progress (NEW) -->
+    <script src="js/heatmap.js"></script>
+    <script src="js/habit-progress.js"></script>
 
     <script src="js/app.js"></script>
 

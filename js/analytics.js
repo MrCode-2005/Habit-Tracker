@@ -23,6 +23,7 @@ const Analytics = {
         this.renderGoalsChart();
         this.renderHabitWeeklyChart();
         this.renderHabitMonthlyChart();
+        this.renderOverallHeatmap();
         this.renderProductivityStats();
         this.renderTimeSlotChart();
         this.renderBlockChart();
@@ -1155,6 +1156,73 @@ const Analytics = {
                         }
                     }
                 }
+            }
+        });
+    },
+
+    renderOverallHeatmap() {
+        const container = document.getElementById('analyticsHeatmapContainer');
+        if (!container) return;
+
+        const habits = State.getHabits();
+        const habitHistory = State.habitCompletionHistory || [];
+
+        // Prepare data map: 'YYYY-MM-DD' => count
+        const data = {};
+
+        // 1. Count active habits
+        habits.forEach(habit => {
+            if (habit.completions) {
+                Object.keys(habit.completions).forEach(dateKey => {
+                    if (habit.completions[dateKey]) {
+                        data[dateKey] = (data[dateKey] || 0) + 1;
+                    }
+                });
+            }
+        });
+
+        // 2. Count deleted habits from history
+        const activeHabitIds = new Set(habits.map(h => String(h.id)));
+        habitHistory.forEach(h => {
+            // Only count if not belonging to an active habit (to avoid double counting if history overlaps)
+            // Although history is usually for deleted items, we check just in case.
+            if (!activeHabitIds.has(String(h.habitId))) {
+                data[h.dateKey] = (data[h.dateKey] || 0) + 1;
+            }
+        });
+
+        // Approximate max value for coloring scaling
+        // (Use total number of active habits as a baseline for "full" day)
+        // If 0 habits, default to 5 so scale isn't broken
+        const maxValue = Math.max(habits.length, 5);
+
+        // Get current year
+        const year = new Date().getFullYear();
+
+        // Render with Heatmap engine
+        // We'll store active filter in a property to persist it during refreshes if we wanted,
+        // but for now default to 'thisYear' or read from DOM if we implemented state persistence.
+        // Simple implementation:
+
+        if (!this._heatmapFilter) this._heatmapFilter = 'thisYear';
+
+        // Adjust year based on filter
+        let displayYear = year;
+        if (this._heatmapFilter === 'lastYear') displayYear -= 1;
+
+        Heatmap.render(container, {
+            data: data,
+            year: displayYear,
+            mode: 'overall',
+            maxValue: maxValue,
+            filter: this._heatmapFilter,
+            month: this._heatmapMonth, // undefined by default
+            activeFilter: this._heatmapFilter,
+            title: '',
+            onFilterChange: (newFilter, newMonth) => {
+                this._heatmapFilter = newFilter;
+                this._heatmapMonth = newMonth;
+                this.renderOverallHeatmap();
             }
         });
     },
